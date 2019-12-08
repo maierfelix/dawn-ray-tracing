@@ -38,6 +38,7 @@ namespace dawn_native {
     static_assert(static_cast<uint32_t>(SingleShaderStage::Vertex) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::Fragment) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::Compute) < kNumStages, "");
+
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayGeneration) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayAnyHit) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayClosestHit) < kNumStages, "");

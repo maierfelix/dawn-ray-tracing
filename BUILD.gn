@@ -137,7 +137,9 @@ source_set("libdawn_native_sources") {
     "${dawn_shaderc_dir}:spirv_cross",
     "${dawn_spirv_tools_dir}:spvtools_val",
   ]
+
   defines = [ "NV_EXTENSIONS=1" ]
+
   libs = []
   data_deps = []
 

@@ -87,4 +87,51 @@ LogMessage ErrorLog();
 LogMessage DebugLog(const char* file, const char* function, int line);
 #define DAWN_DEBUG() DebugLog(__FILE__, __func__, __LINE__)
 
+namespace dawn {
+
+    // Log levels mostly used to signal intent where the log message is produced and used to route
+    // the message to the correct output.
+    enum class LogSeverity {
+        Debug,
+        Info,
+        Warning,
+        Error,
+    };
+
+    // Essentially an ostringstream that will print itself in its destructor.
+    class LogMessage {
+      public:
+        LogMessage(LogSeverity severity);
+        ~LogMessage();
+
+        LogMessage(LogMessage&& other) = default;
+        LogMessage& operator=(LogMessage&& other) = default;
+
+        template <typename T>
+        LogMessage& operator<<(T&& value) {
+            mStream << value;
+            return *this;
+        }
+
+      private:
+        LogMessage(const LogMessage& other) = delete;
+        LogMessage& operator=(const LogMessage& other) = delete;
+
+        LogSeverity mSeverity;
+        std::ostringstream mStream;
+    };
+
+    // Short-hands to create a LogMessage with the respective severity.
+    LogMessage DebugLog();
+    LogMessage InfoLog();
+    LogMessage WarningLog();
+    LogMessage ErrorLog();
+
+    // DAWN_DEBUG is a helper macro that creates a DebugLog and outputs file/line/function
+    // information
+    LogMessage DebugLog(const char* file, const char* function, int line);
+#define DAWN_DEBUG() ::dawn::DebugLog(__FILE__, __func__, __LINE__)
+
+}  // namespace dawn
+
 #endif  // COMMON_LOG_H_

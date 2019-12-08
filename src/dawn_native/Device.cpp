@@ -366,6 +366,7 @@ namespace dawn_native {
     }
 
     // Object creation API methods
+
     RayTracingAccelerationGeometryBase* DeviceBase::CreateRayTracingAccelerationGeometry(const RayTracingAccelerationGeometryDescriptor* descriptor) {
         RayTracingAccelerationGeometryBase* result = nullptr;
 
@@ -659,6 +660,8 @@ namespace dawn_native {
     MaybeError DeviceBase::CreateBindGroupInternal(
         BindGroupBase** result,
         const BindGroupDescriptor* descriptor) {
+    MaybeError DeviceBase::CreateBindGroupInternal(BindGroupBase** result,
+                                                   const BindGroupDescriptor* descriptor) {
         if (IsValidationEnabled()) {
             DAWN_TRY(ValidateBindGroupDescriptor(this, descriptor));
         }

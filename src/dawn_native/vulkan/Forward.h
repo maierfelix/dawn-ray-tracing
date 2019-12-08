@@ -20,7 +20,9 @@
 namespace dawn_native { namespace vulkan {
 
     class Adapter;
+
     class RayTracingAccelerationGeometry;
+
     class BindGroup;
     class BindGroupLayout;
     class Buffer;

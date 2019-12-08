@@ -39,6 +39,7 @@
 namespace dawn_native { namespace null {
 
     class Adapter;
+
     using RayTracingAccelerationGeometry = RayTracingAccelerationGeometryBase;
     using BindGroup = BindGroupBase;
     using BindGroupLayout = BindGroupLayoutBase;
