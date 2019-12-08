@@ -1,0 +1,11 @@
+ComputePipelineVk.cpp
+DeviceVk.cpp
+RayTracingAccelerationGeometryVk.cpp
+RenderPipelineVk.cpp
+SamplerVk.cpp
+ShaderModuleVk.cpp
+TextureVk.cpp
+VulkanBackend.cpp
+external_memory\MemoryServiceDmaBuf.cpp
+external_memory\MemoryServiceOpaqueFD.cpp
+external_memory\MemoryServiceZirconHandle.cpp
