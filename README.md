@@ -1,5 +1,12 @@
 # Dawn, a WebGPU implementation
 
+**Unofficial Notes**:
+
+This is a fork of Dawn which gets extended with an unofficial Ray-Tracing extension. The extension is currently targeted at the Vulkan backend, but might be extended for the D3D12 backend as well.
+This project is expected to be used along [node-webgpu](https://github.com/maierfelix/webgpu).
+
+## ‌‌ 
+
 Dawn is an open-source and cross-platform implementation of the work-in-progress [WebGPU](https://webgpu.dev) standard.
 More precisely it implements [`webgpu.h`](https://github.com/webgpu-native/webgpu-headers/blob/master/webgpu.h) that is a one-to-one mapping with the WebGPU IDL.
 Dawn is meant to be integrated as part of a larger system and is the underlying implementation of WebGPU in Chromium.
