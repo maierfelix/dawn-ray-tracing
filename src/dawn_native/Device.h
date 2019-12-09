@@ -139,6 +139,7 @@ namespace dawn_native {
 
         // Dawn API
         RayTracingAccelerationGeometryBase* CreateRayTracingAccelerationGeometry(const RayTracingAccelerationGeometryDescriptor* descriptor);
+        RayTracingAccelerationInstanceBase* CreateRayTracingAccelerationInstance(const RayTracingAccelerationInstanceDescriptor* descriptor);
         BindGroupBase* CreateBindGroup(const BindGroupDescriptor* descriptor);
         BindGroupLayoutBase* CreateBindGroupLayout(const BindGroupLayoutDescriptor* descriptor);
         BufferBase* CreateBuffer(const BufferDescriptor* descriptor);
@@ -199,6 +200,8 @@ namespace dawn_native {
       private:
         virtual ResultOrError<RayTracingAccelerationGeometryBase*> CreateRayTracingAccelerationGeometryImpl(
             const RayTracingAccelerationGeometryDescriptor* descriptor) = 0;
+        virtual ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
+            const RayTracingAccelerationInstanceDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(
@@ -225,6 +228,9 @@ namespace dawn_native {
 
         MaybeError CreateRayTracingAccelerationGeometryInternal(RayTracingAccelerationGeometryBase** result,
                                            const RayTracingAccelerationGeometryDescriptor* descriptor);
+        MaybeError CreateRayTracingAccelerationInstanceInternal(RayTracingAccelerationInstanceBase** result,
+                                           const RayTracingAccelerationInstanceDescriptor* descriptor);
+
         MaybeError CreateBindGroupInternal(BindGroupBase** result,
                                            const BindGroupDescriptor* descriptor);
         MaybeError CreateBindGroupLayoutInternal(BindGroupLayoutBase** result,

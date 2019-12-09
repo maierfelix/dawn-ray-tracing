@@ -17,6 +17,7 @@
 
 #include "dawn_native/Adapter.h"
 #include "dawn_native/RayTracingAccelerationGeometry.h"
+#include "dawn_native/RayTracingAccelerationInstance.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/Buffer.h"
@@ -41,6 +42,7 @@ namespace dawn_native { namespace null {
     class Adapter;
 
     using RayTracingAccelerationGeometry = RayTracingAccelerationGeometryBase;
+    using RayTracingAccelerationInstance = RayTracingAccelerationInstanceBase;
     using BindGroup = BindGroupBase;
     using BindGroupLayout = BindGroupLayoutBase;
     class Buffer;
@@ -112,7 +114,9 @@ namespace dawn_native { namespace null {
 
       private:
         ResultOrError<RayTracingAccelerationGeometryBase*> CreateRayTracingAccelerationGeometryImpl(
-            const RayTracingAccelerationGeometryDescriptor* descriptor) override;
+            const RayTracingAccelerationGeometryDescriptor* descriptor) override { UNREACHABLE(); };
+        ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
+            const RayTracingAccelerationInstanceDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(

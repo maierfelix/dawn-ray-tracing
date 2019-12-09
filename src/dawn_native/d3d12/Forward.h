@@ -21,6 +21,7 @@ namespace dawn_native { namespace d3d12 {
 
     class Adapter;
     class RayTracingAccelerationGeometry;
+    class RayTracingAccelerationInstance;
     class BindGroup;
     class BindGroupLayout;
     class Buffer;

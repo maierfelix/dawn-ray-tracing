@@ -28,6 +28,9 @@
     "ray tracing acceleration geometry": {
         "category": "object"
     },
+    "ray tracing acceleration instance": {
+        "category": "object"
+    },
     "bind group binding": {
         "category": "structure",
         "extensible": false,
@@ -47,6 +50,17 @@
             {"value": 1, "name": "aabbs"}
         ]
     },
+    "ray tracing acceleration instance flag": {
+        "category": "bitmask",
+        "values": [
+            {"value": 0, "name": "none"},
+            {"value": 1, "name": "triangle cull disable"},
+            {"value": 2, "name": "triangle front counterclockwise"},
+            {"value": 4, "name": "force opaque"},
+            {"value": 8, "name": "no opaque"},
+            {"value": 16, "name": "copy dst"}
+        ]
+    },
     "ray tracing acceleration geometry descriptor": {
         "category": "structure",
         "extensible": false,
@@ -59,6 +73,18 @@
             {"name": "index buffer", "type": "buffer", "optional": true},
             {"name": "index format", "type": "index format", "default": "none"},
             {"name": "index offset", "type": "uint64_t", "default": "0"}
+        ]
+    },
+    "ray tracing acceleration instance descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "flags", "type": "ray tracing acceleration instance flag", "default": "none"},
+            {"name": "mask", "type": "uint32_t", "default": "0xFF"},
+            {"name": "instance id", "type": "uint32_t", "default": "0"},
+            {"name": "instance offset", "type": "uint32_t", "default": "0"},
+            {"name": "transform length", "type": "uint32_t"},
+            {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"}
         ]
     },
     "bind group descriptor": {
@@ -497,6 +523,13 @@
                 "returns": "ray tracing acceleration geometry",
                 "args": [
                     {"name": "descriptor", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*"}
+                ]
+            },
+            {
+                "name": "create ray tracing acceleration instance",
+                "returns": "ray tracing acceleration instance",
+                "args": [
+                    {"name": "descriptor", "type": "ray tracing acceleration instance descriptor", "annotation": "const*"}
                 ]
             },
             {

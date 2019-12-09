@@ -91,10 +91,6 @@ namespace dawn_native { namespace null {
         ASSERT(mMemoryUsage == 0);
     }
 
-    ResultOrError<RayTracingAccelerationGeometryBase*> Device::CreateRayTracingAccelerationGeometryImpl(
-        const RayTracingAccelerationGeometryDescriptor* descriptor) {
-        return new RayTracingAccelerationGeometry(this, descriptor);
-    }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
         return new BindGroup(this, descriptor);
