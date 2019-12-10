@@ -56,4 +56,11 @@ namespace dawn_native { namespace vulkan {
         return mInstanceData;
     }
 
+    uint64_t RayTracingAccelerationInstance::GetHandle() const {
+        return mInstanceData.accelerationStructureHandle;
+    }
+    void RayTracingAccelerationInstance::SetHandle(uint64_t handle) {
+        mInstanceData.accelerationStructureHandle = handle;
+    }
+
 }}  // namespace dawn_native::vulkan

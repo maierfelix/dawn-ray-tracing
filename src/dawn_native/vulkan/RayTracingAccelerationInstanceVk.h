@@ -38,6 +38,9 @@ namespace dawn_native { namespace vulkan {
 
         VkAccelerationInstance GetData() const;
 
+        uint64_t GetHandle() const;
+        void SetHandle(uint64_t handle);
+
       private:
         using RayTracingAccelerationInstanceBase::RayTracingAccelerationInstanceBase;
         MaybeError Initialize(const RayTracingAccelerationInstanceDescriptor* descriptor);
