@@ -18,6 +18,7 @@
 #include "dawn_native/AttachmentState.h"
 #include "dawn_native/RayTracingAccelerationGeometry.h"
 #include "dawn_native/RayTracingAccelerationInstance.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/Buffer.h"
@@ -388,6 +389,16 @@ namespace dawn_native {
         return result;
     }
 
+    RayTracingAccelerationContainerBase* DeviceBase::CreateRayTracingAccelerationContainer(const RayTracingAccelerationContainerDescriptor* descriptor) {
+        RayTracingAccelerationContainerBase* result = nullptr;
+
+        if (ConsumedError(CreateRayTracingAccelerationContainerInternal(&result, descriptor))) {
+            return RayTracingAccelerationContainerBase::MakeError(this);
+        }
+
+        return result;
+    }
+
     BindGroupBase* DeviceBase::CreateBindGroup(const BindGroupDescriptor* descriptor) {
         BindGroupBase* result = nullptr;
 
@@ -675,6 +686,16 @@ namespace dawn_native {
             DAWN_TRY(ValidateRayTracingAccelerationInstanceDescriptor(this, descriptor));
         }
         DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationInstanceImpl(descriptor));
+        return {};
+    }
+
+    MaybeError DeviceBase::CreateRayTracingAccelerationContainerInternal(
+        RayTracingAccelerationContainerBase** result,
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
+        if (IsValidationEnabled()) {
+            DAWN_TRY(ValidateRayTracingAccelerationContainerDescriptor(this, descriptor));
+        }
+        DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationContainerImpl(descriptor));
         return {};
     }
 

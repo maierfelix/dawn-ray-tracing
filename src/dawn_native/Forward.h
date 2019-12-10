@@ -22,6 +22,7 @@ namespace dawn_native {
     class AdapterBase;
     class RayTracingAccelerationGeometryBase;
     class RayTracingAccelerationInstanceBase;
+    class RayTracingAccelerationContainerBase;
     class BindGroupBase;
     class BindGroupLayoutBase;
     class BufferBase;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "dawn_native/RayTracingAccelerationInstance.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 
 #include "common/Assert.h"
 #include "common/Math.h"
@@ -20,24 +20,24 @@
 
 namespace dawn_native {
 
-    // RayTracingAccelerationInstance
+    // RayTracingAccelerationContainer
 
-    MaybeError ValidateRayTracingAccelerationInstanceDescriptor(DeviceBase* device, const RayTracingAccelerationInstanceDescriptor* descriptor) {
+    MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
         return {};
     }
 
-    RayTracingAccelerationInstanceBase::RayTracingAccelerationInstanceBase(DeviceBase* device, const RayTracingAccelerationInstanceDescriptor* descriptor)
+    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor)
         : ObjectBase(device) {
 
     }
 
-    RayTracingAccelerationInstanceBase::RayTracingAccelerationInstanceBase(DeviceBase* device, ObjectBase::ErrorTag tag)
+    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag)
         : ObjectBase(device, tag) {
     }
 
     // static
-    RayTracingAccelerationInstanceBase* RayTracingAccelerationInstanceBase::MakeError(DeviceBase* device) {
-        return new RayTracingAccelerationInstanceBase(device, ObjectBase::kError);
+    RayTracingAccelerationContainerBase* RayTracingAccelerationContainerBase::MakeError(DeviceBase* device) {
+        return new RayTracingAccelerationContainerBase(device, ObjectBase::kError);
     }
 
 }  // namespace dawn_native

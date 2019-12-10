@@ -140,6 +140,7 @@ namespace dawn_native {
         // Dawn API
         RayTracingAccelerationGeometryBase* CreateRayTracingAccelerationGeometry(const RayTracingAccelerationGeometryDescriptor* descriptor);
         RayTracingAccelerationInstanceBase* CreateRayTracingAccelerationInstance(const RayTracingAccelerationInstanceDescriptor* descriptor);
+        RayTracingAccelerationContainerBase* CreateRayTracingAccelerationContainer(const RayTracingAccelerationContainerDescriptor* descriptor);
         BindGroupBase* CreateBindGroup(const BindGroupDescriptor* descriptor);
         BindGroupLayoutBase* CreateBindGroupLayout(const BindGroupLayoutDescriptor* descriptor);
         BufferBase* CreateBuffer(const BufferDescriptor* descriptor);
@@ -202,6 +203,8 @@ namespace dawn_native {
             const RayTracingAccelerationGeometryDescriptor* descriptor) = 0;
         virtual ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
             const RayTracingAccelerationInstanceDescriptor* descriptor) = 0;
+        virtual ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
+            const RayTracingAccelerationContainerDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(
@@ -230,6 +233,8 @@ namespace dawn_native {
                                            const RayTracingAccelerationGeometryDescriptor* descriptor);
         MaybeError CreateRayTracingAccelerationInstanceInternal(RayTracingAccelerationInstanceBase** result,
                                            const RayTracingAccelerationInstanceDescriptor* descriptor);
+        MaybeError CreateRayTracingAccelerationContainerInternal(RayTracingAccelerationContainerBase** result,
+                                           const RayTracingAccelerationContainerDescriptor* descriptor);
 
         MaybeError CreateBindGroupInternal(BindGroupBase** result,
                                            const BindGroupDescriptor* descriptor);

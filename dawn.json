@@ -31,6 +31,9 @@
     "ray tracing acceleration instance": {
         "category": "object"
     },
+    "ray tracing acceleration container": {
+        "category": "object"
+    },
     "bind group binding": {
         "category": "structure",
         "extensible": false,
@@ -61,6 +64,23 @@
             {"value": 16, "name": "copy dst"}
         ]
     },
+    "ray tracing acceleration container flag": {
+        "category": "bitmask",
+        "values": [
+            {"value": 0, "name": "none"},
+            {"value": 1, "name": "allow update"},
+            {"value": 2, "name": "prefer fast trace"},
+            {"value": 4, "name": "prefer fast build"},
+            {"value": 8, "name": "low memory"}
+        ]
+    },
+    "ray tracing acceleration container level": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "bottom"},
+            {"value": 1, "name": "top"}
+        ]
+    },
     "ray tracing acceleration geometry descriptor": {
         "category": "structure",
         "extensible": false,
@@ -85,6 +105,18 @@
             {"name": "instance offset", "type": "uint32_t", "default": "0"},
             {"name": "transform length", "type": "uint32_t"},
             {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"}
+        ]
+    },
+    "ray tracing acceleration container descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "flags", "type": "ray tracing acceleration container flag", "default": "none"},
+            {"name": "level", "type": "ray tracing acceleration container level", "default": "bottom"},
+            {"name": "geometry count", "type": "uint32_t"},
+            {"name": "geometries", "type": "ray tracing acceleration geometry", "annotation": "const*", "length": "geometry count", "optional": true},
+            {"name": "instance count", "type": "uint32_t"},
+            {"name": "instances", "type": "ray tracing acceleration instance", "annotation": "const*", "length": "instance count", "optional": true}
         ]
     },
     "bind group descriptor": {

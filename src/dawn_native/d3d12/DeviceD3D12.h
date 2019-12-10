@@ -109,6 +109,8 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingAccelerationGeometryDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
             const RayTracingAccelerationInstanceDescriptor* descriptor) override { UNREACHABLE(); };
+        ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
+            const RayTracingAccelerationContainerDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(

@@ -23,6 +23,7 @@ namespace dawn_native { namespace vulkan {
 
     class RayTracingAccelerationGeometry;
     class RayTracingAccelerationInstance;
+    class RayTracingAccelerationContainer;
 
     class BindGroup;
     class BindGroupLayout;
@@ -45,6 +46,7 @@ namespace dawn_native { namespace vulkan {
         using AdapterType = Adapter;
         using RayTracingAccelerationGeometryType = RayTracingAccelerationGeometry;
         using RayTracingAccelerationInstanceType = RayTracingAccelerationInstance;
+        using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
         using BindGroupType = BindGroup;
         using BindGroupLayoutType = BindGroupLayout;
         using BufferType = Buffer;
