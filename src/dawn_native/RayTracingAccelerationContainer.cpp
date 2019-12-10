@@ -23,6 +23,16 @@ namespace dawn_native {
     // RayTracingAccelerationContainer
 
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            if (descriptor->geometryCount > 0) {
+                return DAWN_VALIDATION_ERROR("Geometry Count for Top-Level Acceleration Container must be zero");
+            }
+        }
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            if (descriptor->instanceCount > 0) {
+                return DAWN_VALIDATION_ERROR("Instance Count for Bottom-Level Acceleration Container must be zero");
+            }
+        }
         return {};
     }
 

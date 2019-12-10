@@ -21,6 +21,34 @@ namespace dawn_native { namespace vulkan {
 
     namespace {
 
+        VkAccelerationStructureTypeNV VulkanAccelerationContainerLevel(wgpu::RayTracingAccelerationContainerLevel containerLevel) {
+            VkAccelerationStructureTypeNV level = static_cast<VkAccelerationStructureTypeNV>(0);
+            if (containerLevel == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+                level = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+            }
+            if (containerLevel == wgpu::RayTracingAccelerationContainerLevel::Top) {
+                level = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+            }
+            return level;
+        }
+
+        VkBuildAccelerationStructureFlagBitsNV VulkanBuildAccelerationStructureFlags(wgpu::RayTracingAccelerationContainerFlag buildFlags) {
+            uint32_t flags = 0;
+            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
+                flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
+            }
+            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
+                flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
+            }
+            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
+                flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+            }
+            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
+                flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
+            }
+            return static_cast<VkBuildAccelerationStructureFlagBitsNV>(flags);
+        }
+
     }  // anonymous namespace
 
     // static
@@ -31,6 +59,8 @@ namespace dawn_native { namespace vulkan {
     }
 
     MaybeError RayTracingAccelerationContainer::Initialize(const RayTracingAccelerationContainerDescriptor* descriptor) {
+        //VkBuildAccelerationStructureFlagBitsNV flags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
+        //VkAccelerationStructureTypeNV type = VulkanAccelerationContainerLevel(descriptor->level);
         return {};
     }
 

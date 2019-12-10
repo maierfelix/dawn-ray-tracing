@@ -565,6 +565,13 @@
                 ]
             },
             {
+                "name": "create ray tracing acceleration container",
+                "returns": "ray tracing acceleration container",
+                "args": [
+                    {"name": "descriptor", "type": "ray tracing acceleration container descriptor", "annotation": "const*"}
+                ]
+            },
+            {
                 "name": "create bind group",
                 "returns": "bind group",
                 "args": [
