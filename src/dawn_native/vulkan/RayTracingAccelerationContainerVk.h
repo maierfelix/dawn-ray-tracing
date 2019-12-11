@@ -27,7 +27,8 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingAccelerationContainer*> Create(Device* device, const RayTracingAccelerationContainerDescriptor* descriptor);
         ~RayTracingAccelerationContainer();
 
-        VkAccelerationStructureNV GetHandle() const;
+        uint64_t GetHandle() const;
+        VkAccelerationStructureNV GetAccelerationStructure() const;
 
         int RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
@@ -35,7 +36,8 @@ namespace dawn_native { namespace vulkan {
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
-        VkAccelerationStructureNV mHandle = VK_NULL_HANDLE;
+        uint64_t mHandle = 0;
+        VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

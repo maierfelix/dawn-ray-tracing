@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "dawn_native/vulkan/RayTracingAccelerationInstanceVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
@@ -40,10 +41,17 @@ namespace dawn_native { namespace vulkan {
             sizeof(mInstanceData.transform)
         );
 
+        uint64_t handle = static_cast<RayTracingAccelerationContainer*>(
+          descriptor->geometryContainer)->GetHandle();
+        if (handle == 0) {
+            return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
+        }
+
         mInstanceData.instanceCustomIndex = static_cast<uint32_t>(descriptor->instanceId);
         mInstanceData.mask = static_cast<uint32_t>(descriptor->mask);
         mInstanceData.instanceOffset = static_cast<uint32_t>(descriptor->instanceOffset);
         mInstanceData.flags = static_cast<uint32_t>(descriptor->flags);
+        mInstanceData.accelerationStructureHandle = handle;
 
         return {};
     }

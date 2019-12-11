@@ -72,7 +72,7 @@ namespace dawn_native { namespace vulkan {
         accelerationStructureInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
         accelerationStructureInfo.flags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
         accelerationStructureInfo.type = VulkanAccelerationContainerLevel(descriptor->level);
-        if (accelerationStructureInfo.type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             accelerationStructureInfo.geometryCount = 0;
             accelerationStructureInfo.instanceCount = descriptor->instanceCount;
         } else {
@@ -96,7 +96,7 @@ namespace dawn_native { namespace vulkan {
 
         MaybeError result =
             CheckVkSuccess(device->fn.CreateAccelerationStructureNV(
-                               device->GetVkDevice(), &accelerationStructureCI, nullptr, &mHandle),
+                device->GetVkDevice(), &accelerationStructureCI, nullptr, &mAccelerationStructure),
                            "CreateAccelerationStructureNV");
         if (result.IsError())
             return result.AcquireError();
@@ -106,14 +106,18 @@ namespace dawn_native { namespace vulkan {
 
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
         Device* device = ToBackend(GetDevice());
-        if (mHandle != VK_NULL_HANDLE) {
-            device->fn.DestroyAccelerationStructureNV(device->GetVkDevice(), mHandle, nullptr);
-            mHandle = VK_NULL_HANDLE;
+        if (mAccelerationStructure != VK_NULL_HANDLE) {
+            device->fn.DestroyAccelerationStructureNV(device->GetVkDevice(), mAccelerationStructure, nullptr);
+            mAccelerationStructure = VK_NULL_HANDLE;
         }
     }
 
-    VkAccelerationStructureNV RayTracingAccelerationContainer::GetHandle() const {
+    uint64_t RayTracingAccelerationContainer::GetHandle() const {
         return mHandle;
+    }
+
+    VkAccelerationStructureNV RayTracingAccelerationContainer::GetAccelerationStructure() const {
+        return mAccelerationStructure;
     }
 
     int RayTracingAccelerationContainer::GetMemoryRequirementSize(
@@ -123,7 +127,7 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
         memoryRequirementsInfo.sType =
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-        memoryRequirementsInfo.accelerationStructure = mHandle;
+        memoryRequirementsInfo.accelerationStructure = mAccelerationStructure;
 
         VkMemoryRequirements2 memoryRequirements2{};
         memoryRequirements2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;

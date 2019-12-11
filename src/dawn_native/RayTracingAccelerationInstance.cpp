@@ -23,6 +23,12 @@ namespace dawn_native {
     // RayTracingAccelerationInstance
 
     MaybeError ValidateRayTracingAccelerationInstanceDescriptor(DeviceBase* device, const RayTracingAccelerationInstanceDescriptor* descriptor) {
+        if (descriptor->transform == nullptr) {
+            return DAWN_VALIDATION_ERROR("transform must be not be null");
+        }
+        if (descriptor->geometryContainer == nullptr) {
+            return DAWN_VALIDATION_ERROR("geometryContainer must be not be null");
+        }
         return {};
     }
 

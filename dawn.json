@@ -104,7 +104,8 @@
             {"name": "instance id", "type": "uint32_t", "default": "0"},
             {"name": "instance offset", "type": "uint32_t", "default": "0"},
             {"name": "transform length", "type": "uint32_t"},
-            {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"}
+            {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"},
+            {"name": "geometryContainer", "type": "ray tracing acceleration container"}
         ]
     },
     "ray tracing acceleration container descriptor": {
