@@ -77,6 +77,8 @@ namespace dawn_native { namespace vulkan {
     const char kExtensionNameKhrXlibSurface[] = "VK_KHR_xlib_surface";
     const char kExtensionNameFuchsiaImagePipeSurface[] = "VK_FUCHSIA_imagepipe_surface";
     const char kExtensionNameKhrMaintenance1[] = "VK_KHR_maintenance1";
+    const char kExtensionNameNvRayTracing[] = "VK_NV_ray_tracing";
+    const char kExtensionNameKhrGetMemoryRequirements2[] = "VK_KHR_get_memory_requirements2";
 
     ResultOrError<VulkanGlobalInfo> GatherGlobalInfo(const Backend& backend) {
         VulkanGlobalInfo info = {};
@@ -312,6 +314,12 @@ namespace dawn_native { namespace vulkan {
                 }
                 if (IsExtensionName(extension, kExtensionNameKhrMaintenance1)) {
                     info.maintenance1 = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameNvRayTracing)) {
+                    info.rayTracingNV = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameKhrGetMemoryRequirements2)) {
+                    info.memoryRequirements2 = true;
                 }
             }
         }

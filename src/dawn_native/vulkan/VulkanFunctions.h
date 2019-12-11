@@ -264,6 +264,12 @@ namespace dawn_native { namespace vulkan {
         PFN_vkImportSemaphoreZirconHandleFUCHSIA ImportSemaphoreZirconHandleFUCHSIA = nullptr;
         PFN_vkGetSemaphoreZirconHandleFUCHSIA GetSemaphoreZirconHandleFUCHSIA = nullptr;
 #endif
+
+        // VK_NV_ray_tracing
+        PFN_vkCreateAccelerationStructureNV CreateAccelerationStructureNV = nullptr;
+        PFN_vkDestroyAccelerationStructureNV DestroyAccelerationStructureNV = nullptr;
+        PFN_vkGetAccelerationStructureMemoryRequirementsNV GetAccelerationStructureMemoryRequirementsNV = nullptr;
+
     };
 
 }}  // namespace dawn_native::vulkan

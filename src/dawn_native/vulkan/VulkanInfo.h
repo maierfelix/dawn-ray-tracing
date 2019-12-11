@@ -52,6 +52,8 @@ namespace dawn_native { namespace vulkan {
     extern const char kExtensionNameKhrXlibSurface[];
     extern const char kExtensionNameFuchsiaImagePipeSurface[];
     extern const char kExtensionNameKhrMaintenance1[];
+    extern const char kExtensionNameNvRayTracing[];
+    extern const char kExtensionNameKhrGetMemoryRequirements2[];
 
     // Global information - gathered before the instance is created
     struct VulkanGlobalKnobs {
@@ -98,6 +100,8 @@ namespace dawn_native { namespace vulkan {
         bool externalSemaphoreZirconHandle = false;
         bool swapchain = false;
         bool maintenance1 = false;
+        bool rayTracingNV = false;
+        bool memoryRequirements2 = false;
     };
 
     struct VulkanDeviceInfo : VulkanDeviceKnobs {

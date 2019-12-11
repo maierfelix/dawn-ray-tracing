@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationGeometryVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
@@ -59,13 +60,78 @@ namespace dawn_native { namespace vulkan {
     }
 
     MaybeError RayTracingAccelerationContainer::Initialize(const RayTracingAccelerationContainerDescriptor* descriptor) {
-        //VkBuildAccelerationStructureFlagBitsNV flags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
-        //VkAccelerationStructureTypeNV type = VulkanAccelerationContainerLevel(descriptor->level);
+        Device* device = ToBackend(GetDevice());
+
+        std::vector<VkGeometryNV> geometries;
+        for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
+            VkGeometryNV geometry = static_cast<RayTracingAccelerationGeometry*>(descriptor->geometries[ii])->GetInfo();
+            geometries.push_back(geometry);
+        };
+
+        VkAccelerationStructureInfoNV accelerationStructureInfo{};
+        accelerationStructureInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+        accelerationStructureInfo.flags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
+        accelerationStructureInfo.type = VulkanAccelerationContainerLevel(descriptor->level);
+        if (accelerationStructureInfo.type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+            accelerationStructureInfo.geometryCount = 0;
+            accelerationStructureInfo.instanceCount = descriptor->instanceCount;
+        } else {
+            accelerationStructureInfo.instanceCount = 0;
+            accelerationStructureInfo.geometryCount = descriptor->geometryCount;
+            accelerationStructureInfo.pGeometries = geometries.data();
+        }
+
+        VkAccelerationStructureCreateInfoNV accelerationStructureCI{};
+        accelerationStructureCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+        accelerationStructureCI.info = accelerationStructureInfo;
+
+        // validate ray tracing calls
+        if (device->fn.CreateAccelerationStructureNV == nullptr) {
+            return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
+        }
+        if (device->fn.GetAccelerationStructureMemoryRequirementsNV == nullptr) {
+            return DAWN_VALIDATION_ERROR(
+                "Invalid Call to GetAccelerationStructureMemoryRequirementsNV");
+        }
+
+        MaybeError result =
+            CheckVkSuccess(device->fn.CreateAccelerationStructureNV(
+                               device->GetVkDevice(), &accelerationStructureCI, nullptr, &mHandle),
+                           "CreateAccelerationStructureNV");
+        if (result.IsError())
+            return result.AcquireError();
+
         return {};
     }
 
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
+        Device* device = ToBackend(GetDevice());
+        if (mHandle != VK_NULL_HANDLE) {
+            device->fn.DestroyAccelerationStructureNV(device->GetVkDevice(), mHandle, nullptr);
+            mHandle = VK_NULL_HANDLE;
+        }
+    }
 
+    VkAccelerationStructureNV RayTracingAccelerationContainer::GetHandle() const {
+        return mHandle;
+    }
+
+    int RayTracingAccelerationContainer::GetMemoryRequirementSize(
+        VkAccelerationStructureMemoryRequirementsTypeNV type) const {
+        Device* device = ToBackend(GetDevice());
+
+        VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
+        memoryRequirementsInfo.sType =
+            VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+        memoryRequirementsInfo.accelerationStructure = mHandle;
+
+        VkMemoryRequirements2 memoryRequirements2{};
+        memoryRequirements2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
+
+        memoryRequirementsInfo.type = type;
+        device->fn.GetAccelerationStructureMemoryRequirementsNV(
+            device->GetVkDevice(), &memoryRequirementsInfo, &memoryRequirements2);
+        return memoryRequirements2.memoryRequirements.size;
     }
 
 }}  // namespace dawn_native::vulkan

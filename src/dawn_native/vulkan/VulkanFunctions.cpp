@@ -276,6 +276,16 @@ namespace dawn_native { namespace vulkan {
             GET_DEVICE_PROC(QueuePresentKHR);
         }
 
+        if (deviceInfo.rayTracingNV) {
+            GET_DEVICE_PROC(CreateAccelerationStructureNV);
+            GET_DEVICE_PROC(DestroyAccelerationStructureNV);
+            GET_DEVICE_PROC(GetAccelerationStructureMemoryRequirementsNV);
+        }
+
+        if (deviceInfo.memoryRequirements2) {
+          
+        }
+
         return {};
     }
 

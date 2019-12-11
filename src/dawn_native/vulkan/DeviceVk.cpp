@@ -406,6 +406,14 @@ namespace dawn_native { namespace vulkan {
             extensionsToRequest.push_back(kExtensionNameKhrMaintenance1);
             usedKnobs.maintenance1 = true;
         }
+        if (mDeviceInfo.rayTracingNV) {
+            extensionsToRequest.push_back(kExtensionNameNvRayTracing);
+            usedKnobs.rayTracingNV = true;
+        }
+        if (mDeviceInfo.memoryRequirements2) {
+            extensionsToRequest.push_back(kExtensionNameKhrGetMemoryRequirements2);
+            usedKnobs.memoryRequirements2 = true;
+        }
 
         // Always require independentBlend because it is a core Dawn feature
         usedKnobs.features.independentBlend = VK_TRUE;

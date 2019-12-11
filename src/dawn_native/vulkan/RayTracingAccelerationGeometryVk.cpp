@@ -143,6 +143,7 @@ namespace dawn_native { namespace vulkan {
             return DAWN_VALIDATION_ERROR("Other Geometry types than 'Triangles' is unsupported");
         }
 
+        mGeometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
         mGeometryInfo.geometry.triangles.vertexData = vertexBuffer->GetHandle();
         mGeometryInfo.geometry.triangles.vertexOffset = descriptor->vertexOffset;
         mGeometryInfo.geometry.triangles.vertexCount = vertexBuffer->GetSize() / descriptor->vertexStride;
