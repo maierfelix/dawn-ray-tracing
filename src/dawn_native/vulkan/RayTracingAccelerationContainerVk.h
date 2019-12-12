@@ -17,6 +17,7 @@
 
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
+#include "dawn_native/ResourceMemoryAllocation.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -28,16 +29,27 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingAccelerationContainer();
 
         uint64_t GetHandle() const;
+        VkAccelerationStructureTypeNV GetLevel() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
-
-        int RayTracingAccelerationContainer::GetMemoryRequirementSize(
+        uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
         uint64_t mHandle = 0;
+        VkAccelerationStructureTypeNV mLevel;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
+
+        // scratch result memory
+        ResourceMemoryAllocation mScratchResultMemoryAllocation;
+        VkDeviceMemory mScratchResultExternalAllocation = VK_NULL_HANDLE;
+        // scratch build memory
+        ResourceMemoryAllocation mScratchBuildMemoryAllocation;
+        VkDeviceMemory mScratchBuildExternalAllocation = VK_NULL_HANDLE;
+        // scratch update memory
+        ResourceMemoryAllocation mScratchUpdateMemoryAllocation;
+        VkDeviceMemory mScratchUpdateExternalAllocation = VK_NULL_HANDLE;
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

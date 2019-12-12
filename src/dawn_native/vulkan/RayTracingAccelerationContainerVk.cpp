@@ -14,6 +14,7 @@
 
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 #include "dawn_native/vulkan/RayTracingAccelerationGeometryVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationInstanceVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
@@ -75,11 +76,15 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             accelerationStructureInfo.geometryCount = 0;
             accelerationStructureInfo.instanceCount = descriptor->instanceCount;
-        } else {
+        } else if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             accelerationStructureInfo.instanceCount = 0;
             accelerationStructureInfo.geometryCount = descriptor->geometryCount;
             accelerationStructureInfo.pGeometries = geometries.data();
+        } else {
+            return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Level");
         }
+        // save container level
+        mLevel = accelerationStructureInfo.type;
 
         VkAccelerationStructureCreateInfoNV accelerationStructureCI{};
         accelerationStructureCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
@@ -89,17 +94,60 @@ namespace dawn_native { namespace vulkan {
         if (device->fn.CreateAccelerationStructureNV == nullptr) {
             return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
         }
+        if (device->fn.GetAccelerationStructureHandleNV == nullptr) {
+            return DAWN_VALIDATION_ERROR("Invalid Call to GetAccelerationStructureHandleNV");
+        }
         if (device->fn.GetAccelerationStructureMemoryRequirementsNV == nullptr) {
-            return DAWN_VALIDATION_ERROR(
-                "Invalid Call to GetAccelerationStructureMemoryRequirementsNV");
+            return DAWN_VALIDATION_ERROR("Invalid Call to GetAccelerationStructureMemoryRequirementsNV");
         }
 
-        MaybeError result =
-            CheckVkSuccess(device->fn.CreateAccelerationStructureNV(
-                device->GetVkDevice(), &accelerationStructureCI, nullptr, &mAccelerationStructure),
-                           "CreateAccelerationStructureNV");
-        if (result.IsError())
-            return result.AcquireError();
+        {
+            MaybeError result = CheckVkSuccess(
+              device->fn.CreateAccelerationStructureNV(
+                  device->GetVkDevice(), &accelerationStructureCI, nullptr, &mAccelerationStructure),
+              "CreateAccelerationStructureNV");
+            if (result.IsError()) return result.AcquireError();
+        }
+
+        {
+            MaybeError result = CheckVkSuccess(
+                device->fn.GetAccelerationStructureHandleNV(
+                    device->GetVkDevice(), mAccelerationStructure, sizeof(void*), &mHandle),
+                "GetAccelerationStructureHandleNV");
+            if (result.IsError()) return result.AcquireError();
+        }
+
+        // acceleration container holds instances to geometry
+        if (GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+
+            // find all unique bottom-level containers
+            std::vector<RayTracingAccelerationContainer*> geometryContainers;
+            for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
+                RayTracingAccelerationInstance* instance = static_cast<RayTracingAccelerationInstance*>(descriptor->instances[ii]);
+                RayTracingAccelerationContainer* container = instance->GetGeometryContainer();
+                if (container == nullptr) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Invalid Reference to RayTracingAccelerationContainer");
+                }
+                // only pick unique geometry containers
+                if (std::find(geometryContainers.begin(), geometryContainers.end(), container) == geometryContainers.end()) {
+                    geometryContainers.push_back(container);
+                }
+            };
+            // find scratch buffer dimensions
+            uint32_t scratchBufferResultOffset = 0;
+            uint32_t scratchBufferBuildOffset = 0;
+            uint32_t scratchBufferUpdateOffset = 0;
+            for (unsigned int ii = 0; ii < geometryContainers.size(); ++ii) {
+                RayTracingAccelerationContainer* container = geometryContainers[ii];
+                uint32_t resultSize = container->GetMemoryRequirementSize(
+                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
+                uint32_t buildSize = container->GetMemoryRequirementSize(
+                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
+                uint32_t updateSize = container->GetMemoryRequirementSize(
+                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
+            };
+        }
 
         return {};
     }
@@ -116,11 +164,15 @@ namespace dawn_native { namespace vulkan {
         return mHandle;
     }
 
+    VkAccelerationStructureTypeNV RayTracingAccelerationContainer::GetLevel() const {
+        return mLevel;
+    }
+
     VkAccelerationStructureNV RayTracingAccelerationContainer::GetAccelerationStructure() const {
         return mAccelerationStructure;
     }
 
-    int RayTracingAccelerationContainer::GetMemoryRequirementSize(
+    uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
         VkAccelerationStructureMemoryRequirementsTypeNV type) const {
         Device* device = ToBackend(GetDevice());
 

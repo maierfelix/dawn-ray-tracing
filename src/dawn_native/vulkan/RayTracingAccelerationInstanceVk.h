@@ -17,6 +17,7 @@
 
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationInstance.h"
+#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -37,6 +38,7 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingAccelerationInstance();
 
         VkAccelerationInstance GetData() const;
+        RayTracingAccelerationContainer* GetGeometryContainer() const;
 
         uint64_t GetHandle() const;
         void SetHandle(uint64_t handle);
@@ -46,6 +48,7 @@ namespace dawn_native { namespace vulkan {
         MaybeError Initialize(const RayTracingAccelerationInstanceDescriptor* descriptor);
 
         VkAccelerationInstance mInstanceData;
+        RayTracingAccelerationContainer* mGeometryContainer;
     };
 
 }}  // namespace dawn_native::vulkan

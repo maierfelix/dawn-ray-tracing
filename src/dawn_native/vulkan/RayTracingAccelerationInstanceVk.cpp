@@ -41,8 +41,14 @@ namespace dawn_native { namespace vulkan {
             sizeof(mInstanceData.transform)
         );
 
-        uint64_t handle = static_cast<RayTracingAccelerationContainer*>(
-          descriptor->geometryContainer)->GetHandle();
+        mGeometryContainer =
+            static_cast<RayTracingAccelerationContainer*>(descriptor->geometryContainer);
+
+        if (mGeometryContainer->GetLevel() != VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
+            return DAWN_VALIDATION_ERROR("Linked Geometry Container Level must be bottom-level");
+        }
+
+        uint64_t handle = mGeometryContainer->GetHandle();
         if (handle == 0) {
             return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
         }
@@ -64,9 +70,14 @@ namespace dawn_native { namespace vulkan {
         return mInstanceData;
     }
 
+    RayTracingAccelerationContainer* RayTracingAccelerationInstance::GetGeometryContainer() const {
+        return mGeometryContainer;
+    }
+
     uint64_t RayTracingAccelerationInstance::GetHandle() const {
         return mInstanceData.accelerationStructureHandle;
     }
+
     void RayTracingAccelerationInstance::SetHandle(uint64_t handle) {
         mInstanceData.accelerationStructureHandle = handle;
     }
