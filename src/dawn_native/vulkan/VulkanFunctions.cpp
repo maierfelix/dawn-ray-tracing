@@ -280,6 +280,7 @@ namespace dawn_native { namespace vulkan {
             GET_DEVICE_PROC(CreateAccelerationStructureNV);
             GET_DEVICE_PROC(DestroyAccelerationStructureNV);
             GET_DEVICE_PROC(GetAccelerationStructureHandleNV);
+            GET_DEVICE_PROC(BindAccelerationStructureMemoryNV);
             GET_DEVICE_PROC(GetAccelerationStructureMemoryRequirementsNV);
         }
 

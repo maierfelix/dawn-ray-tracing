@@ -19,9 +19,20 @@
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/ResourceMemoryAllocation.h"
 
+#include <vector>
+
 namespace dawn_native { namespace vulkan {
 
     class Device;
+
+    struct VkAccelerationInstance {
+        float transform[12];
+        uint32_t instanceCustomIndex : 24;
+        uint32_t mask : 8;
+        uint32_t instanceOffset : 24;
+        uint32_t flags : 8;
+        uint64_t accelerationStructureHandle;
+    };
 
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
       public:
@@ -31,25 +42,30 @@ namespace dawn_native { namespace vulkan {
         uint64_t GetHandle() const;
         VkAccelerationStructureTypeNV GetLevel() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
+        VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
+            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
         uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
+        std::vector<VkGeometryNV> mGeometries;
+        std::vector<VkAccelerationInstance> mInstances;
+
         uint64_t mHandle = 0;
         VkAccelerationStructureTypeNV mLevel;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
         // scratch result memory
+        uint32_t mScratchBufferResultOffset = 0x0;
         ResourceMemoryAllocation mScratchResultMemoryAllocation;
-        VkDeviceMemory mScratchResultExternalAllocation = VK_NULL_HANDLE;
         // scratch build memory
+        uint32_t mScratchBufferBuildOffset = 0x0;
         ResourceMemoryAllocation mScratchBuildMemoryAllocation;
-        VkDeviceMemory mScratchBuildExternalAllocation = VK_NULL_HANDLE;
         // scratch update memory
+        uint32_t mScratchBufferUpdateOffset = 0x0;
         ResourceMemoryAllocation mScratchUpdateMemoryAllocation;
-        VkDeviceMemory mScratchUpdateExternalAllocation = VK_NULL_HANDLE;
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

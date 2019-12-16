@@ -16,8 +16,6 @@
 
 #include "dawn_native/Adapter.h"
 #include "dawn_native/AttachmentState.h"
-#include "dawn_native/RayTracingAccelerationGeometry.h"
-#include "dawn_native/RayTracingAccelerationInstance.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
@@ -368,27 +366,6 @@ namespace dawn_native {
     }
 
     // Object creation API methods
-
-    RayTracingAccelerationGeometryBase* DeviceBase::CreateRayTracingAccelerationGeometry(const RayTracingAccelerationGeometryDescriptor* descriptor) {
-        RayTracingAccelerationGeometryBase* result = nullptr;
-
-        if (ConsumedError(CreateRayTracingAccelerationGeometryInternal(&result, descriptor))) {
-            return RayTracingAccelerationGeometryBase::MakeError(this);
-        }
-
-        return result;
-    }
-
-    RayTracingAccelerationInstanceBase* DeviceBase::CreateRayTracingAccelerationInstance(const RayTracingAccelerationInstanceDescriptor* descriptor) {
-        RayTracingAccelerationInstanceBase* result = nullptr;
-
-        if (ConsumedError(CreateRayTracingAccelerationInstanceInternal(&result, descriptor))) {
-            return RayTracingAccelerationInstanceBase::MakeError(this);
-        }
-
-        return result;
-    }
-
     RayTracingAccelerationContainerBase* DeviceBase::CreateRayTracingAccelerationContainer(const RayTracingAccelerationContainerDescriptor* descriptor) {
         RayTracingAccelerationContainerBase* result = nullptr;
 
@@ -668,27 +645,6 @@ namespace dawn_native {
     }
 
     // Implementation details of object creation
-
-    MaybeError DeviceBase::CreateRayTracingAccelerationGeometryInternal(
-        RayTracingAccelerationGeometryBase** result,
-        const RayTracingAccelerationGeometryDescriptor* descriptor) {
-        if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateRayTracingAccelerationGeometryDescriptor(this, descriptor));
-        }
-        DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationGeometryImpl(descriptor));
-        return {};
-    }
-
-    MaybeError DeviceBase::CreateRayTracingAccelerationInstanceInternal(
-        RayTracingAccelerationInstanceBase** result,
-        const RayTracingAccelerationInstanceDescriptor* descriptor) {
-        if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateRayTracingAccelerationInstanceDescriptor(this, descriptor));
-        }
-        DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationInstanceImpl(descriptor));
-        return {};
-    }
-
     MaybeError DeviceBase::CreateRayTracingAccelerationContainerInternal(
         RayTracingAccelerationContainerBase** result,
         const RayTracingAccelerationContainerDescriptor* descriptor) {

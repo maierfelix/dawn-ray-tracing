@@ -102,10 +102,6 @@ namespace dawn_native { namespace vulkan {
         ResourceMemoryAllocator* GetResourceMemoryAllocatorForTesting() const;
 
       private:
-        ResultOrError<RayTracingAccelerationGeometryBase*> CreateRayTracingAccelerationGeometryImpl(
-            const RayTracingAccelerationGeometryDescriptor* descriptor) override;
-        ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
-            const RayTracingAccelerationInstanceDescriptor* descriptor) override;
         ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override;
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(

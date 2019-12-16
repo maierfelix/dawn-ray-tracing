@@ -105,10 +105,6 @@ namespace dawn_native { namespace d3d12 {
         void InitTogglesFromDriver();
 
       private:
-        ResultOrError<RayTracingAccelerationGeometryBase*> CreateRayTracingAccelerationGeometryImpl(
-            const RayTracingAccelerationGeometryDescriptor* descriptor) override { UNREACHABLE(); };
-        ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
-            const RayTracingAccelerationInstanceDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(

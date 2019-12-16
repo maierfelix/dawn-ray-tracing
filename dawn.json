@@ -25,12 +25,6 @@
     "bind group": {
         "category": "object"
     },
-    "ray tracing acceleration geometry": {
-        "category": "object"
-    },
-    "ray tracing acceleration instance": {
-        "category": "object"
-    },
     "ray tracing acceleration container": {
         "category": "object"
     },
@@ -115,9 +109,9 @@
             {"name": "flags", "type": "ray tracing acceleration container flag", "default": "none"},
             {"name": "level", "type": "ray tracing acceleration container level", "default": "bottom"},
             {"name": "geometry count", "type": "uint32_t"},
-            {"name": "geometries", "type": "ray tracing acceleration geometry", "annotation": "const*", "length": "geometry count", "optional": true},
+            {"name": "geometries", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*", "length": "geometry count", "optional": true},
             {"name": "instance count", "type": "uint32_t"},
-            {"name": "instances", "type": "ray tracing acceleration instance", "annotation": "const*", "length": "instance count", "optional": true}
+            {"name": "instances", "type": "ray tracing acceleration instance descriptor", "annotation": "const*", "length": "instance count", "optional": true}
         ]
     },
     "bind group descriptor": {
@@ -551,20 +545,6 @@
     "device": {
         "category": "object",
         "methods": [
-            {
-                "name": "create ray tracing acceleration geometry",
-                "returns": "ray tracing acceleration geometry",
-                "args": [
-                    {"name": "descriptor", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*"}
-                ]
-            },
-            {
-                "name": "create ray tracing acceleration instance",
-                "returns": "ray tracing acceleration instance",
-                "args": [
-                    {"name": "descriptor", "type": "ray tracing acceleration instance descriptor", "annotation": "const*"}
-                ]
-            },
             {
                 "name": "create ray tracing acceleration container",
                 "returns": "ray tracing acceleration container",

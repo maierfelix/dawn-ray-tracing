@@ -16,8 +16,6 @@
 #define DAWNNATIVE_NULL_DEVICENULL_H_
 
 #include "dawn_native/Adapter.h"
-#include "dawn_native/RayTracingAccelerationGeometry.h"
-#include "dawn_native/RayTracingAccelerationInstance.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
@@ -42,8 +40,6 @@ namespace dawn_native { namespace null {
 
     class Adapter;
 
-    using RayTracingAccelerationGeometry = RayTracingAccelerationGeometryBase;
-    using RayTracingAccelerationInstance = RayTracingAccelerationInstanceBase;
     using RayTracingAccelerationContainer = RayTracingAccelerationContainerBase;
     using BindGroup = BindGroupBase;
     using BindGroupLayout = BindGroupLayoutBase;
@@ -115,10 +111,6 @@ namespace dawn_native { namespace null {
         void DecrementMemoryUsage(size_t bytes);
 
       private:
-        ResultOrError<RayTracingAccelerationGeometryBase*> CreateRayTracingAccelerationGeometryImpl(
-            const RayTracingAccelerationGeometryDescriptor* descriptor) override { UNREACHABLE(); };
-        ResultOrError<RayTracingAccelerationInstanceBase*> CreateRayTracingAccelerationInstanceImpl(
-            const RayTracingAccelerationInstanceDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override { UNREACHABLE(); };
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
