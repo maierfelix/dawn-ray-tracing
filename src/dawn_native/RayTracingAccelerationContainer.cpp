@@ -33,6 +33,10 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR("Instance Count for Bottom-Level Acceleration Container must be zero");
             }
         }
+        if (descriptor->geometryCount == 0 && descriptor->instanceCount == 0) {
+            return DAWN_VALIDATION_ERROR(
+                "No data provided for Acceleration Container");
+        }
         return {};
     }
 
@@ -48,6 +52,10 @@ namespace dawn_native {
     // static
     RayTracingAccelerationContainerBase* RayTracingAccelerationContainerBase::MakeError(DeviceBase* device) {
         return new RayTracingAccelerationContainerBase(device, ObjectBase::kError);
+    }
+
+    bool RayTracingAccelerationContainerBase::IsBuilt() const {
+        return mIsBuilt;
     }
 
 }  // namespace dawn_native

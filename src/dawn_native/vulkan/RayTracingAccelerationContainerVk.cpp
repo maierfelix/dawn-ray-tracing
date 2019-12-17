@@ -379,12 +379,6 @@ namespace dawn_native { namespace vulkan {
             };
         }
 
-        // reserve and upload instance buffer
-        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            //CommandRecordingContext* recordingContext = device->GetPendingRecordingContext();
-            
-        }
-
         // reserve driver space for top level container
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             // get the required scratch buffer space for this container
@@ -418,6 +412,15 @@ namespace dawn_native { namespace vulkan {
                     mScratchUpdateMemoryAllocation,
                     device->AllocateMemory(updateRequirements.memoryRequirements, false));
             }
+        }
+
+        // reserve and upload instance buffer for top level container
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            DynamicUploader* uploader = device->GetDynamicUploader();
+            uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
+            DAWN_TRY_ASSIGN(mInstanceBufferHandle,
+                            uploader->Allocate(bufferSize, device->GetPendingCommandSerial()));
+            memcpy(mInstanceBufferHandle.mappedBuffer, mInstances.data(), bufferSize);
         }
 
         return {};

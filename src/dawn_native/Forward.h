@@ -20,7 +20,6 @@
 namespace dawn_native {
 
     class AdapterBase;
-    class RayTracingAccelerationContainerBase;
     class BindGroupBase;
     class BindGroupLayoutBase;
     class BufferBase;
@@ -33,6 +32,7 @@ namespace dawn_native {
     class PipelineBase;
     class PipelineLayoutBase;
     class QueueBase;
+    class RayTracingAccelerationContainerBase;
     class RenderBundleBase;
     class RenderBundleEncoder;
     class RenderPassEncoder;

@@ -69,6 +69,11 @@ namespace dawn_native {
     };
 
     template <typename BackendTraits>
+    struct ToBackendTraits<RayTracingAccelerationContainerBase, BackendTraits> {
+        using BackendType = typename BackendTraits::RayTracingAccelerationContainerType;
+    };
+
+    template <typename BackendTraits>
     struct ToBackendTraits<RenderPipelineBase, BackendTraits> {
         using BackendType = typename BackendTraits::RenderPipelineType;
     };
@@ -106,11 +111,6 @@ namespace dawn_native {
     template <typename BackendTraits>
     struct ToBackendTraits<TextureViewBase, BackendTraits> {
         using BackendType = typename BackendTraits::TextureViewType;
-    };
-
-    template <typename BackendTraits>
-    struct ToBackendTraits<RayTracingAccelerationContainerBase, BackendTraits> {
-        using BackendType = typename BackendTraits::RayTracingAccelerationContainerType;
     };
 
     // ToBackendBase implements conversion to the given BackendTraits

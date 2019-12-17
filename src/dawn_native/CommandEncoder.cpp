@@ -24,6 +24,7 @@
 #include "dawn_native/ComputePassEncoder.h"
 #include "dawn_native/Device.h"
 #include "dawn_native/ErrorData.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/RenderPassEncoder.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/ValidationUtils_autogen.h"
@@ -238,6 +239,15 @@ namespace dawn_native {
             if (extent.height % format.blockHeight != 0) {
                 return DAWN_VALIDATION_ERROR(
                     "Extent.height must be a multiple of compressed texture format block height");
+            }
+
+            return {};
+        }
+
+        MaybeError ValidateRayTracingAccelerationContainerCanBuild(
+            const RayTracingAccelerationContainerBase* container) {
+            if (container->IsBuilt()) {
+                return DAWN_VALIDATION_ERROR("Acceleration Container is already built.");
             }
 
             return {};
@@ -599,6 +609,22 @@ namespace dawn_native {
         return RenderPassEncoder::MakeError(device, this, &mEncodingContext);
     }
 
+    void CommandEncoder::BuildRayTracingAccelerationContainer(
+        RayTracingAccelerationContainerBase* container,
+        bool update) {
+        mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
+            DAWN_TRY(GetDevice()->ValidateObject((ObjectBase*)container));
+
+            BuildRayTracingAccelerationContainerCmd* build =
+                allocator->Allocate<BuildRayTracingAccelerationContainerCmd>(
+                    Command::BuildRayTracingAccelerationContainer);
+            build->container = container;
+            build->update = update;
+
+            return {};
+        });
+    }
+
     void CommandEncoder::CopyBufferToBuffer(BufferBase* source,
                                             uint64_t sourceOffset,
                                             BufferBase* destination,
@@ -796,6 +822,15 @@ namespace dawn_native {
                 case Command::BeginRenderPass: {
                     const BeginRenderPassCmd* cmd = commands->NextCommand<BeginRenderPassCmd>();
                     DAWN_TRY(ValidateRenderPass(commands, cmd));
+                } break;
+
+                case Command::BuildRayTracingAccelerationContainer: {
+                    const BuildRayTracingAccelerationContainerCmd* build =
+                        commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
+
+                    if (!build->update)
+                        DAWN_TRY(ValidateRayTracingAccelerationContainerCanBuild(
+                            build->container.Get()));
                 } break;
 
                 case Command::CopyBufferToBuffer: {

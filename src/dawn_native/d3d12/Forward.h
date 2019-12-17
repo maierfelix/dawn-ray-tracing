@@ -20,7 +20,6 @@
 namespace dawn_native { namespace d3d12 {
 
     class Adapter;
-    class RayTracingAccelerationContainer;
     class BindGroup;
     class BindGroupLayout;
     class Buffer;
@@ -29,6 +28,7 @@ namespace dawn_native { namespace d3d12 {
     class Device;
     class PipelineLayout;
     class Queue;
+    class RayTracingAccelerationContainer;
     class RenderPipeline;
     class Sampler;
     class ShaderModule;
@@ -47,6 +47,7 @@ namespace dawn_native { namespace d3d12 {
         using DeviceType = Device;
         using PipelineLayoutType = PipelineLayout;
         using QueueType = Queue;
+        using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
         using RenderPipelineType = RenderPipeline;
         using SamplerType = Sampler;
         using ShaderModuleType = ShaderModule;

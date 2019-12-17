@@ -16,7 +16,6 @@
 
 #include "dawn_native/Adapter.h"
 #include "dawn_native/AttachmentState.h"
-#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/Buffer.h"
@@ -32,6 +31,7 @@
 #include "dawn_native/Instance.h"
 #include "dawn_native/PipelineLayout.h"
 #include "dawn_native/Queue.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/RenderBundleEncoder.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/Sampler.h"
@@ -645,16 +645,6 @@ namespace dawn_native {
     }
 
     // Implementation details of object creation
-    MaybeError DeviceBase::CreateRayTracingAccelerationContainerInternal(
-        RayTracingAccelerationContainerBase** result,
-        const RayTracingAccelerationContainerDescriptor* descriptor) {
-        if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateRayTracingAccelerationContainerDescriptor(this, descriptor));
-        }
-        DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationContainerImpl(descriptor));
-        return {};
-    }
-
     MaybeError DeviceBase::CreateBindGroupInternal(
         BindGroupBase** result,
         const BindGroupDescriptor* descriptor) {
@@ -720,6 +710,16 @@ namespace dawn_native {
 
     MaybeError DeviceBase::CreateQueueInternal(QueueBase** result) {
         DAWN_TRY_ASSIGN(*result, CreateQueueImpl());
+        return {};
+    }
+
+    MaybeError DeviceBase::CreateRayTracingAccelerationContainerInternal(
+        RayTracingAccelerationContainerBase** result,
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
+        if (IsValidationEnabled()) {
+            DAWN_TRY(ValidateRayTracingAccelerationContainerDescriptor(this, descriptor));
+        }
+        DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationContainerImpl(descriptor));
         return {};
     }
 

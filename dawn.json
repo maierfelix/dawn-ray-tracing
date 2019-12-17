@@ -108,9 +108,9 @@
         "members": [
             {"name": "flags", "type": "ray tracing acceleration container flag", "default": "none"},
             {"name": "level", "type": "ray tracing acceleration container level", "default": "bottom"},
-            {"name": "geometry count", "type": "uint32_t"},
+            {"name": "geometry count", "type": "uint32_t", "default": "0"},
             {"name": "geometries", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*", "length": "geometry count", "optional": true},
-            {"name": "instance count", "type": "uint32_t"},
+            {"name": "instance count", "type": "uint32_t", "default": "0"},
             {"name": "instances", "type": "ray tracing acceleration instance descriptor", "annotation": "const*", "length": "instance count", "optional": true}
         ]
     },
@@ -375,6 +375,13 @@
                 "returns": "render pass encoder",
                 "args": [
                     {"name": "descriptor", "type": "render pass descriptor", "annotation": "const*"}
+                ]
+            },
+            {
+                "name": "build ray tracing acceleration container",
+                "args": [
+                    {"name": "container", "type": "ray tracing acceleration container"},
+                    {"name": "update", "type": "bool", "default": "false"}
                 ]
             },
             {

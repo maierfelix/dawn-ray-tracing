@@ -25,8 +25,6 @@
 
 namespace dawn_native {
 
-    class DeviceBase;
-
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device,
                                            const RayTracingAccelerationContainerDescriptor* descriptor);
 
@@ -35,8 +33,12 @@ namespace dawn_native {
         RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor);
 
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
+
+        bool IsBuilt() const;
       private:
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+
+        bool mIsBuilt = false;
     };
 
 }  // namespace dawn_native

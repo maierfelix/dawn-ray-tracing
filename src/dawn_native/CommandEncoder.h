@@ -39,6 +39,9 @@ namespace dawn_native {
         ComputePassEncoder* BeginComputePass(const ComputePassDescriptor* descriptor);
         RenderPassEncoder* BeginRenderPass(const RenderPassDescriptor* descriptor);
 
+        void BuildRayTracingAccelerationContainer(RayTracingAccelerationContainerBase* container,
+                                bool update);
+
         void CopyBufferToBuffer(BufferBase* source,
                                 uint64_t sourceOffset,
                                 BufferBase* destination,

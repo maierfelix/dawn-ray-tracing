@@ -18,6 +18,7 @@
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/ResourceMemoryAllocation.h"
+#include "dawn_native/DynamicUploader.h"
 
 #include <vector>
 
@@ -53,9 +54,13 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkGeometryNV> mGeometries;
         std::vector<VkAccelerationInstance> mInstances;
 
+        // AS related
         uint64_t mHandle = 0;
         VkAccelerationStructureTypeNV mLevel;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
+
+        // instance buffer for top-level containers
+        UploadHandle mInstanceBufferHandle;
 
         // scratch result memory
         uint32_t mScratchBufferResultOffset = 0x0;

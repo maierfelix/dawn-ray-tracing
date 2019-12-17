@@ -25,6 +25,7 @@
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/PipelineLayoutVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 #include "dawn_native/vulkan/RenderPassCache.h"
 #include "dawn_native/vulkan/RenderPipelineVk.h"
 #include "dawn_native/vulkan/TextureVk.h"
@@ -447,6 +448,12 @@ namespace dawn_native { namespace vulkan {
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
+                case Command::BuildRayTracingAccelerationContainer: {
+                    BuildRayTracingAccelerationContainerCmd* build =
+                        mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
+                    printf("1337 Level: %i\n", (int) container->GetLevel());
+                } break;
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
                     Buffer* srcBuffer = ToBackend(copy->source.Get());

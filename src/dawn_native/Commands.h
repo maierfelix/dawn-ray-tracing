@@ -34,6 +34,7 @@ namespace dawn_native {
     enum class Command {
         BeginComputePass,
         BeginRenderPass,
+        BuildRayTracingAccelerationContainer,
         CopyBufferToBuffer,
         CopyBufferToTexture,
         CopyTextureToBuffer,
@@ -89,6 +90,11 @@ namespace dawn_native {
         // Cache the width and height of all attachments for convenience
         uint32_t width;
         uint32_t height;
+    };
+
+    struct BuildRayTracingAccelerationContainerCmd {
+        Ref<RayTracingAccelerationContainerBase> container;
+        bool update;
     };
 
     struct BufferCopy {
