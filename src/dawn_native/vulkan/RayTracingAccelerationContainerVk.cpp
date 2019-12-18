@@ -14,6 +14,7 @@
 
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
+#include "dawn_native/vulkan/StagingBufferVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
@@ -174,6 +175,16 @@ namespace dawn_native { namespace vulkan {
 
         // save container level
         mLevel = VulkanAccelerationContainerLevel(descriptor->level);
+        mFlags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
+
+        // validate ray tracing calls
+        if (device->fn.CreateAccelerationStructureNV == nullptr) {
+            return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
+        }
+        if (device->fn.GetAccelerationStructureMemoryRequirementsNV == nullptr) {
+            return DAWN_VALIDATION_ERROR(
+                "Invalid Call to GetAccelerationStructureMemoryRequirementsNV");
+        }
 
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
@@ -220,21 +231,21 @@ namespace dawn_native { namespace vulkan {
 
         // acceleration container holds geometry instances
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            mInstances.reserve(descriptor->instanceCount);
             // create data for instance buffer
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 RayTracingAccelerationInstanceDescriptor instance = descriptor->instances[ii];
-                RayTracingAccelerationContainer* geometryContainer = ToBackend(instance.geometryContainer);
+                RayTracingAccelerationContainer* geometryContainer =
+                    ToBackend(instance.geometryContainer);
                 VkAccelerationInstance instanceData = {};
-                memcpy(&instanceData.transform, const_cast<float*>(instance.transform), sizeof(instanceData.transform));
+                memcpy(&instanceData.transform, const_cast<float*>(instance.transform),
+                       sizeof(instanceData.transform));
                 instanceData.instanceCustomIndex = static_cast<uint32_t>(instance.instanceId);
                 instanceData.mask = static_cast<uint32_t>(instance.mask);
                 instanceData.instanceOffset = static_cast<uint32_t>(instance.instanceOffset);
                 instanceData.flags = static_cast<uint32_t>(instance.flags);
                 instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
-                mInstances[ii] = instanceData;
+                mInstances.push_back(instanceData);
             };
-
         }
 
         VkAccelerationStructureInfoNV accelerationStructureInfo{};
@@ -255,24 +266,6 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureCreateInfoNV accelerationStructureCI{};
         accelerationStructureCI.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
         accelerationStructureCI.info = accelerationStructureInfo;
-
-        // validate ray tracing calls
-        if (device->fn.CreateAccelerationStructureNV == nullptr) {
-            return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
-        }
-        if (device->fn.DestroyAccelerationStructureNV == nullptr) {
-            return DAWN_VALIDATION_ERROR("Invalid Call to DestroyAccelerationStructureNV");
-        }
-        if (device->fn.GetAccelerationStructureHandleNV == nullptr) {
-            return DAWN_VALIDATION_ERROR("Invalid Call to GetAccelerationStructureHandleNV");
-        }
-        if (device->fn.BindAccelerationStructureMemoryNV == nullptr) {
-            return DAWN_VALIDATION_ERROR("Invalid Call to BindAccelerationStructureMemoryNV");
-        }
-        if (device->fn.GetAccelerationStructureMemoryRequirementsNV == nullptr) {
-            return DAWN_VALIDATION_ERROR(
-                "Invalid Call to GetAccelerationStructureMemoryRequirementsNV");
-        }
 
         {
             MaybeError result = CheckVkSuccess(device->fn.CreateAccelerationStructureNV(
@@ -326,50 +319,38 @@ namespace dawn_native { namespace vulkan {
                 uint32_t updateSize = container->GetMemoryRequirementSize(
                     VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
                 // update the container's scratch buffer memory offsets
-                container->mScratchBufferResultOffset = scratchBufferResultOffset;
-                container->mScratchBufferBuildOffset = scratchBufferBuildOffset;
-                container->mScratchBufferUpdateOffset = scratchBufferUpdateOffset;
+                container->mScratchBottomMemory.result.offset = scratchBufferResultOffset;
+                container->mScratchBottomMemory.build.offset = scratchBufferBuildOffset;
+                container->mScratchBottomMemory.update.offset = scratchBufferUpdateOffset;
                 // offset steps
                 scratchBufferResultOffset += resultSize;
                 scratchBufferBuildOffset += buildSize;
                 scratchBufferUpdateOffset += updateSize;
             };
 
-            // allocate bottom-level scratch buffer result
-            VkMemoryRequirements2 resultRequirements =
-                GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-            resultRequirements.memoryRequirements.size = scratchBufferResultOffset;
-            DAWN_TRY_ASSIGN(mScratchResultMemoryAllocation,
-                            device->AllocateMemory(resultRequirements.memoryRequirements, false));
+            // allocate bottom-level scratch memory for all linked geometry containers
+            MaybeError scratchResult =
+                CreateScratchMemory(&mScratchBottomMemory, scratchBufferResultOffset,
+                                    scratchBufferBuildOffset, scratchBufferUpdateOffset);
+            if (scratchResult.IsError())
+                return scratchResult.AcquireError();
 
-            // allocate bottom-level scratch buffer build
-            VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
-                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
-            resultRequirements.memoryRequirements.size = scratchBufferBuildOffset;
-            DAWN_TRY_ASSIGN(mScratchBuildMemoryAllocation,
-                            device->AllocateMemory(buildRequirements.memoryRequirements, false));
-
-            // allocate bottom-level scratch buffer update (if necessary)
-            VkMemoryRequirements2 updateRequirements = GetMemoryRequirements(
-                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
-            resultRequirements.memoryRequirements.size = scratchBufferUpdateOffset;
-            if (updateRequirements.memoryRequirements.size > 0) {
-                DAWN_TRY_ASSIGN(
-                    mScratchUpdateMemoryAllocation,
-                    device->AllocateMemory(updateRequirements.memoryRequirements, false));
-            }
-
-            // bind scratch buffer to each geometry container
+            // now we link the top-level scratch buffer to each geometry container
             for (unsigned int ii = 0; ii < geometryContainers.size(); ++ii) {
                 RayTracingAccelerationContainer* container = geometryContainers[ii];
+                container->mScratchBottomMemory.result.buffer = mScratchBottomMemory.result.buffer;
+                container->mScratchBottomMemory.result.resource = mScratchBottomMemory.result.resource;
+                container->mScratchBottomMemory.build.buffer = mScratchBottomMemory.build.buffer;
+                container->mScratchBottomMemory.build.resource = mScratchBottomMemory.build.resource;
+                container->mScratchBottomMemory.update.buffer = mScratchBottomMemory.update.buffer;
+                container->mScratchBottomMemory.update.resource = mScratchBottomMemory.update.resource;
 
                 // TODO: also bind build/update scratch buffer?
                 VkBindAccelerationStructureMemoryInfoNV memoryBindInfo{};
                 memoryBindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
                 memoryBindInfo.accelerationStructure = container->GetAccelerationStructure();
-                memoryBindInfo.memory =
-                    ToBackend(mScratchResultMemoryAllocation.GetResourceHeap())->GetMemory();
-                memoryBindInfo.memoryOffset = container->mScratchBufferResultOffset;
+                memoryBindInfo.memory = ToBackend(container->mScratchBottomMemory.result.resource.GetResourceHeap())->GetMemory();
+                memoryBindInfo.memoryOffset = container->mScratchBottomMemory.result.offset;
 
                 MaybeError result = CheckVkSuccess(device->fn.BindAccelerationStructureMemoryNV(
                                                        device->GetVkDevice(), 1, &memoryBindInfo),
@@ -377,9 +358,10 @@ namespace dawn_native { namespace vulkan {
                 if (result.IsError())
                     return result.AcquireError();
             };
+
         }
 
-        // reserve driver space for top level container
+        // reserve scratch buffer for top level container
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             // get the required scratch buffer space for this container
             uint32_t resultSize = GetMemoryRequirementSize(
@@ -389,29 +371,10 @@ namespace dawn_native { namespace vulkan {
             uint32_t updateSize = GetMemoryRequirementSize(
                 VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
 
-            // allocate top-level scratch buffer result
-            VkMemoryRequirements2 resultRequirements =
-                GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-            resultRequirements.memoryRequirements.size = resultSize;
-            DAWN_TRY_ASSIGN(mScratchResultMemoryAllocation,
-                            device->AllocateMemory(resultRequirements.memoryRequirements, false));
-
-            // allocate top-level scratch buffer build
-            VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
-                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
-            resultRequirements.memoryRequirements.size = buildSize;
-            DAWN_TRY_ASSIGN(mScratchBuildMemoryAllocation,
-                            device->AllocateMemory(buildRequirements.memoryRequirements, false));
-
-            // allocate top-level scratch buffer update (if necessary)
-            VkMemoryRequirements2 updateRequirements = GetMemoryRequirements(
-                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
-            resultRequirements.memoryRequirements.size = updateSize;
-            if (updateRequirements.memoryRequirements.size > 0) {
-                DAWN_TRY_ASSIGN(
-                    mScratchUpdateMemoryAllocation,
-                    device->AllocateMemory(updateRequirements.memoryRequirements, false));
-            }
+             MaybeError scratchResult =
+                CreateScratchMemory(&mScratchTopMemory, resultSize, buildSize, updateSize);
+            if (scratchResult.IsError())
+                return scratchResult.AcquireError();
         }
 
         // reserve and upload instance buffer for top level container
@@ -435,17 +398,82 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    uint64_t RayTracingAccelerationContainer::GetHandle() const {
-        return mHandle;
-    }
+    MaybeError RayTracingAccelerationContainer::CreateScratchMemory(ScratchMemoryPool* memory,
+                                                                    uint32_t resultSize,
+                                                                    uint32_t buildSize,
+                                                                    uint32_t updateSize) {
+        Device* device = ToBackend(GetDevice());
 
-    VkAccelerationStructureTypeNV RayTracingAccelerationContainer::GetLevel() const {
-        return mLevel;
-    }
+        // allocate scratch result buffer
+        VkMemoryRequirements2 resultRequirements =
+            GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
+        resultRequirements.memoryRequirements.size = resultSize;
+        DAWN_TRY_ASSIGN(memory->result.resource,
+                        device->AllocateMemory(resultRequirements.memoryRequirements, false));
+        {
+            MaybeError result = BufferFromResourceMemoryAllocation(&memory->result.buffer, resultSize, memory->result.resource);
+            if (result.IsError())
+                return result.AcquireError();
+        }
 
-    VkAccelerationStructureNV RayTracingAccelerationContainer::GetAccelerationStructure() const {
-        return mAccelerationStructure;
-    }
+        // allocate scratch build buffer
+        VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
+            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
+        buildRequirements.memoryRequirements.size = buildSize;
+        DAWN_TRY_ASSIGN(memory->build.resource,
+                        device->AllocateMemory(buildRequirements.memoryRequirements, false));
+        {
+            MaybeError result = BufferFromResourceMemoryAllocation(&memory->build.buffer, buildSize,
+                                                                   memory->build.resource);
+            if (result.IsError())
+                return result.AcquireError();
+        }
+
+        // allocate scratch update buffer (if necessary)
+        VkMemoryRequirements2 updateRequirements = GetMemoryRequirements(
+            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
+        updateRequirements.memoryRequirements.size = updateSize;
+        if (updateRequirements.memoryRequirements.size > 0) {
+            DAWN_TRY_ASSIGN(memory->update.resource,
+                            device->AllocateMemory(updateRequirements.memoryRequirements, false));
+            {
+                MaybeError result = BufferFromResourceMemoryAllocation(
+                    &memory->update.buffer, updateSize, memory->update.resource);
+                if (result.IsError())
+                    return result.AcquireError();
+            }
+        }
+
+        return {};
+    };
+
+    MaybeError RayTracingAccelerationContainer::BufferFromResourceMemoryAllocation(
+        VkBuffer* buffer,
+        uint32_t size,
+        ResourceMemoryAllocation resource) {
+        Device* device = ToBackend(GetDevice());
+
+        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        bufferInfo.size = size;
+        bufferInfo.usage = VK_BUFFER_USAGE_RAY_TRACING_BIT_NV | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        MaybeError result0 = CheckVkSuccess(
+            device->fn.CreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, buffer),
+            "vkCreateBuffer");
+        if (result0.IsError())
+            return result0.AcquireError();
+
+        MaybeError result1 = CheckVkSuccess(
+            device->fn.BindBufferMemory(device->GetVkDevice(), *buffer,
+                                        ToBackend(resource.GetResourceHeap())->GetMemory(),
+                                        resource.GetOffset()),
+            "vkBindBufferMemory");
+        if (result1.IsError())
+            return result1.AcquireError();
+
+        return {};
+    };
 
     VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
         VkAccelerationStructureMemoryRequirementsTypeNV type) const {
@@ -470,5 +498,41 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureMemoryRequirementsTypeNV type) const {
         return GetMemoryRequirements(type).memoryRequirements.size;
     }
+
+    VkBuffer RayTracingAccelerationContainer::GetInstanceBuffer() const {
+        return ToBackend(mInstanceBufferHandle.stagingBuffer)->GetBufferHandle();
+    };
+
+    uint64_t RayTracingAccelerationContainer::GetHandle() const {
+        return mHandle;
+    }
+
+    VkAccelerationStructureTypeNV RayTracingAccelerationContainer::GetLevel() const {
+        return mLevel;
+    }
+
+    VkBuildAccelerationStructureFlagBitsNV RayTracingAccelerationContainer::GetFlags() const {
+        return mFlags;
+    }
+
+    VkAccelerationStructureNV RayTracingAccelerationContainer::GetAccelerationStructure() const {
+        return mAccelerationStructure;
+    }
+
+    std::vector<VkGeometryNV>& RayTracingAccelerationContainer::GetGeometries() {
+        return mGeometries;
+    };
+
+    std::vector<VkAccelerationInstance>& RayTracingAccelerationContainer::GetInstances() {
+        return mInstances;
+    };
+
+    ScratchMemoryPool RayTracingAccelerationContainer::GetScratchMemory() const {
+        if (GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+            return mScratchTopMemory;
+        } else {
+            return mScratchBottomMemory;
+        }
+    };
 
 }}  // namespace dawn_native::vulkan

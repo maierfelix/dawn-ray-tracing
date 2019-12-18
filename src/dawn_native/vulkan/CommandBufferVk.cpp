@@ -31,6 +31,7 @@
 #include "dawn_native/vulkan/TextureVk.h"
 #include "dawn_native/vulkan/UtilsVulkan.h"
 #include "dawn_native/vulkan/VulkanError.h"
+#include "dawn_native/vulkan/ResourceHeapVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -452,7 +453,42 @@ namespace dawn_native { namespace vulkan {
                     BuildRayTracingAccelerationContainerCmd* build =
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
-                    printf("1337 Level: %i\n", (int) container->GetLevel());
+
+                    VkAccelerationStructureInfoNV asInfo = {};
+                    asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+                    asInfo.type = container->GetLevel();
+                    asInfo.flags = container->GetFlags();
+
+                    // bottom-level AS
+                    if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
+                        std::vector<VkGeometryNV>& geometries = container->GetGeometries();
+                        asInfo.instanceCount = 0;
+                        asInfo.geometryCount = geometries.size();
+                        asInfo.pGeometries = geometries.data();
+
+                        if (container->GetScratchMemory().result.buffer == VK_NULL_HANDLE) {
+                            printf("Invalid Scratch Buffer!!\n");
+                        }
+
+                        device->fn.CmdBuildAccelerationStructureNV(
+                            commands, &asInfo, nullptr, 0, build->update,
+                            container->GetAccelerationStructure(),
+                            build->update ? nullptr : nullptr,
+                            container->GetScratchMemory().result.buffer,
+                            container->GetScratchMemory().result.offset);
+                    // top-level AS
+                    } else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
+                        asInfo.instanceCount = instances.size();
+                        asInfo.geometryCount = 0;
+                        device->fn.CmdBuildAccelerationStructureNV(
+                            commands, &asInfo, container->GetInstanceBuffer(), 0, build->update,
+                            container->GetAccelerationStructure(),
+                            build->update ? nullptr : nullptr,
+                            container->GetScratchMemory().result.buffer,
+                            container->GetScratchMemory().result.offset);
+                    }
+
                 } break;
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();

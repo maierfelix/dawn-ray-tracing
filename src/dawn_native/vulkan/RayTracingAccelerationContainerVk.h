@@ -35,6 +35,18 @@ namespace dawn_native { namespace vulkan {
         uint64_t accelerationStructureHandle;
     };
 
+    struct ScratchMemory {
+        uint32_t offset;
+        VkBuffer buffer;
+        ResourceMemoryAllocation resource;
+    };
+
+    struct ScratchMemoryPool {
+        ScratchMemory result;
+        ScratchMemory build;
+        ScratchMemory update;
+    };
+
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
       public:
         static ResultOrError<RayTracingAccelerationContainer*> Create(Device* device, const RayTracingAccelerationContainerDescriptor* descriptor);
@@ -42,11 +54,19 @@ namespace dawn_native { namespace vulkan {
 
         uint64_t GetHandle() const;
         VkAccelerationStructureTypeNV GetLevel() const;
+        VkBuildAccelerationStructureFlagBitsNV GetFlags() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
         VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
         uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
+
+        VkBuffer GetInstanceBuffer() const;
+        
+        std::vector<VkGeometryNV>& GetGeometries();
+        std::vector<VkAccelerationInstance>& GetInstances();
+
+        ScratchMemoryPool GetScratchMemory() const;
 
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
@@ -57,20 +77,26 @@ namespace dawn_native { namespace vulkan {
         // AS related
         uint64_t mHandle = 0;
         VkAccelerationStructureTypeNV mLevel;
+        VkBuildAccelerationStructureFlagBitsNV mFlags;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
         // instance buffer for top-level containers
         UploadHandle mInstanceBufferHandle;
 
-        // scratch result memory
-        uint32_t mScratchBufferResultOffset = 0x0;
-        ResourceMemoryAllocation mScratchResultMemoryAllocation;
-        // scratch build memory
-        uint32_t mScratchBufferBuildOffset = 0x0;
-        ResourceMemoryAllocation mScratchBuildMemoryAllocation;
-        // scratch update memory
-        uint32_t mScratchBufferUpdateOffset = 0x0;
-        ResourceMemoryAllocation mScratchUpdateMemoryAllocation;
+        // scratch memory for top-level container
+        ScratchMemoryPool mScratchTopMemory;
+        // scratch memory for bottom-level containers
+        // bottom-level containers linked to a top-level container share the top-level scratch buffer
+        ScratchMemoryPool mScratchBottomMemory;
+
+        MaybeError CreateScratchMemory(ScratchMemoryPool* memory,
+                                       uint32_t resultSize,
+                                       uint32_t buildSize,
+                                       uint32_t updateSize);
+
+        MaybeError BufferFromResourceMemoryAllocation(VkBuffer* buffer,
+                                                      uint32_t size,
+                                                      ResourceMemoryAllocation resource);
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };
