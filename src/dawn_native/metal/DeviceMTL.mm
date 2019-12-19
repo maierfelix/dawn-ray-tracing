@@ -18,6 +18,7 @@
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/DynamicUploader.h"
+#include "dawn_native/ErrorData.h"
 #include "dawn_native/metal/BufferMTL.h"
 #include "dawn_native/metal/CommandBufferMTL.h"
 #include "dawn_native/metal/ComputePipelineMTL.h"
@@ -53,27 +54,7 @@ namespace dawn_native { namespace metal {
     }
 
     Device::~Device() {
-        // Wait for all commands to be finished so we can free resources SubmitPendingCommandBuffer
-        // may not increment the pendingCommandSerial if there are no pending commands, so we can't
-        // store the pendingSerial before SubmitPendingCommandBuffer then wait for it to be passed.
-        // Instead we submit and wait for the serial before the next pendingCommandSerial.
-        SubmitPendingCommandBuffer();
-        while (GetCompletedCommandSerial() != mLastSubmittedSerial) {
-            usleep(100);
-        }
-        Tick();
-
-        [mPendingCommands release];
-        mPendingCommands = nil;
-
-        mMapTracker = nullptr;
-        mDynamicUploader = nullptr;
-
-        [mCommandQueue release];
-        mCommandQueue = nil;
-
-        [mMtlDevice release];
-        mMtlDevice = nil;
+        BaseDestructor();
     }
 
     void Device::InitTogglesFromDriver() {
@@ -111,7 +92,7 @@ namespace dawn_native { namespace metal {
     }
     ResultOrError<ComputePipelineBase*> Device::CreateComputePipelineImpl(
         const ComputePipelineDescriptor* descriptor) {
-        return new ComputePipeline(this, descriptor);
+        return ComputePipeline::Create(this, descriptor);
     }
     ResultOrError<PipelineLayoutBase*> Device::CreatePipelineLayoutImpl(
         const PipelineLayoutDescriptor* descriptor) {
@@ -122,7 +103,7 @@ namespace dawn_native { namespace metal {
     }
     ResultOrError<RenderPipelineBase*> Device::CreateRenderPipelineImpl(
         const RenderPipelineDescriptor* descriptor) {
-        return new RenderPipeline(this, descriptor);
+        return RenderPipeline::Create(this, descriptor);
     }
     ResultOrError<SamplerBase*> Device::CreateSamplerImpl(const SamplerDescriptor* descriptor) {
         return new Sampler(this, descriptor);
@@ -289,6 +270,34 @@ namespace dawn_native { namespace metal {
     void Device::WaitForCommandsToBeScheduled() {
         SubmitPendingCommandBuffer();
         [mLastSubmittedCommands waitUntilScheduled];
+    }
+
+    MaybeError Device::WaitForIdleForDestruction() {
+        [mPendingCommands release];
+        mPendingCommands = nil;
+
+        // Wait for all commands to be finished so we can free resources
+        while (GetCompletedCommandSerial() != mLastSubmittedSerial) {
+            usleep(100);
+        }
+        Tick();
+        return {};
+    }
+
+    void Device::Destroy() {
+        if (mPendingCommands != nil) {
+            [mPendingCommands release];
+            mPendingCommands = nil;
+        }
+
+        mMapTracker = nullptr;
+        mDynamicUploader = nullptr;
+
+        [mCommandQueue release];
+        mCommandQueue = nil;
+
+        [mMtlDevice release];
+        mMtlDevice = nil;
     }
 
 }}  // namespace dawn_native::metal

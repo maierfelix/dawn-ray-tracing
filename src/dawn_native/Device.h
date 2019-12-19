@@ -164,6 +164,7 @@ namespace dawn_native {
 
         void Tick();
 
+        void SetDeviceLostCallback(wgpu::DeviceLostCallback callback, void* userdata);
         void SetUncapturedErrorCallback(wgpu::ErrorCallback callback, void* userdata);
         void PushErrorScope(wgpu::ErrorFilter filter);
         bool PopErrorScope(wgpu::ErrorCallback callback, void* userdata);
@@ -193,6 +194,7 @@ namespace dawn_native {
       protected:
         void SetToggle(Toggle toggle, bool isEnabled);
         void ApplyToggleOverrides(const DeviceDescriptor* deviceDescriptor);
+        void BaseDestructor();
 
         std::unique_ptr<DynamicUploader> mDynamicUploader;
 
@@ -256,6 +258,19 @@ namespace dawn_native {
         void SetDefaultToggles();
 
         void ConsumeError(ErrorData* error);
+
+        // Destroy is used to clean up and release resources used by device, does not wait for GPU
+        // or check errors.
+        virtual void Destroy() = 0;
+
+        // WaitForIdleForDestruction waits for GPU to finish, checks errors and gets ready for
+        // destruction. This is only used when properly destructing the device. For a real
+        // device loss, this function doesn't need to be called since the driver already closed all
+        // resources.
+        virtual MaybeError WaitForIdleForDestruction() = 0;
+
+        wgpu::DeviceLostCallback mDeviceLostCallback = nullptr;
+        void* mDeviceLostUserdata;
 
         AdapterBase* mAdapter = nullptr;
 
