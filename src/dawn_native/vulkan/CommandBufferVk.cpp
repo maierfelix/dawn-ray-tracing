@@ -488,7 +488,16 @@ namespace dawn_native { namespace vulkan {
                             container->GetScratchMemory().result.buffer,
                             container->GetScratchMemory().result.offset);
                     }
-
+                    VkMemoryBarrier memoryBarrier = {};
+                    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                    memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                                  VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+                    memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                                  VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+                    device->fn.CmdPipelineBarrier(
+                        commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &memoryBarrier,
+                        0, nullptr, 0, nullptr);
                 } break;
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
