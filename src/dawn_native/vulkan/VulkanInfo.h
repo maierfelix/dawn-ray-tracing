@@ -126,6 +126,8 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<VulkanGlobalInfo> GatherGlobalInfo(const Backend& backend);
     ResultOrError<std::vector<VkPhysicalDevice>> GetPhysicalDevices(const Backend& backend);
     ResultOrError<VulkanDeviceInfo> GatherDeviceInfo(const Adapter& adapter);
+    ResultOrError<VkPhysicalDeviceRayTracingPropertiesNV> GetRayTracingProperties(
+        const Adapter& adapter);
     MaybeError GatherSurfaceInfo(const Adapter& adapter,
                                  VkSurfaceKHR surface,
                                  VulkanSurfaceInfo* info);

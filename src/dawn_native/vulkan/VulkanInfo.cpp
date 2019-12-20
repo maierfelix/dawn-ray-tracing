@@ -326,6 +326,23 @@ namespace dawn_native { namespace vulkan {
         return info;
     }
 
+    ResultOrError<VkPhysicalDeviceRayTracingPropertiesNV> GetRayTracingProperties(
+        const Adapter& adapter) {
+        VkPhysicalDevice physicalDevice = adapter.GetPhysicalDevice();
+        const VulkanFunctions& vkFunctions = adapter.GetBackend()->GetFunctions();
+
+        VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties = {};
+        rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+
+        VkPhysicalDeviceProperties2 deviceProperties2 = {};
+        deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        deviceProperties2.pNext = &rayTracingProperties;
+
+        vkFunctions.GetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProperties2);
+
+        return rayTracingProperties;
+    }
+
     MaybeError GatherSurfaceInfo(const Adapter& adapter,
                                  VkSurfaceKHR surface,
                                  VulkanSurfaceInfo* info) {
