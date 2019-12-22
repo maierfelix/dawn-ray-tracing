@@ -277,6 +277,7 @@ namespace dawn_native { namespace vulkan {
         }
 
         if (deviceInfo.rayTracingNV) {
+            GET_DEVICE_PROC(CreateRayTracingPipelinesNV);
             GET_DEVICE_PROC(CreateAccelerationStructureNV);
             GET_DEVICE_PROC(DestroyAccelerationStructureNV);
             GET_DEVICE_PROC(CmdBuildAccelerationStructureNV);

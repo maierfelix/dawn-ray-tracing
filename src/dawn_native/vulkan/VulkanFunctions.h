@@ -266,6 +266,7 @@ namespace dawn_native { namespace vulkan {
 #endif
 
         // VK_NV_ray_tracing
+        PFN_vkCreateRayTracingPipelinesNV CreateRayTracingPipelinesNV = nullptr;
         PFN_vkCreateAccelerationStructureNV CreateAccelerationStructureNV = nullptr;
         PFN_vkDestroyAccelerationStructureNV DestroyAccelerationStructureNV = nullptr;
         PFN_vkCmdBuildAccelerationStructureNV CmdBuildAccelerationStructureNV = nullptr;
