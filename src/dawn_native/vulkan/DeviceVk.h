@@ -104,6 +104,8 @@ namespace dawn_native { namespace vulkan {
       private:
         ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override;
+        ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
+            const RayTracingShaderBindingTableDescriptor* descriptor) override;
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(

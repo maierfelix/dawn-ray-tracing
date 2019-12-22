@@ -89,6 +89,14 @@ namespace dawn_native { namespace vulkan {
         // bottom-level containers linked to a top-level container share the top-level scratch buffer
         ScratchMemoryPool mScratchBottomMemory;
 
+        MaybeError RayTracingAccelerationContainer::CreateAccelerationStructure(
+            const RayTracingAccelerationContainerDescriptor* descriptor);
+        MaybeError RayTracingAccelerationContainer::CreateAccelerationStructureHandle();
+        MaybeError RayTracingAccelerationContainer::ReserveGeometryScratchMemory(
+            const RayTracingAccelerationContainerDescriptor* descriptor);
+        MaybeError RayTracingAccelerationContainer::ReserveInstanceScratchMemory(
+            const RayTracingAccelerationContainerDescriptor* descriptor);
+
         MaybeError CreateScratchMemory(ScratchMemoryPool* memory,
                                        uint32_t resultSize,
                                        uint32_t buildSize,

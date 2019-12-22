@@ -24,6 +24,7 @@
 #include "dawn_native/vulkan/AdapterVk.h"
 #include "dawn_native/vulkan/BackendVk.h"
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
+#include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/BindGroupLayoutVk.h"
 #include "dawn_native/vulkan/BindGroupVk.h"
 #include "dawn_native/vulkan/BufferVk.h"
@@ -94,6 +95,10 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<RayTracingAccelerationContainerBase*> Device::CreateRayTracingAccelerationContainerImpl(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         return RayTracingAccelerationContainer::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingShaderBindingTableBase*> Device::CreateRayTracingShaderBindingTableImpl(
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
+        return RayTracingShaderBindingTable::Create(this, descriptor);
     }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {

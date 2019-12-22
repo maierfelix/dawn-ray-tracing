@@ -1,6 +1,7 @@
 ComputePipelineVk.cpp
 DeviceVk.cpp
 RayTracingAccelerationContainerVk.cpp
+RayTracingShaderBindingTableVk.cpp
 RenderPipelineVk.cpp
 SamplerVk.cpp
 ShaderModuleVk.cpp

@@ -22,6 +22,7 @@ namespace dawn_native { namespace vulkan {
     class Adapter;
 
     class RayTracingAccelerationContainer;
+    class RayTracingShaderBindingTable;
 
     class BindGroup;
     class BindGroupLayout;
@@ -43,6 +44,7 @@ namespace dawn_native { namespace vulkan {
     struct VulkanBackendTraits {
         using AdapterType = Adapter;
         using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
+        using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using BindGroupType = BindGroup;
         using BindGroupLayoutType = BindGroupLayout;
         using BufferType = Buffer;

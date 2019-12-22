@@ -28,6 +28,9 @@
     "ray tracing acceleration container": {
         "category": "object"
     },
+    "ray tracing shader binding table": {
+        "category": "object"
+    },
     "bind group binding": {
         "category": "structure",
         "extensible": false,
@@ -112,6 +115,13 @@
             {"name": "geometries", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*", "length": "geometry count", "optional": true},
             {"name": "instance count", "type": "uint32_t", "default": "0"},
             {"name": "instances", "type": "ray tracing acceleration instance descriptor", "annotation": "const*", "length": "instance count", "optional": true}
+        ]
+    },
+    "ray tracing shader binding table descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "level", "type": "uint32_t", "default": "0"}
         ]
     },
     "bind group descriptor": {
@@ -557,6 +567,13 @@
                 "returns": "ray tracing acceleration container",
                 "args": [
                     {"name": "descriptor", "type": "ray tracing acceleration container descriptor", "annotation": "const*"}
+                ]
+            },
+            {
+                "name": "create ray tracing shader binding table",
+                "returns": "ray tracing shader binding table",
+                "args": [
+                    {"name": "descriptor", "type": "ray tracing shader binding table descriptor", "annotation": "const*"}
                 ]
             },
             {

@@ -33,6 +33,7 @@ namespace dawn_native {
     class PipelineLayoutBase;
     class QueueBase;
     class RayTracingAccelerationContainerBase;
+    class RayTracingShaderBindingTableBase;
     class RenderBundleBase;
     class RenderBundleEncoder;
     class RenderPassEncoder;

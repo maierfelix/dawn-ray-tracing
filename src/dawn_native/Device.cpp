@@ -32,6 +32,7 @@
 #include "dawn_native/PipelineLayout.h"
 #include "dawn_native/Queue.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
+#include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/RenderBundleEncoder.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/Sampler.h"
@@ -390,6 +391,16 @@ namespace dawn_native {
         return result;
     }
 
+    RayTracingShaderBindingTableBase* DeviceBase::CreateRayTracingShaderBindingTable(const RayTracingShaderBindingTableDescriptor* descriptor) {
+        RayTracingShaderBindingTableBase* result = nullptr;
+
+        if (ConsumedError(CreateRayTracingShaderBindingTableInternal(&result, descriptor))) {
+            return RayTracingShaderBindingTableBase::MakeError(this);
+        }
+
+        return result;
+    }
+
     BindGroupBase* DeviceBase::CreateBindGroup(const BindGroupDescriptor* descriptor) {
         BindGroupBase* result = nullptr;
 
@@ -734,6 +745,16 @@ namespace dawn_native {
             DAWN_TRY(ValidateRayTracingAccelerationContainerDescriptor(this, descriptor));
         }
         DAWN_TRY_ASSIGN(*result, CreateRayTracingAccelerationContainerImpl(descriptor));
+        return {};
+    }
+
+    MaybeError DeviceBase::CreateRayTracingShaderBindingTableInternal(
+        RayTracingShaderBindingTableBase** result,
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
+        if (IsValidationEnabled()) {
+            DAWN_TRY(ValidateRayTracingShaderBindingTableDescriptor(this, descriptor));
+        }
+        DAWN_TRY_ASSIGN(*result, CreateRayTracingShaderBindingTableImpl(descriptor));
         return {};
     }
 
