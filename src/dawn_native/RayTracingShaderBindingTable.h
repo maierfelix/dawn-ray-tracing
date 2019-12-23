@@ -34,7 +34,6 @@ namespace dawn_native {
 
         static RayTracingShaderBindingTableBase* MakeError(DeviceBase* device);
 
-        bool IsBuilt() const;
       private:
         RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag);
     };

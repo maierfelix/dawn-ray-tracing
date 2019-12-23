@@ -117,11 +117,20 @@
             {"name": "instances", "type": "ray tracing acceleration instance descriptor", "annotation": "const*", "length": "instance count", "optional": true}
         ]
     },
+    "ray tracing shader binding table shaders descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "stage", "type": "shader stage"},
+            {"name": "module", "type": "shader module"}
+        ]
+    },
     "ray tracing shader binding table descriptor": {
         "category": "structure",
         "extensible": false,
         "members": [
-            {"name": "level", "type": "uint32_t", "default": "0"}
+            {"name": "shader count", "type": "uint32_t", "default": "0"},
+            {"name": "shaders", "type": "ray tracing shader binding table shaders descriptor", "annotation": "const*", "length": "shader count", "optional": true}
         ]
     },
     "bind group descriptor": {

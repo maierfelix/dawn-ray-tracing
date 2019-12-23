@@ -30,8 +30,13 @@ namespace dawn_native { namespace vulkan {
       public:
         static ResultOrError<RayTracingShaderBindingTable*> Create(Device* device, const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable();
+
+        std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetStages();
+
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
+
+        std::vector<VkRayTracingShaderGroupCreateInfoNV> mStages;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

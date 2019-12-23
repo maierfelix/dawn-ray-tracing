@@ -37,7 +37,45 @@ namespace dawn_native { namespace vulkan {
 
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
-        //Device* device = ToBackend(GetDevice());
+        Device* device = ToBackend(GetDevice());
+
+        // validate ray tracing calls
+        if (device->fn.GetRayTracingShaderGroupHandlesNV == nullptr) {
+            return DAWN_VALIDATION_ERROR("Invalid Call to GetRayTracingShaderGroupHandlesNV");
+        }
+
+        if (descriptor->shaderCount > 0) {
+            for (unsigned int ii = 0; ii < descriptor->shaderCount; ++ii) {
+                RayTracingShaderBindingTableShadersDescriptor shader = descriptor->shaders[ii];
+                auto type = VK_SHADER_UNUSED_NV;
+                auto generalShader = VK_SHADER_UNUSED_NV;
+                auto closestHitShader = VK_SHADER_UNUSED_NV;
+                auto anyHitShader = VK_SHADER_UNUSED_NV;
+                auto intersectionShader = VK_SHADER_UNUSED_NV;
+                switch (shader.stage) {
+                    case wgpu::ShaderStage::RayGeneration:
+                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+                        generalShader = mStages.size();
+                        break;
+                    case wgpu::ShaderStage::RayClosestHit:
+                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                        closestHitShader = mStages.size();
+                        break;
+                    case wgpu::ShaderStage::RayMiss:
+                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+                        generalShader = mStages.size();
+                        break;
+                };
+                VkRayTracingShaderGroupCreateInfoNV stageInfo = {};
+                stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
+                stageInfo.type = (VkRayTracingShaderGroupTypeNV) type;
+                stageInfo.generalShader = generalShader;
+                stageInfo.closestHitShader = closestHitShader;
+                stageInfo.anyHitShader = anyHitShader;
+                stageInfo.intersectionShader = intersectionShader;
+                mStages.push_back(stageInfo);
+            };
+        }
 
         return {};
     }
@@ -45,6 +83,10 @@ namespace dawn_native { namespace vulkan {
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
         //Device* device = ToBackend(GetDevice());
 
+    }
+
+    std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetStages() {
+        return mStages;
     }
 
 }}  // namespace dawn_native::vulkan

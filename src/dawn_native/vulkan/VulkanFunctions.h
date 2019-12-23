@@ -272,6 +272,7 @@ namespace dawn_native { namespace vulkan {
         PFN_vkCmdBuildAccelerationStructureNV CmdBuildAccelerationStructureNV = nullptr;
         PFN_vkGetAccelerationStructureHandleNV GetAccelerationStructureHandleNV = nullptr;
         PFN_vkBindAccelerationStructureMemoryNV BindAccelerationStructureMemoryNV = nullptr;
+        PFN_vkGetRayTracingShaderGroupHandlesNV GetRayTracingShaderGroupHandlesNV = nullptr;
         PFN_vkGetAccelerationStructureMemoryRequirementsNV GetAccelerationStructureMemoryRequirementsNV = nullptr;
 
     };

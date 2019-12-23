@@ -384,7 +384,7 @@ namespace dawn_native { namespace vulkan {
         }
 
         return {};
-    };
+    }
 
     MaybeError RayTracingAccelerationContainer::ReserveGeometryScratchMemory(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
@@ -462,7 +462,7 @@ namespace dawn_native { namespace vulkan {
             if (result.IsError())
                 return result;
         };
-    };
+    }
 
     
     MaybeError RayTracingAccelerationContainer::ReserveInstanceScratchMemory(
@@ -482,7 +482,7 @@ namespace dawn_native { namespace vulkan {
             return scratchResult;
 
         return {};
-    };
+    }
 
     MaybeError RayTracingAccelerationContainer::BufferFromResourceMemoryAllocation(
         VkBuffer* buffer,
@@ -508,7 +508,7 @@ namespace dawn_native { namespace vulkan {
             "vkBindBufferMemory"));
 
         return {};
-    };
+    }
 
     VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
         VkAccelerationStructureMemoryRequirementsTypeNV type) const {
