@@ -29,7 +29,16 @@
         "category": "object"
     },
     "ray tracing shader binding table": {
-        "category": "object"
+        "category": "object",
+        "methods": [
+            {
+                "name": "get offset",
+                "returns": "uint32_t",
+                "args": [
+                    {"name": "shader stage", "type": "shader stage"}
+                ]
+            }
+        ]
     },
     "bind group binding": {
         "category": "structure",

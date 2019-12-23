@@ -30,12 +30,20 @@ namespace dawn_native {
 
     class RayTracingShaderBindingTableBase : public ObjectBase {
       public:
-        RayTracingShaderBindingTableBase(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor);
+        RayTracingShaderBindingTableBase(DeviceBase* device,
+                                         const RayTracingShaderBindingTableDescriptor* descriptor);
+        ~RayTracingShaderBindingTableBase();
 
         static RayTracingShaderBindingTableBase* MakeError(DeviceBase* device);
 
-      private:
+        uint32_t GetOffset(wgpu::ShaderStage stageKind);
+
+      protected:
         RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+
+      private:
+        virtual uint32_t GetOffsetImpl(wgpu::ShaderStage stageKind);
+
     };
 
 }  // namespace dawn_native

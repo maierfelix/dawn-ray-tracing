@@ -20,10 +20,27 @@
 
 namespace dawn_native {
 
+    namespace {
+
+        class ErrorRayTracingShaderBindingTable : public RayTracingShaderBindingTableBase {
+          public:
+            ErrorRayTracingShaderBindingTable(DeviceBase* device) : RayTracingShaderBindingTableBase(device, ObjectBase::kError) {
+            }
+            
+          private:
+          
+            uint32_t GetOffsetImpl(wgpu::ShaderStage shaderStage) override {
+                UNREACHABLE();
+                return 0;
+            }
+
+        };
+
+    }  // anonymous namespace
+
     // RayTracingShaderBindingTable
 
     MaybeError ValidateRayTracingShaderBindingTableDescriptor(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor) {
-
         return {};
     }
 
@@ -36,9 +53,22 @@ namespace dawn_native {
         : ObjectBase(device, tag) {
     }
 
+    RayTracingShaderBindingTableBase::~RayTracingShaderBindingTableBase() {
+
+    }
+
+    uint32_t RayTracingShaderBindingTableBase::GetOffset(wgpu::ShaderStage shaderStage) {
+        return GetOffsetImpl(shaderStage);
+    }
+
+    uint32_t RayTracingShaderBindingTableBase::GetOffsetImpl(wgpu::ShaderStage shaderStage) {
+        return GetOffsetImpl(shaderStage);
+    }
+
     // static
-    RayTracingShaderBindingTableBase* RayTracingShaderBindingTableBase::MakeError(DeviceBase* device) {
-        return new RayTracingShaderBindingTableBase(device, ObjectBase::kError);
+    RayTracingShaderBindingTableBase* RayTracingShaderBindingTableBase::MakeError(
+        DeviceBase* device) {
+        return new ErrorRayTracingShaderBindingTable(device);
     }
 
 }  // namespace dawn_native

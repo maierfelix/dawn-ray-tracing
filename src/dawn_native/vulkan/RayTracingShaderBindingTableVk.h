@@ -33,10 +33,16 @@ namespace dawn_native { namespace vulkan {
 
         std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetStages();
 
+        uint32_t GetShaderGroupHandleSize() const;
+
+      protected:
+        uint32_t GetOffsetImpl(wgpu::ShaderStage shaderStage) override;
+
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
         std::vector<VkRayTracingShaderGroupCreateInfoNV> mStages;
+        VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

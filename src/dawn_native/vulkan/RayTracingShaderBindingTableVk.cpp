@@ -18,6 +18,7 @@
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
+#include "dawn_native/vulkan/AdapterVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -38,11 +39,14 @@ namespace dawn_native { namespace vulkan {
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
+        Adapter* adapter = ToBackend(device->GetAdapter());
 
         // validate ray tracing calls
         if (device->fn.GetRayTracingShaderGroupHandlesNV == nullptr) {
             return DAWN_VALIDATION_ERROR("Invalid Call to GetRayTracingShaderGroupHandlesNV");
         }
+
+        mRayTracingProperties = GetRayTracingProperties(*adapter);
 
         if (descriptor->shaderCount > 0) {
             for (unsigned int ii = 0; ii < descriptor->shaderCount; ++ii) {
@@ -81,12 +85,19 @@ namespace dawn_native { namespace vulkan {
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
-        //Device* device = ToBackend(GetDevice());
 
     }
 
     std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetStages() {
         return mStages;
+    }
+
+    uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {
+        return mRayTracingProperties.shaderGroupHandleSize;
+    }
+
+    uint32_t RayTracingShaderBindingTable::GetOffsetImpl(wgpu::ShaderStage stageKind) {
+        return 1337;
     }
 
 }}  // namespace dawn_native::vulkan
