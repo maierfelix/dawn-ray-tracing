@@ -38,6 +38,18 @@ namespace dawn_native { namespace vulkan {
             if (stages & wgpu::ShaderStage::Compute) {
                 flags |= VK_SHADER_STAGE_COMPUTE_BIT;
             }
+            if (stages & wgpu::ShaderStage::RayGeneration) {
+                flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
+            }
+            if (stages & wgpu::ShaderStage::RayClosestHit) {
+                flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+            }
+            if (stages & wgpu::ShaderStage::RayAnyHit) {
+                flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+            }
+            if (stages & wgpu::ShaderStage::RayMiss) {
+                flags |= VK_SHADER_STAGE_MISS_BIT_NV;
+            }
 
             return flags;
         }
@@ -61,6 +73,8 @@ namespace dawn_native { namespace vulkan {
                     return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                 }
                 return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            case wgpu::BindingType::AccelerationContainer:
+                return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
             default:
                 UNREACHABLE();
         }

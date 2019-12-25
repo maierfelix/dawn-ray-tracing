@@ -21,6 +21,7 @@
 #include "dawn_native/Device.h"
 #include "dawn_native/Sampler.h"
 #include "dawn_native/Texture.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 
 namespace dawn_native {
 
@@ -209,6 +210,12 @@ namespace dawn_native {
                 mBindings[bindingIndex] = binding.sampler;
                 continue;
             }
+
+            if (binding.accelerationContainer != nullptr) {
+                ASSERT(mBindings[bindingIndex].Get() == nullptr);
+                mBindings[bindingIndex] = binding.accelerationContainer;
+                continue;
+            }
         }
     }
 
@@ -244,6 +251,15 @@ namespace dawn_native {
         ASSERT(mLayout->GetBindingInfo().mask[binding]);
         ASSERT(mLayout->GetBindingInfo().types[binding] == wgpu::BindingType::Sampler);
         return static_cast<SamplerBase*>(mBindings[binding].Get());
+    }
+
+    RayTracingAccelerationContainerBase* BindGroupBase::GetBindingAsRayTracingAccelerationContainer(
+        size_t binding) {
+        ASSERT(!IsError());
+        ASSERT(binding < kMaxBindingsPerGroup);
+        ASSERT(mLayout->GetBindingInfo().mask[binding]);
+        ASSERT(mLayout->GetBindingInfo().types[binding] == wgpu::BindingType::AccelerationContainer);
+        return static_cast<RayTracingAccelerationContainerBase*>(mBindings[binding].Get());
     }
 
     TextureViewBase* BindGroupBase::GetBindingAsTextureView(size_t binding) {

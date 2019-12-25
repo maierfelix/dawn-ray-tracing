@@ -21,6 +21,7 @@
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/SamplerVk.h"
 #include "dawn_native/vulkan/TextureVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
 
 namespace dawn_native { namespace vulkan {
@@ -44,6 +45,8 @@ namespace dawn_native { namespace vulkan {
         std::array<VkWriteDescriptorSet, kMaxBindingsPerGroup> writes;
         std::array<VkDescriptorBufferInfo, kMaxBindingsPerGroup> writeBufferInfo;
         std::array<VkDescriptorImageInfo, kMaxBindingsPerGroup> writeImageInfo;
+        std::array<VkWriteDescriptorSetAccelerationStructureNV, kMaxBindingsPerGroup>
+            writeAccelerationInfo;
 
         const auto& layoutInfo = GetLayout()->GetBindingInfo();
         for (uint32_t bindingIndex : IterateBitSet(layoutInfo.mask)) {
@@ -73,6 +76,19 @@ namespace dawn_native { namespace vulkan {
                     Sampler* sampler = ToBackend(GetBindingAsSampler(bindingIndex));
                     writeImageInfo[numWrites].sampler = sampler->GetHandle();
                     write.pImageInfo = &writeImageInfo[numWrites];
+                } break;
+
+                case wgpu::BindingType::AccelerationContainer: {
+                    RayTracingAccelerationContainer* container =
+                        ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
+                    VkAccelerationStructureNV instance = container->GetAccelerationStructure();
+
+                    writeAccelerationInfo[numWrites].sType =
+                        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+                    writeAccelerationInfo[numWrites].pAccelerationStructures = &instance;
+                    writeAccelerationInfo[numWrites].accelerationStructureCount = 1;
+
+                    write.pNext = &writeAccelerationInfo[numWrites];
                 } break;
 
                 case wgpu::BindingType::SampledTexture: {

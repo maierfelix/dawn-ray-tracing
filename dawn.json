@@ -49,7 +49,8 @@
             {"name": "offset", "type": "uint64_t", "default": "0"},
             {"name": "size", "type": "uint64_t"},
             {"name": "sampler", "type": "sampler", "optional": true},
-            {"name": "texture view", "type": "texture view", "optional": true}
+            {"name": "texture view", "type": "texture view", "optional": true},
+            {"name": "acceleration container", "type": "ray tracing acceleration container", "optional": true}
         ]
     },
     "ray tracing acceleration geometry type": {
@@ -185,7 +186,8 @@
             {"value": 2, "name": "readonly storage buffer"},
             {"value": 3, "name": "sampler"},
             {"value": 4, "name": "sampled texture"},
-            {"value": 5, "name": "storage texture"}
+            {"value": 5, "name": "storage texture"},
+            {"value": 6, "name": "acceleration container"}
         ]
     },
     "blend descriptor": {

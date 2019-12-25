@@ -48,6 +48,7 @@ namespace dawn_native {
         BufferBinding GetBindingAsBufferBinding(size_t binding);
         SamplerBase* GetBindingAsSampler(size_t binding);
         TextureViewBase* GetBindingAsTextureView(size_t binding);
+        RayTracingAccelerationContainerBase* GetBindingAsRayTracingAccelerationContainer(size_t binding);
 
       private:
         BindGroupBase(DeviceBase* device, ObjectBase::ErrorTag tag);

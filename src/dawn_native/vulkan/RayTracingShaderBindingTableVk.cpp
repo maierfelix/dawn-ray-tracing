@@ -60,14 +60,22 @@ namespace dawn_native { namespace vulkan {
                     case wgpu::ShaderStage::RayGeneration:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
                         generalShader = mStages.size();
+                        mRayGenerationCount++;
                         break;
                     case wgpu::ShaderStage::RayClosestHit:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
                         closestHitShader = mStages.size();
+                        mRayClosestHitCount++;
+                        break;
+                    case wgpu::ShaderStage::RayAnyHit:
+                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                        anyHitShader = mStages.size();
+                        mRayAnyHitCount++;
                         break;
                     case wgpu::ShaderStage::RayMiss:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
                         generalShader = mStages.size();
+                        mRayMissCount++;
                         break;
                 };
                 VkRayTracingShaderGroupCreateInfoNV stageInfo = {};
@@ -77,7 +85,7 @@ namespace dawn_native { namespace vulkan {
                 stageInfo.closestHitShader = closestHitShader;
                 stageInfo.anyHitShader = anyHitShader;
                 stageInfo.intersectionShader = intersectionShader;
-                mStages.push_back(stageInfo);
+                mStages.push_back({shader.stage, stageInfo});
             };
         }
 
@@ -88,7 +96,7 @@ namespace dawn_native { namespace vulkan {
 
     }
 
-    std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetStages() {
+    std::vector<StageEntry>& RayTracingShaderBindingTable::GetStages() {
         return mStages;
     }
 
@@ -97,7 +105,27 @@ namespace dawn_native { namespace vulkan {
     }
 
     uint32_t RayTracingShaderBindingTable::GetOffsetImpl(wgpu::ShaderStage stageKind) {
-        return 1337;
+        uint32_t offset = 0;
+        uint32_t stride = mRayTracingProperties.shaderGroupHandleSize;
+        switch (stageKind) {
+            // 0
+            case wgpu::ShaderStage::RayGeneration: {
+                offset = 0 * stride;
+            } break;
+            // 1
+            case wgpu::ShaderStage::RayClosestHit: {
+                offset = mRayGenerationCount * stride;
+            } break;
+            // 2
+            case wgpu::ShaderStage::RayAnyHit: {
+                offset = (mRayGenerationCount + mRayClosestHitCount) * stride;
+            } break;
+            // 3
+            case wgpu::ShaderStage::RayMiss: {
+                offset = (mRayGenerationCount + mRayClosestHitCount + mRayAnyHitCount) * stride;
+            } break;
+        };
+        return offset;
     }
 
 }}  // namespace dawn_native::vulkan
