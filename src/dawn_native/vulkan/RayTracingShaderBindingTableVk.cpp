@@ -106,26 +106,25 @@ namespace dawn_native { namespace vulkan {
 
     uint32_t RayTracingShaderBindingTable::GetOffsetImpl(wgpu::ShaderStage stageKind) {
         uint32_t offset = 0;
-        uint32_t stride = mRayTracingProperties.shaderGroupHandleSize;
         switch (stageKind) {
             // 0
             case wgpu::ShaderStage::RayGeneration: {
-                offset = 0 * stride;
+                offset = 0;
             } break;
             // 1
             case wgpu::ShaderStage::RayClosestHit: {
-                offset = mRayGenerationCount * stride;
+                offset = mRayGenerationCount;
             } break;
             // 2
             case wgpu::ShaderStage::RayAnyHit: {
-                offset = (mRayGenerationCount + mRayClosestHitCount) * stride;
+                offset = mRayGenerationCount + mRayClosestHitCount;
             } break;
             // 3
             case wgpu::ShaderStage::RayMiss: {
-                offset = (mRayGenerationCount + mRayClosestHitCount + mRayAnyHitCount) * stride;
+                offset = mRayGenerationCount + mRayClosestHitCount + mRayAnyHitCount;
             } break;
         };
-        return offset;
+        return offset * mRayTracingProperties.shaderGroupHandleSize;
     }
 
 }}  // namespace dawn_native::vulkan
