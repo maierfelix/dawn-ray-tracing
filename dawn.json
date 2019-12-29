@@ -571,6 +571,35 @@
             {"name": "compute stage", "type": "programmable stage descriptor"}
         ]
     },
+    "ray tracing pipeline": {
+        "category": "object",
+        "methods": [
+            {
+                "name": "get bind group layout",
+                "returns": "bind group layout",
+                "args": [
+                    {"name": "group", "type": "uint32_t"}
+                ]
+            }
+        ]
+    },
+    "ray tracing state descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "shader binding table", "type": "ray tracing shader binding table"},
+            {"name": "max recursion depth", "type": "uint32_t", "default": "1"}
+        ]
+    },
+    "ray tracing pipeline descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
+            {"name": "layout", "type": "pipeline layout", "optional": true},
+            {"name": "ray tracing state", "type": "ray tracing state descriptor", "annotation": "const*"}
+        ]
+    },
     "cull mode": {
         "category": "enum",
         "values": [
@@ -594,6 +623,13 @@
                 "returns": "ray tracing shader binding table",
                 "args": [
                     {"name": "descriptor", "type": "ray tracing shader binding table descriptor", "annotation": "const*"}
+                ]
+            },
+            {
+                "name": "create ray tracing pipeline",
+                "returns": "ray tracing pipeline",
+                "args": [
+                    {"name": "descriptor", "type": "ray tracing pipeline descriptor", "annotation": "const*"}
                 ]
             },
             {

@@ -147,6 +147,18 @@ namespace dawn_native {
             case spv::ExecutionModelGLCompute:
                 mExecutionModel = SingleShaderStage::Compute;
                 break;
+            case spv::ExecutionModelRayGenerationNV:
+                mExecutionModel = SingleShaderStage::RayGeneration;
+                break;
+            case spv::ExecutionModelAnyHitNV:
+                mExecutionModel = SingleShaderStage::RayAnyHit;
+                break;
+            case spv::ExecutionModelClosestHitNV:
+                mExecutionModel = SingleShaderStage::RayClosestHit;
+                break;
+            case spv::ExecutionModelMissNV:
+                mExecutionModel = SingleShaderStage::RayMiss;
+                break;
             default:
                 UNREACHABLE();
         }

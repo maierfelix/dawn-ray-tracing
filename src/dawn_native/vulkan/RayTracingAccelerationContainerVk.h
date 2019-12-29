@@ -37,7 +37,7 @@ namespace dawn_native { namespace vulkan {
 
     struct ScratchMemory {
         uint32_t offset;
-        VkBuffer buffer;
+        VkBuffer buffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation resource;
     };
 

@@ -23,8 +23,6 @@
 #include "dawn_native/VulkanBackend.h"
 #include "dawn_native/vulkan/AdapterVk.h"
 #include "dawn_native/vulkan/BackendVk.h"
-#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
-#include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/BindGroupLayoutVk.h"
 #include "dawn_native/vulkan/BindGroupVk.h"
 #include "dawn_native/vulkan/BufferVk.h"
@@ -34,6 +32,9 @@
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/PipelineLayoutVk.h"
 #include "dawn_native/vulkan/QueueVk.h"
+#include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
+#include "dawn_native/vulkan/RayTracingPipelineVk.h"
+#include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/RenderPassCache.h"
 #include "dawn_native/vulkan/RenderPipelineVk.h"
 #include "dawn_native/vulkan/ResourceMemoryAllocatorVk.h"
@@ -99,6 +100,10 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<RayTracingShaderBindingTableBase*> Device::CreateRayTracingShaderBindingTableImpl(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
         return RayTracingShaderBindingTable::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingPipelineBase*> Device::CreateRayTracingPipelineImpl(
+        const RayTracingPipelineDescriptor* descriptor) {
+        return RayTracingPipeline::Create(this, descriptor);
     }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {

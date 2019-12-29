@@ -24,11 +24,6 @@
 
 namespace dawn_native { namespace vulkan {
 
-    struct StageEntry {
-        wgpu::ShaderStage kind;
-        VkRayTracingShaderGroupCreateInfoNV info;
-    };
-
     class Device;
 
     class RayTracingShaderBindingTable : public RayTracingShaderBindingTableBase {
@@ -36,7 +31,8 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingShaderBindingTable*> Create(Device* device, const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable();
 
-        std::vector<StageEntry>& GetStages();
+        std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();
+        std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
 
         uint32_t GetShaderGroupHandleSize() const;
 
@@ -46,7 +42,9 @@ namespace dawn_native { namespace vulkan {
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
-        std::vector<StageEntry> mStages;
+        std::vector<VkRayTracingShaderGroupCreateInfoNV> mGroups;
+        std::vector<VkPipelineShaderStageCreateInfo> mStages;
+
         uint32_t mRayGenerationCount = 0;
         uint32_t mRayClosestHitCount = 0;
         uint32_t mRayAnyHitCount = 0;

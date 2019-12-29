@@ -138,8 +138,12 @@ namespace dawn_native {
         void UncacheAttachmentState(AttachmentState* obj);
 
         // Dawn API
-        RayTracingAccelerationContainerBase* CreateRayTracingAccelerationContainer(const RayTracingAccelerationContainerDescriptor* descriptor);
-        RayTracingShaderBindingTableBase* CreateRayTracingShaderBindingTable(const RayTracingShaderBindingTableDescriptor* descriptor);
+        RayTracingAccelerationContainerBase* CreateRayTracingAccelerationContainer(
+            const RayTracingAccelerationContainerDescriptor* descriptor);
+        RayTracingShaderBindingTableBase* CreateRayTracingShaderBindingTable(
+            const RayTracingShaderBindingTableDescriptor* descriptor);
+        RayTracingPipelineBase* CreateRayTracingPipeline(
+            const RayTracingPipelineDescriptor* descriptor);
         BindGroupBase* CreateBindGroup(const BindGroupDescriptor* descriptor);
         BindGroupLayoutBase* CreateBindGroupLayout(const BindGroupLayoutDescriptor* descriptor);
         BufferBase* CreateBuffer(const BufferDescriptor* descriptor);
@@ -204,6 +208,8 @@ namespace dawn_native {
             const RayTracingAccelerationContainerDescriptor* descriptor) = 0;
         virtual ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
             const RayTracingShaderBindingTableDescriptor* descriptor) = 0;
+        virtual ResultOrError<RayTracingPipelineBase*> CreateRayTracingPipelineImpl(
+            const RayTracingPipelineDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) = 0;
         virtual ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(
@@ -232,6 +238,8 @@ namespace dawn_native {
                                            const RayTracingAccelerationContainerDescriptor* descriptor);
         MaybeError CreateRayTracingShaderBindingTableInternal(RayTracingShaderBindingTableBase** result,
                                            const RayTracingShaderBindingTableDescriptor* descriptor);
+        MaybeError CreateRayTracingPipelineInternal(RayTracingPipelineBase** result,
+                                                    const RayTracingPipelineDescriptor* descriptor);
         MaybeError CreateBindGroupInternal(BindGroupBase** result,
                                            const BindGroupDescriptor* descriptor);
         MaybeError CreateBindGroupLayoutInternal(BindGroupLayoutBase** result,

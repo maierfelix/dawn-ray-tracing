@@ -41,6 +41,7 @@ namespace dawn_native {
         BindGroupLayoutBase* GetBindGroupLayout(uint32_t group);
 
       protected:
+        PipelineBase(DeviceBase* device, PipelineLayoutBase* layout);
         PipelineBase(DeviceBase* device, PipelineLayoutBase* layout, wgpu::ShaderStage stages);
         PipelineBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 

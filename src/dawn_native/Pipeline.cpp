@@ -42,6 +42,11 @@ namespace dawn_native {
     // PipelineBase
 
     PipelineBase::PipelineBase(DeviceBase* device,
+                               PipelineLayoutBase* layout)
+        : CachedObject(device), mLayout(layout) {
+    }
+
+    PipelineBase::PipelineBase(DeviceBase* device,
                                PipelineLayoutBase* layout,
                                wgpu::ShaderStage stages)
         : CachedObject(device), mStageMask(stages), mLayout(layout) {

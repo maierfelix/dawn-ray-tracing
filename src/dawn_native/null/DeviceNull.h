@@ -16,8 +16,6 @@
 #define DAWNNATIVE_NULL_DEVICENULL_H_
 
 #include "dawn_native/Adapter.h"
-#include "dawn_native/RayTracingAccelerationContainer.h"
-#include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/Buffer.h"
@@ -27,6 +25,9 @@
 #include "dawn_native/Device.h"
 #include "dawn_native/PipelineLayout.h"
 #include "dawn_native/Queue.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
+#include "dawn_native/RayTracingPipeline.h"
+#include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/RingBufferAllocator.h"
 #include "dawn_native/Sampler.h"
@@ -41,8 +42,6 @@ namespace dawn_native { namespace null {
 
     class Adapter;
 
-    using RayTracingAccelerationContainer = RayTracingAccelerationContainerBase;
-    using RayTracingShaderBindingTable = RayTracingShaderBindingTableBase;
     using BindGroup = BindGroupBase;
     using BindGroupLayout = BindGroupLayoutBase;
     class Buffer;
@@ -51,6 +50,9 @@ namespace dawn_native { namespace null {
     class Device;
     using PipelineLayout = PipelineLayoutBase;
     class Queue;
+    using RayTracingAccelerationContainer = RayTracingAccelerationContainerBase;
+    using RayTracingPipeline = RayTracingPipelineBase;
+    using RayTracingShaderBindingTable = RayTracingShaderBindingTableBase;
     using RenderPipeline = RenderPipelineBase;
     using Sampler = SamplerBase;
     using ShaderModule = ShaderModuleBase;
@@ -68,6 +70,7 @@ namespace dawn_native { namespace null {
         using DeviceType = Device;
         using PipelineLayoutType = PipelineLayout;
         using QueueType = Queue;
+        using RayTracingPipelineType = RayTracingPipeline;
         using RenderPipelineType = RenderPipeline;
         using SamplerType = Sampler;
         using ShaderModuleType = ShaderModule;
@@ -113,10 +116,19 @@ namespace dawn_native { namespace null {
         void DecrementMemoryUsage(size_t bytes);
 
       private:
-        ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
-            const RayTracingAccelerationContainerDescriptor* descriptor) override { UNREACHABLE(); };
+        ResultOrError<RayTracingAccelerationContainerBase*>
+        CreateRayTracingAccelerationContainerImpl(
+            const RayTracingAccelerationContainerDescriptor* descriptor) override {
+            UNREACHABLE();
+        };
         ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
-            const RayTracingShaderBindingTableDescriptor* descriptor) override { UNREACHABLE(); };
+            const RayTracingShaderBindingTableDescriptor* descriptor) override {
+            UNREACHABLE();
+        };
+        ResultOrError<RayTracingPipelineBase*> CreateRayTracingPipelineImpl(
+            const RayTracingPipelineDescriptor* descriptor) override {
+            UNREACHABLE();
+        };
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(

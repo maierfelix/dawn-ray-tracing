@@ -15,10 +15,12 @@
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
 #include "dawn_native/vulkan/StagingBufferVk.h"
+#include "dawn_native/vulkan/ShaderModuleVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
 #include "dawn_native/vulkan/AdapterVk.h"
+#include "dawn_native/vulkan/UtilsVulkan.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -59,25 +61,26 @@ namespace dawn_native { namespace vulkan {
                 switch (shader.stage) {
                     case wgpu::ShaderStage::RayGeneration:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                        generalShader = mStages.size();
+                        generalShader = mGroups.size();
                         mRayGenerationCount++;
-                        break;
-                    case wgpu::ShaderStage::RayClosestHit:
-                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                        closestHitShader = mStages.size();
-                        mRayClosestHitCount++;
                         break;
                     case wgpu::ShaderStage::RayAnyHit:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                        anyHitShader = mStages.size();
+                        anyHitShader = mGroups.size();
                         mRayAnyHitCount++;
+                        break;
+                    case wgpu::ShaderStage::RayClosestHit:
+                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                        closestHitShader = mGroups.size();
+                        mRayClosestHitCount++;
                         break;
                     case wgpu::ShaderStage::RayMiss:
                         type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                        generalShader = mStages.size();
+                        generalShader = mGroups.size();
                         mRayMissCount++;
                         break;
                 };
+
                 VkRayTracingShaderGroupCreateInfoNV stageInfo = {};
                 stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
                 stageInfo.type = (VkRayTracingShaderGroupTypeNV) type;
@@ -85,7 +88,16 @@ namespace dawn_native { namespace vulkan {
                 stageInfo.closestHitShader = closestHitShader;
                 stageInfo.anyHitShader = anyHitShader;
                 stageInfo.intersectionShader = intersectionShader;
-                mStages.push_back({shader.stage, stageInfo});
+                mGroups.push_back(stageInfo);
+
+                VkPipelineShaderStageCreateInfo pipelineShaderStageInfo = {};
+                pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+                pipelineShaderStageInfo.stage =
+                    static_cast<VkShaderStageFlagBits>(VulkanShaderStageFlags(shader.stage));
+                pipelineShaderStageInfo.module = ToBackend(shader.module)->GetHandle();
+                pipelineShaderStageInfo.pName = "main";
+
+                mStages.push_back(pipelineShaderStageInfo);
             };
         }
 
@@ -96,7 +108,11 @@ namespace dawn_native { namespace vulkan {
 
     }
 
-    std::vector<StageEntry>& RayTracingShaderBindingTable::GetStages() {
+    std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetGroups() {
+        return mGroups;
+    }
+
+    std::vector<VkPipelineShaderStageCreateInfo>& RayTracingShaderBindingTable::GetStages() {
         return mStages;
     }
 

@@ -19,42 +19,11 @@
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/VulkanError.h"
+#include "dawn_native/vulkan/UtilsVulkan.h"
 
 #include <map>
 
 namespace dawn_native { namespace vulkan {
-
-    namespace {
-
-        VkShaderStageFlags VulkanShaderStageFlags(wgpu::ShaderStage stages) {
-            VkShaderStageFlags flags = 0;
-
-            if (stages & wgpu::ShaderStage::Vertex) {
-                flags |= VK_SHADER_STAGE_VERTEX_BIT;
-            }
-            if (stages & wgpu::ShaderStage::Fragment) {
-                flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-            }
-            if (stages & wgpu::ShaderStage::Compute) {
-                flags |= VK_SHADER_STAGE_COMPUTE_BIT;
-            }
-            if (stages & wgpu::ShaderStage::RayGeneration) {
-                flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
-            }
-            if (stages & wgpu::ShaderStage::RayClosestHit) {
-                flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
-            }
-            if (stages & wgpu::ShaderStage::RayAnyHit) {
-                flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
-            }
-            if (stages & wgpu::ShaderStage::RayMiss) {
-                flags |= VK_SHADER_STAGE_MISS_BIT_NV;
-            }
-
-            return flags;
-        }
-
-    }  // anonymous namespace
 
     VkDescriptorType VulkanDescriptorType(wgpu::BindingType type, bool isDynamic) {
         switch (type) {
