@@ -16,8 +16,11 @@
 
 #include "common/Assert.h"
 #include "dawn_native/Format.h"
-#include "dawn_native/vulkan/Forward.h"
+#include "dawn_native/vulkan/DeviceVk.h"
+#include "dawn_native/vulkan/BufferVk.h"
 #include "dawn_native/vulkan/TextureVk.h"
+#include "dawn_native/vulkan/VulkanError.h"
+#include "dawn_native/vulkan/ResourceHeapVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -123,4 +126,31 @@ namespace dawn_native { namespace vulkan {
 
         return region;
     }
+
+    MaybeError CreateBufferFromResourceMemoryAllocation(Device* device,
+                                                        VkBuffer* buffer,
+                                                        uint32_t size,
+                                                        VkBufferUsageFlags usage,
+                                                        ResourceMemoryAllocation resource) {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        MaybeError result0 = CheckVkSuccess(
+            device->fn.CreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, buffer),
+            "CreateBuffer");
+        if (result0.IsError())
+            return result0;
+
+        DAWN_TRY(CheckVkSuccess(
+            device->fn.BindBufferMemory(device->GetVkDevice(), *buffer,
+                                        ToBackend(resource.GetResourceHeap())->GetMemory(),
+                                        resource.GetOffset()),
+            "BindBufferMemory"));
+
+        return {};
+    }
+
 }}  // namespace dawn_native::vulkan

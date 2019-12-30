@@ -37,6 +37,7 @@ namespace dawn_native {
 
         // Dawn API
         ComputePassEncoder* BeginComputePass(const ComputePassDescriptor* descriptor);
+        RayTracingPassEncoder* BeginRayTracingPass(const RayTracingPassDescriptor* descriptor);
         RenderPassEncoder* BeginRenderPass(const RenderPassDescriptor* descriptor);
 
         void BuildRayTracingAccelerationContainer(RayTracingAccelerationContainerBase* container,

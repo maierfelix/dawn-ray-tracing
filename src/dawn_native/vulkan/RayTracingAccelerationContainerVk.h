@@ -102,10 +102,6 @@ namespace dawn_native { namespace vulkan {
                                        uint32_t buildSize,
                                        uint32_t updateSize);
 
-        MaybeError BufferFromResourceMemoryAllocation(VkBuffer* buffer,
-                                                      uint32_t size,
-                                                      ResourceMemoryAllocation resource);
-
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };
 

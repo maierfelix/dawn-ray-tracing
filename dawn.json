@@ -401,6 +401,13 @@
                 ]
             },
             {
+                "name": "begin ray tracing pass",
+                "returns": "ray tracing pass encoder",
+                "args": [
+                    {"name": "descriptor", "type": "ray tracing pass descriptor", "annotation": "const*"}
+                ]
+            },
+            {
                 "name": "begin render pass",
                 "returns": "render pass encoder",
                 "args": [
@@ -569,6 +576,60 @@
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "layout", "type": "pipeline layout", "optional": true},
             {"name": "compute stage", "type": "programmable stage descriptor"}
+        ]
+    },
+    "ray tracing pass descriptor": {
+        "category": "structure",
+        "extensible": true,
+        "members": [
+            {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true}
+        ]
+    },
+    "ray tracing pass encoder": {
+        "category": "object",
+        "methods": [
+            {
+                "name": "insert debug marker",
+                "args": [
+                    {"name": "group label", "type": "char", "annotation": "const*", "length": "strlen"}
+                ]
+            },
+            {
+                "name": "pop debug group",
+                "args": []
+            },
+            {
+                "name": "push debug group",
+                "args": [
+                    {"name": "group label", "type": "char", "annotation": "const*", "length": "strlen"}
+                ]
+            },
+            {
+                "name": "set pipeline",
+                "args": [
+                    {"name": "pipeline", "type": "ray tracing pipeline"}
+                ]
+            },
+            {
+                "name": "set bind group",
+                "args": [
+                    {"name": "group index", "type": "uint32_t"},
+                    {"name": "group", "type": "bind group"},
+                    {"name": "dynamic offset count", "type": "uint32_t", "default": "0"},
+                    {"name": "dynamic offsets", "type": "uint32_t", "annotation": "const*", "length": "dynamic offset count", "optional": true}
+                ]
+            },
+            {
+                "name": "trace rays",
+                "args": [
+                    {"name": "width", "type": "uint32_t"},
+                    {"name": "height", "type": "uint32_t"},
+                    {"name": "depth", "type": "uint32_t", "default": "1"}
+                ]
+            },
+            {
+                "name": "end pass"
+            }
         ]
     },
     "ray tracing pipeline": {

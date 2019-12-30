@@ -30,6 +30,7 @@ namespace dawn_native {
     // of them are actually pure-frontend and don't have the Base.
     using CommandEncoderBase = CommandEncoder;
     using ComputePassEncoderBase = ComputePassEncoder;
+    using RayTracingPassEncoderBase = RayTracingPassEncoder;
     using FenceBase = Fence;
     using RenderPassEncoderBase = RenderPassEncoder;
     using RenderBundleEncoderBase = RenderBundleEncoder;

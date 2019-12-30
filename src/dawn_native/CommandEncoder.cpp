@@ -24,8 +24,9 @@
 #include "dawn_native/ComputePassEncoder.h"
 #include "dawn_native/Device.h"
 #include "dawn_native/ErrorData.h"
-#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/RenderPassEncoder.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
+#include "dawn_native/RayTracingPassEncoder.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/ValidationUtils_autogen.h"
 #include "dawn_platform/DawnPlatform.h"
@@ -492,6 +493,11 @@ namespace dawn_native {
             return {};
         }
 
+        MaybeError ValidateRayTracingPassDescriptor(const DeviceBase* device,
+                                                    const RayTracingPassDescriptor* descriptor) {
+            return {};
+        }
+
     }  // namespace
 
     CommandEncoder::CommandEncoder(DeviceBase* device, const CommandEncoderDescriptor*)
@@ -530,6 +536,29 @@ namespace dawn_native {
         }
 
         return ComputePassEncoder::MakeError(device, this, &mEncodingContext);
+    }
+
+    RayTracingPassEncoder* CommandEncoder::BeginRayTracingPass(
+        const RayTracingPassDescriptor* descriptor) {
+        DeviceBase* device = GetDevice();
+
+        bool success =
+            mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
+                DAWN_TRY(ValidateRayTracingPassDescriptor(device, descriptor));
+
+                allocator->Allocate<BeginRayTracingPassCmd>(Command::BeginRayTracingPass);
+
+                return {};
+            });
+
+        if (success) {
+            RayTracingPassEncoder* passEncoder =
+                new RayTracingPassEncoder(device, this, &mEncodingContext);
+            mEncodingContext.EnterPass(passEncoder);
+            return passEncoder;
+        }
+
+        return RayTracingPassEncoder::MakeError(device, this, &mEncodingContext);
     }
 
     RenderPassEncoder* CommandEncoder::BeginRenderPass(const RenderPassDescriptor* descriptor) {
@@ -817,6 +846,11 @@ namespace dawn_native {
                 case Command::BeginComputePass: {
                     commands->NextCommand<BeginComputePassCmd>();
                     DAWN_TRY(ValidateComputePass(commands));
+                } break;
+
+                case Command::BeginRayTracingPass: {
+                    commands->NextCommand<BeginRayTracingPassCmd>();
+                    DAWN_TRY(ValidateRayTracingPass(commands));
                 } break;
 
                 case Command::BeginRenderPass: {

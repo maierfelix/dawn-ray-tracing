@@ -16,6 +16,7 @@
 #define DAWNNATIVE_RAY_TRACING_PIPELINE_H_
 
 #include "dawn_native/Pipeline.h"
+#include "dawn_native/RayTracingShaderBindingTable.h"
 
 namespace dawn_native {
 
@@ -31,8 +32,12 @@ namespace dawn_native {
 
         static RayTracingPipelineBase* MakeError(DeviceBase* device);
 
+        RayTracingShaderBindingTableBase* GetShaderBindingTable();
+
       private:
         RayTracingPipelineBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+
+        Ref<RayTracingShaderBindingTableBase> mShaderBindingTable;
     };
 
 }  // namespace dawn_native

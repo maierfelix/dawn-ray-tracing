@@ -26,6 +26,8 @@
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/PipelineLayoutVk.h"
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
+#include "dawn_native/vulkan/RayTracingPipelineVk.h"
+#include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/RenderPassCache.h"
 #include "dawn_native/vulkan/RenderPipelineVk.h"
 #include "dawn_native/vulkan/TextureVk.h"
@@ -132,6 +134,47 @@ namespace dawn_native { namespace vulkan {
             : public BindGroupAndStorageBarrierTrackerBase<true, uint32_t> {
           public:
             ComputeDescriptorSetTracker() = default;
+
+            void Apply(Device* device,
+                       CommandRecordingContext* recordingContext,
+                       VkPipelineBindPoint bindPoint) {
+                ApplyDescriptorSets(device, recordingContext->commandBuffer, bindPoint,
+                                    ToBackend(mPipelineLayout)->GetHandle(),
+                                    mDirtyBindGroupsObjectChangedOrIsDynamic, mBindGroups,
+                                    mDynamicOffsetCounts, mDynamicOffsets);
+
+                for (uint32_t index : IterateBitSet(mBindGroupLayoutsMask)) {
+                    for (uint32_t binding : IterateBitSet(mBuffersNeedingBarrier[index])) {
+                        switch (mBindingTypes[index][binding]) {
+                            case wgpu::BindingType::StorageBuffer:
+                                ToBackend(mBuffers[index][binding])
+                                    ->TransitionUsageNow(recordingContext,
+                                                         wgpu::BufferUsage::Storage);
+                                break;
+
+                            case wgpu::BindingType::StorageTexture:
+                                // Not implemented.
+
+                            case wgpu::BindingType::UniformBuffer:
+                            case wgpu::BindingType::ReadonlyStorageBuffer:
+                            case wgpu::BindingType::Sampler:
+                            case wgpu::BindingType::SampledTexture:
+                                // Don't require barriers.
+
+                            default:
+                                UNREACHABLE();
+                                break;
+                        }
+                    }
+                }
+                DidApply();
+            }
+        };
+
+        class RayTracingDescriptorSetTracker
+            : public BindGroupAndStorageBarrierTrackerBase<true, uint32_t> {
+          public:
+            RayTracingDescriptorSetTracker() = default;
 
             void Apply(Device* device,
                        CommandRecordingContext* recordingContext,
@@ -654,6 +697,15 @@ namespace dawn_native { namespace vulkan {
                     nextPassNumber++;
                 } break;
 
+                case Command::BeginRayTracingPass: {
+                    mCommands.NextCommand<BeginRayTracingPassCmd>();
+
+                    TransitionForPass(recordingContext, passResourceUsages[nextPassNumber]);
+                    RecordRayTracingPass(recordingContext);
+
+                    nextPassNumber++;
+                } break;
+
                 default: { UNREACHABLE(); } break;
             }
         }
@@ -712,6 +764,135 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_COMPUTE,
                                                pipeline->GetHandle());
                     descriptorSets.OnSetPipeline(pipeline);
+                } break;
+
+                case Command::InsertDebugMarker: {
+                    if (device->GetDeviceInfo().debugMarker) {
+                        InsertDebugMarkerCmd* cmd = mCommands.NextCommand<InsertDebugMarkerCmd>();
+                        const char* label = mCommands.NextData<char>(cmd->length + 1);
+                        VkDebugMarkerMarkerInfoEXT markerInfo;
+                        markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+                        markerInfo.pNext = nullptr;
+                        markerInfo.pMarkerName = label;
+                        // Default color to black
+                        markerInfo.color[0] = 0.0;
+                        markerInfo.color[1] = 0.0;
+                        markerInfo.color[2] = 0.0;
+                        markerInfo.color[3] = 1.0;
+                        device->fn.CmdDebugMarkerInsertEXT(commands, &markerInfo);
+                    } else {
+                        SkipCommand(&mCommands, Command::InsertDebugMarker);
+                    }
+                } break;
+
+                case Command::PopDebugGroup: {
+                    if (device->GetDeviceInfo().debugMarker) {
+                        mCommands.NextCommand<PopDebugGroupCmd>();
+                        device->fn.CmdDebugMarkerEndEXT(commands);
+                    } else {
+                        SkipCommand(&mCommands, Command::PopDebugGroup);
+                    }
+                } break;
+
+                case Command::PushDebugGroup: {
+                    if (device->GetDeviceInfo().debugMarker) {
+                        PushDebugGroupCmd* cmd = mCommands.NextCommand<PushDebugGroupCmd>();
+                        const char* label = mCommands.NextData<char>(cmd->length + 1);
+                        VkDebugMarkerMarkerInfoEXT markerInfo;
+                        markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+                        markerInfo.pNext = nullptr;
+                        markerInfo.pMarkerName = label;
+                        // Default color to black
+                        markerInfo.color[0] = 0.0;
+                        markerInfo.color[1] = 0.0;
+                        markerInfo.color[2] = 0.0;
+                        markerInfo.color[3] = 1.0;
+                        device->fn.CmdDebugMarkerBeginEXT(commands, &markerInfo);
+                    } else {
+                        SkipCommand(&mCommands, Command::PushDebugGroup);
+                    }
+                } break;
+
+                default: { UNREACHABLE(); } break;
+            }
+        }
+
+        // EndComputePass should have been called
+        UNREACHABLE();
+    }
+
+    void CommandBuffer::RecordRayTracingPass(CommandRecordingContext* recordingContext) {
+        Device* device = ToBackend(GetDevice());
+        VkCommandBuffer commands = recordingContext->commandBuffer;
+
+        RayTracingDescriptorSetTracker descriptorSets = {};
+
+        RayTracingPipeline* usedPipeline = nullptr;
+
+        Command type;
+        while (mCommands.NextCommandId(&type)) {
+            switch (type) {
+                case Command::EndRayTracingPass: {
+                    mCommands.NextCommand<EndRayTracingPassCmd>();
+                    return;
+                } break;
+
+                case Command::TraceRays: {
+                    TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+
+                    ASSERT(usedPipeline != nullptr);
+
+                    RayTracingShaderBindingTable* sbt =
+                        ToBackend(usedPipeline->GetShaderBindingTable());
+
+                    VkBuffer sbtBuffer = usedPipeline->GetGroupBufferHandle();
+
+                    uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
+
+                    uint32_t rayGenOffset = sbt->GetOffset(wgpu::ShaderStage::RayGeneration);
+                    uint32_t rayMissOffset = sbt->GetOffset(wgpu::ShaderStage::RayMiss);
+                    uint32_t rayClosestHitOffset = sbt->GetOffset(wgpu::ShaderStage::RayClosestHit);
+
+                    descriptorSets.Apply(device, recordingContext,
+                                         VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
+
+                    device->fn.CmdTraceRaysNV(commands,
+                        // ray-gen
+                        sbtBuffer, rayGenOffset,
+                        // ray-miss
+                        sbtBuffer, rayMissOffset, groupHandleSize,
+                        // ray-hit
+                        sbtBuffer, rayClosestHitOffset, groupHandleSize,
+                        // callable
+                        VK_NULL_HANDLE, 0, 0,
+                        // dimensions
+                        traceRays->width, traceRays->height, traceRays->depth
+                    );
+                } break;
+
+                case Command::SetBindGroup: {
+                    SetBindGroupCmd* cmd = mCommands.NextCommand<SetBindGroupCmd>();
+
+                    BindGroup* bindGroup = ToBackend(cmd->group.Get());
+                    uint32_t* dynamicOffsets = nullptr;
+                    if (cmd->dynamicOffsetCount > 0) {
+                        dynamicOffsets = mCommands.NextData<uint32_t>(cmd->dynamicOffsetCount);
+                    }
+
+                    descriptorSets.OnSetBindGroup(cmd->index, bindGroup, cmd->dynamicOffsetCount,
+                                                  dynamicOffsets);
+                } break;
+
+                case Command::SetRayTracingPipeline: {
+                    SetRayTracingPipelineCmd* cmd =
+                        mCommands.NextCommand<SetRayTracingPipelineCmd>();
+                    RayTracingPipeline* pipeline = ToBackend(cmd->pipeline).Get();
+
+                    device->fn.CmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
+                                               pipeline->GetHandle());
+                    descriptorSets.OnSetPipeline(pipeline);
+
+                    usedPipeline = pipeline;
                 } break;
 
                 case Command::InsertDebugMarker: {

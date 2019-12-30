@@ -19,6 +19,7 @@
 #include "dawn_native/CommandAllocator.h"
 #include "dawn_native/ComputePipeline.h"
 #include "dawn_native/RenderBundle.h"
+#include "dawn_native/RayTracingPipeline.h"
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/Texture.h"
 
@@ -33,6 +34,10 @@ namespace dawn_native {
                 case Command::BeginComputePass: {
                     BeginComputePassCmd* begin = commands->NextCommand<BeginComputePassCmd>();
                     begin->~BeginComputePassCmd();
+                } break;
+                case Command::BeginRayTracingPass: {
+                    BeginRayTracingPassCmd* begin = commands->NextCommand<BeginRayTracingPassCmd>();
+                    begin->~BeginRayTracingPassCmd();
                 } break;
                 case Command::BeginRenderPass: {
                     BeginRenderPassCmd* begin = commands->NextCommand<BeginRenderPassCmd>();
@@ -83,6 +88,10 @@ namespace dawn_native {
                     EndComputePassCmd* cmd = commands->NextCommand<EndComputePassCmd>();
                     cmd->~EndComputePassCmd();
                 } break;
+                case Command::EndRayTracingPass: {
+                    EndRayTracingPassCmd* cmd = commands->NextCommand<EndRayTracingPassCmd>();
+                    cmd->~EndRayTracingPassCmd();
+                } break;
                 case Command::EndRenderPass: {
                     EndRenderPassCmd* cmd = commands->NextCommand<EndRenderPassCmd>();
                     cmd->~EndRenderPassCmd();
@@ -112,6 +121,11 @@ namespace dawn_native {
                 case Command::SetComputePipeline: {
                     SetComputePipelineCmd* cmd = commands->NextCommand<SetComputePipelineCmd>();
                     cmd->~SetComputePipelineCmd();
+                } break;
+                case Command::SetRayTracingPipeline: {
+                    SetRayTracingPipelineCmd* cmd =
+                        commands->NextCommand<SetRayTracingPipelineCmd>();
+                    cmd->~SetRayTracingPipelineCmd();
                 } break;
                 case Command::SetRenderPipeline: {
                     SetRenderPipelineCmd* cmd = commands->NextCommand<SetRenderPipelineCmd>();
@@ -148,6 +162,10 @@ namespace dawn_native {
                     SetVertexBufferCmd* cmd = commands->NextCommand<SetVertexBufferCmd>();
                     cmd->~SetVertexBufferCmd();
                 } break;
+                case Command::TraceRays: {
+                    TraceRaysCmd* cmd = commands->NextCommand<TraceRaysCmd>();
+                    cmd->~TraceRaysCmd();
+                } break;
             }
         }
         commands->DataWasDestroyed();
@@ -157,6 +175,10 @@ namespace dawn_native {
         switch (type) {
             case Command::BeginComputePass:
                 commands->NextCommand<BeginComputePassCmd>();
+                break;
+
+            case Command::BeginRayTracingPass:
+                commands->NextCommand<BeginRayTracingPassCmd>();
                 break;
 
             case Command::BeginRenderPass:
@@ -207,6 +229,10 @@ namespace dawn_native {
                 commands->NextCommand<EndComputePassCmd>();
                 break;
 
+            case Command::EndRayTracingPass:
+                commands->NextCommand<EndRayTracingPassCmd>();
+                break;
+
             case Command::EndRenderPass:
                 commands->NextCommand<EndRenderPassCmd>();
                 break;
@@ -232,6 +258,10 @@ namespace dawn_native {
 
             case Command::SetComputePipeline:
                 commands->NextCommand<SetComputePipelineCmd>();
+                break;
+
+            case Command::SetRayTracingPipeline:
+                commands->NextCommand<SetRayTracingPipelineCmd>();
                 break;
 
             case Command::SetRenderPipeline:
@@ -267,6 +297,10 @@ namespace dawn_native {
 
             case Command::SetVertexBuffer: {
                 commands->NextCommand<SetVertexBufferCmd>();
+            } break;
+
+            case Command::TraceRays: {
+                commands->NextCommand<TraceRaysCmd>();
             } break;
         }
     }

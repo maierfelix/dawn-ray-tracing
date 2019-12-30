@@ -30,11 +30,13 @@ namespace dawn_native {
       public:
         // Non-state-modifying validation functions
         MaybeError ValidateCanDispatch();
+        MaybeError ValidateCanTraceRays();
         MaybeError ValidateCanDraw();
         MaybeError ValidateCanDrawIndexed();
 
         // State-modifying methods
         void SetComputePipeline(ComputePipelineBase* pipeline);
+        void SetRayTracingPipeline(RayTracingPipelineBase* pipeline);
         void SetRenderPipeline(RenderPipelineBase* pipeline);
         void SetBindGroup(uint32_t index, BindGroupBase* bindgroup);
         void SetIndexBuffer();

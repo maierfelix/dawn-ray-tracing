@@ -17,6 +17,7 @@
 
 #include "dawn_native/RayTracingPipeline.h"
 #include "dawn_native/DynamicUploader.h"
+#include "dawn_native/ResourceMemoryAllocation.h"
 
 #include "common/vulkan_platform.h"
 #include "dawn_native/Error.h"
@@ -33,6 +34,7 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingPipeline();
 
         VkPipeline GetHandle() const;
+        VkBuffer GetGroupBufferHandle() const;
 
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
@@ -41,7 +43,8 @@ namespace dawn_native { namespace vulkan {
         VkPipeline mHandle = VK_NULL_HANDLE;
 
         // space for group handles
-        UploadHandle mGroupBufferHandle;
+        VkBuffer mGroupBuffer = VK_NULL_HANDLE;
+        ResourceMemoryAllocation mGroupBufferResource;
     };
 
 }}  // namespace dawn_native::vulkan

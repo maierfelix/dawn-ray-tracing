@@ -33,6 +33,7 @@ namespace dawn_native {
 
     enum class Command {
         BeginComputePass,
+        BeginRayTracingPass,
         BeginRenderPass,
         BuildRayTracingAccelerationContainer,
         CopyBufferToBuffer,
@@ -46,12 +47,14 @@ namespace dawn_native {
         DrawIndirect,
         DrawIndexedIndirect,
         EndComputePass,
+        EndRayTracingPass,
         EndRenderPass,
         ExecuteBundles,
         InsertDebugMarker,
         PopDebugGroup,
         PushDebugGroup,
         SetComputePipeline,
+        SetRayTracingPipeline,
         SetRenderPipeline,
         SetStencilReference,
         SetViewport,
@@ -60,9 +63,11 @@ namespace dawn_native {
         SetBindGroup,
         SetIndexBuffer,
         SetVertexBuffer,
+        TraceRays
     };
 
     struct BeginComputePassCmd {};
+    struct BeginRayTracingPassCmd {};
 
     struct RenderPassColorAttachmentInfo {
         Ref<TextureViewBase> view;
@@ -175,6 +180,8 @@ namespace dawn_native {
 
     struct EndComputePassCmd {};
 
+    struct EndRayTracingPassCmd {};
+
     struct EndRenderPassCmd {};
 
     struct ExecuteBundlesCmd {
@@ -193,6 +200,10 @@ namespace dawn_native {
 
     struct SetComputePipelineCmd {
         Ref<ComputePipelineBase> pipeline;
+    };
+
+    struct SetRayTracingPipelineCmd {
+        Ref<RayTracingPipelineBase> pipeline;
     };
 
     struct SetRenderPipelineCmd {
@@ -230,6 +241,12 @@ namespace dawn_native {
         uint32_t slot;
         Ref<BufferBase> buffer;
         uint64_t offset;
+    };
+
+    struct TraceRaysCmd {
+        uint32_t width;
+        uint32_t height;
+        uint32_t depth;
     };
 
     // This needs to be called before the CommandIterator is freed so that the Ref<> present in

@@ -79,6 +79,11 @@ namespace dawn_native {
     };
 
     template <typename BackendTraits>
+    struct ToBackendTraits<RayTracingPipelineBase, BackendTraits> {
+        using BackendType = typename BackendTraits::RayTracingPipelineType;
+    };
+
+    template <typename BackendTraits>
     struct ToBackendTraits<RenderPipelineBase, BackendTraits> {
         using BackendType = typename BackendTraits::RenderPipelineType;
     };

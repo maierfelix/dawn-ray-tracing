@@ -33,7 +33,8 @@ namespace dawn_native {
 
     RayTracingPipelineBase::RayTracingPipelineBase(DeviceBase* device,
                                                    const RayTracingPipelineDescriptor* descriptor)
-        : PipelineBase(device, descriptor->layout) {
+        : PipelineBase(device, descriptor->layout),
+        mShaderBindingTable(descriptor->rayTracingState->shaderBindingTable) {
     }
 
     RayTracingPipelineBase::RayTracingPipelineBase(DeviceBase* device, ObjectBase::ErrorTag tag)
@@ -47,6 +48,10 @@ namespace dawn_native {
     // static
     RayTracingPipelineBase* RayTracingPipelineBase::MakeError(DeviceBase* device) {
         return new RayTracingPipelineBase(device, ObjectBase::kError);
+    }
+
+    RayTracingShaderBindingTableBase* RayTracingPipelineBase::GetShaderBindingTable() {
+        return mShaderBindingTable.Get();
     }
 
 }  // namespace dawn_native

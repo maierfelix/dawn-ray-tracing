@@ -19,6 +19,9 @@
 #include "dawn_native/Commands.h"
 #include "dawn_native/dawn_platform.h"
 
+#include "dawn_native/vulkan/BufferVk.h"
+#include "dawn_native/vulkan/VulkanError.h"
+
 namespace dawn_native { namespace vulkan {
 
     VkCompareOp ToVulkanCompareOp(wgpu::CompareFunction op);
@@ -28,6 +31,12 @@ namespace dawn_native { namespace vulkan {
     VkBufferImageCopy ComputeBufferImageCopyRegion(const BufferCopy& bufferCopy,
                                                    const TextureCopy& textureCopy,
                                                    const Extent3D& copySize);
+
+    MaybeError CreateBufferFromResourceMemoryAllocation(Device* device,
+                                                        VkBuffer* buffer,
+                                                        uint32_t size,
+                                                        VkBufferUsageFlags usage,
+                                                        ResourceMemoryAllocation resource);
 
 }}  // namespace dawn_native::vulkan
 

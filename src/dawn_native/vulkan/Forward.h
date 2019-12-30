@@ -21,10 +21,6 @@ namespace dawn_native { namespace vulkan {
 
     class Adapter;
 
-    class RayTracingAccelerationContainer;
-    class RayTracingPipeline;
-    class RayTracingShaderBindingTable;
-
     class BindGroup;
     class BindGroupLayout;
     class Buffer;
@@ -33,6 +29,9 @@ namespace dawn_native { namespace vulkan {
     class Device;
     class PipelineLayout;
     class Queue;
+    class RayTracingAccelerationContainer;
+    class RayTracingPipeline;
+    class RayTracingShaderBindingTable;
     class RenderPipeline;
     class ResourceHeap;
     class Sampler;
@@ -44,9 +43,6 @@ namespace dawn_native { namespace vulkan {
 
     struct VulkanBackendTraits {
         using AdapterType = Adapter;
-        using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
-        using RayTracingPipelineType = RayTracingPipeline;
-        using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using BindGroupType = BindGroup;
         using BindGroupLayoutType = BindGroupLayout;
         using BufferType = Buffer;
@@ -55,6 +51,9 @@ namespace dawn_native { namespace vulkan {
         using DeviceType = Device;
         using PipelineLayoutType = PipelineLayout;
         using QueueType = Queue;
+        using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
+        using RayTracingPipelineType = RayTracingPipeline;
+        using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using RenderPipelineType = RenderPipeline;
         using ResourceHeapType = ResourceHeap;
         using SamplerType = Sampler;

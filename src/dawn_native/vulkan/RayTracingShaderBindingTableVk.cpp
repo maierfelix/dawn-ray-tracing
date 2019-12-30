@@ -81,7 +81,7 @@ namespace dawn_native { namespace vulkan {
                         break;
                 };
 
-                VkRayTracingShaderGroupCreateInfoNV stageInfo = {};
+                VkRayTracingShaderGroupCreateInfoNV stageInfo{};
                 stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
                 stageInfo.type = (VkRayTracingShaderGroupTypeNV) type;
                 stageInfo.generalShader = generalShader;
@@ -90,7 +90,7 @@ namespace dawn_native { namespace vulkan {
                 stageInfo.intersectionShader = intersectionShader;
                 mGroups.push_back(stageInfo);
 
-                VkPipelineShaderStageCreateInfo pipelineShaderStageInfo = {};
+                VkPipelineShaderStageCreateInfo pipelineShaderStageInfo{};
                 pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                 pipelineShaderStageInfo.stage =
                     static_cast<VkShaderStageFlagBits>(VulkanShaderStageFlags(shader.stage));

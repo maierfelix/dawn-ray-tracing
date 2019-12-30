@@ -18,6 +18,7 @@
 
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
+#include "dawn_native/vulkan/UtilsVulkan.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -190,7 +191,8 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
-                VkGeometryNV geometryInfo = {VK_STRUCTURE_TYPE_GEOMETRY_NV};
+                VkGeometryNV geometryInfo{};
+                geometryInfo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
 
                 Buffer* vertexBuffer = ToBackend(geomDsc.vertexBuffer);
                 geometryInfo.geometryType = VulkanGeometryType(geomDsc.type);
@@ -201,6 +203,7 @@ namespace dawn_native { namespace vulkan {
                         "Other Geometry types than 'Triangles' is unsupported");
                 }
 
+                geometryInfo.geometry.triangles = {};
                 geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
                 geometryInfo.geometry.triangles.vertexData = vertexBuffer->GetHandle();
                 geometryInfo.geometry.triangles.vertexOffset = geomDsc.vertexOffset;
@@ -236,7 +239,7 @@ namespace dawn_native { namespace vulkan {
                 RayTracingAccelerationInstanceDescriptor instance = descriptor->instances[ii];
                 RayTracingAccelerationContainer* geometryContainer =
                     ToBackend(instance.geometryContainer);
-                VkAccelerationInstance instanceData = {};
+                VkAccelerationInstance instanceData{};
                 memcpy(&instanceData.transform, const_cast<float*>(instance.transform),
                        sizeof(instanceData.transform));
                 instanceData.instanceCustomIndex = static_cast<uint32_t>(instance.instanceId);
@@ -343,6 +346,9 @@ namespace dawn_native { namespace vulkan {
                                                                     uint32_t updateSize) {
         Device* device = ToBackend(GetDevice());
 
+        VkBufferUsageFlags usage =
+            VK_BUFFER_USAGE_RAY_TRACING_BIT_NV | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
         // allocate scratch result buffer
         VkMemoryRequirements2 resultRequirements =
             GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
@@ -350,7 +356,8 @@ namespace dawn_native { namespace vulkan {
         DAWN_TRY_ASSIGN(memory->result.resource,
                         device->AllocateMemory(resultRequirements.memoryRequirements, false));
         {
-            MaybeError result = BufferFromResourceMemoryAllocation(&memory->result.buffer, resultSize, memory->result.resource);
+            MaybeError result = CreateBufferFromResourceMemoryAllocation(
+                device, &memory->result.buffer, resultSize, usage, memory->result.resource);
             if (result.IsError())
                 return result;
         }
@@ -362,8 +369,8 @@ namespace dawn_native { namespace vulkan {
         DAWN_TRY_ASSIGN(memory->build.resource,
                         device->AllocateMemory(buildRequirements.memoryRequirements, false));
         {
-            MaybeError result = BufferFromResourceMemoryAllocation(&memory->build.buffer, buildSize,
-                                                                   memory->build.resource);
+            MaybeError result = CreateBufferFromResourceMemoryAllocation(
+                device, &memory->build.buffer, buildSize, usage, memory->build.resource);
             if (result.IsError())
                 return result;
         }
@@ -376,8 +383,8 @@ namespace dawn_native { namespace vulkan {
             DAWN_TRY_ASSIGN(memory->update.resource,
                             device->AllocateMemory(updateRequirements.memoryRequirements, false));
             {
-                MaybeError result = BufferFromResourceMemoryAllocation(
-                    &memory->update.buffer, updateSize, memory->update.resource);
+                MaybeError result = CreateBufferFromResourceMemoryAllocation(
+                    device, &memory->update.buffer, updateSize, usage, memory->update.resource);
                 if (result.IsError())
                     return result;
             }
@@ -480,32 +487,6 @@ namespace dawn_native { namespace vulkan {
             CreateScratchMemory(&mScratchTopMemory, resultSize, buildSize, updateSize);
         if (scratchResult.IsError())
             return scratchResult;
-
-        return {};
-    }
-
-    MaybeError RayTracingAccelerationContainer::BufferFromResourceMemoryAllocation(
-        VkBuffer* buffer,
-        uint32_t size,
-        ResourceMemoryAllocation resource) {
-        Device* device = ToBackend(GetDevice());
-
-        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bufferInfo.size = size;
-        bufferInfo.usage = VK_BUFFER_USAGE_RAY_TRACING_BIT_NV | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        MaybeError result0 = CheckVkSuccess(
-            device->fn.CreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, buffer),
-            "vkCreateBuffer");
-        if (result0.IsError())
-            return result0;
-
-        DAWN_TRY(CheckVkSuccess(
-            device->fn.BindBufferMemory(device->GetVkDevice(), *buffer,
-                                        ToBackend(resource.GetResourceHeap())->GetMemory(),
-                                        resource.GetOffset()),
-            "vkBindBufferMemory"));
 
         return {};
     }

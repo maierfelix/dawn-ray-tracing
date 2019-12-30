@@ -20,6 +20,7 @@
 #include "dawn_native/ComputePipeline.h"
 #include "dawn_native/Forward.h"
 #include "dawn_native/PipelineLayout.h"
+#include "dawn_native/RayTracingPipeline.h"
 #include "dawn_native/RenderPipeline.h"
 
 namespace dawn_native {
@@ -37,6 +38,9 @@ namespace dawn_native {
     static constexpr CommandBufferStateTracker::ValidationAspects kDispatchAspects =
         1 << VALIDATION_ASPECT_PIPELINE | 1 << VALIDATION_ASPECT_BIND_GROUPS;
 
+    static constexpr CommandBufferStateTracker::ValidationAspects kTraceRaysAspects =
+        1 << VALIDATION_ASPECT_PIPELINE | 1 << VALIDATION_ASPECT_BIND_GROUPS;
+
     static constexpr CommandBufferStateTracker::ValidationAspects kDrawAspects =
         1 << VALIDATION_ASPECT_PIPELINE | 1 << VALIDATION_ASPECT_BIND_GROUPS |
         1 << VALIDATION_ASPECT_VERTEX_BUFFERS;
@@ -50,6 +54,10 @@ namespace dawn_native {
 
     MaybeError CommandBufferStateTracker::ValidateCanDispatch() {
         return ValidateOperation(kDispatchAspects);
+    }
+
+    MaybeError CommandBufferStateTracker::ValidateCanTraceRays() {
+        return ValidateOperation(kTraceRaysAspects);
     }
 
     MaybeError CommandBufferStateTracker::ValidateCanDraw() {
@@ -137,6 +145,10 @@ namespace dawn_native {
     }
 
     void CommandBufferStateTracker::SetComputePipeline(ComputePipelineBase* pipeline) {
+        SetPipelineCommon(pipeline);
+    }
+
+    void CommandBufferStateTracker::SetRayTracingPipeline(RayTracingPipelineBase* pipeline) {
         SetPipelineCommon(pipeline);
     }
 

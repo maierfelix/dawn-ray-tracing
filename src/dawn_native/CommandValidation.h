@@ -33,6 +33,7 @@ namespace dawn_native {
                                     const AttachmentState* attachmentState);
     MaybeError ValidateRenderPass(CommandIterator* commands, const BeginRenderPassCmd* renderPass);
     MaybeError ValidateComputePass(CommandIterator* commands);
+    MaybeError ValidateRayTracingPass(CommandIterator* commands);
 
     MaybeError ValidatePassResourceUsage(const PassResourceUsage& usage);
 
