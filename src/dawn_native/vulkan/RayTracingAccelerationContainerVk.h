@@ -28,7 +28,7 @@ namespace dawn_native { namespace vulkan {
 
     struct VkAccelerationInstance {
         float transform[12];
-        uint32_t instanceCustomIndex : 24;
+        uint32_t instanceId : 24;
         uint32_t mask : 8;
         uint32_t instanceOffset : 24;
         uint32_t flags : 8;
@@ -36,7 +36,7 @@ namespace dawn_native { namespace vulkan {
     };
 
     struct ScratchMemory {
-        uint32_t offset;
+        uint32_t offset = 0;
         VkBuffer buffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation resource;
     };
@@ -52,7 +52,7 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingAccelerationContainer*> Create(Device* device, const RayTracingAccelerationContainerDescriptor* descriptor);
         ~RayTracingAccelerationContainer();
 
-        uint64_t GetHandle() const;
+        MaybeError GetHandle(uint64_t* handle) const;
         VkAccelerationStructureTypeNV GetLevel() const;
         VkBuildAccelerationStructureFlagBitsNV GetFlags() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
@@ -75,26 +75,21 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkAccelerationInstance> mInstances;
 
         // AS related
-        uint64_t mHandle = 0;
         VkAccelerationStructureTypeNV mLevel;
         VkBuildAccelerationStructureFlagBitsNV mFlags;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
         // instance buffer for top-level containers
-        UploadHandle mInstanceBufferHandle;
+        VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
+        ResourceMemoryAllocation mInstanceResource;
+        UploadHandle mInstanceHandle;
 
-        // scratch memory for top-level container
-        ScratchMemoryPool mScratchTopMemory;
-        // scratch memory for bottom-level containers
-        // bottom-level containers linked to a top-level container share the top-level scratch buffer
-        ScratchMemoryPool mScratchBottomMemory;
+        // scratch memory
+        ScratchMemoryPool mScratchMemory;
 
         MaybeError RayTracingAccelerationContainer::CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);
-        MaybeError RayTracingAccelerationContainer::CreateAccelerationStructureHandle();
-        MaybeError RayTracingAccelerationContainer::ReserveGeometryScratchMemory(
-            const RayTracingAccelerationContainerDescriptor* descriptor);
-        MaybeError RayTracingAccelerationContainer::ReserveInstanceScratchMemory(
+        MaybeError RayTracingAccelerationContainer::ReserveScratchMemory(
             const RayTracingAccelerationContainerDescriptor* descriptor);
 
         MaybeError CreateScratchMemory(ScratchMemoryPool* memory,

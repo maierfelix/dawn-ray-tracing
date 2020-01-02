@@ -216,6 +216,9 @@ namespace dawn_native {
                             info->type = wgpu::BindingType::StorageBuffer;
                         }
                     } break;
+                    case wgpu::BindingType::AccelerationContainer: {
+                        info->type = wgpu::BindingType::AccelerationContainer;
+                    } break;
                     default:
                         info->type = bindingType;
                 }
@@ -229,6 +232,8 @@ namespace dawn_native {
         ExtractResourcesBinding(resources.separate_samplers, compiler, wgpu::BindingType::Sampler);
         ExtractResourcesBinding(resources.storage_buffers, compiler,
                                 wgpu::BindingType::StorageBuffer);
+        ExtractResourcesBinding(resources.acceleration_structures, compiler,
+                                wgpu::BindingType::AccelerationContainer);
 
         // Extract the vertex attributes
         if (mExecutionModel == SingleShaderStage::Vertex) {

@@ -67,6 +67,11 @@ namespace dawn_native { namespace vulkan {
         GET_INSTANCE_PROC(GetPhysicalDeviceQueueFamilyProperties);
         GET_INSTANCE_PROC(GetPhysicalDeviceSparseImageFormatProperties);
 
+        if (globalInfo.debugUtils) {
+            GET_INSTANCE_PROC(CreateDebugUtilsMessengerEXT);
+            GET_INSTANCE_PROC(DestroyDebugUtilsMessengerEXT);
+        }
+
         if (globalInfo.debugReport) {
             GET_INSTANCE_PROC(CreateDebugReportCallbackEXT);
             GET_INSTANCE_PROC(DebugReportMessageEXT);

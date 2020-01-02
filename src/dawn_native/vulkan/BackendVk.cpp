@@ -41,6 +41,11 @@ namespace dawn_native { namespace vulkan {
     }
 
     Backend::~Backend() {
+        if (mDebugUtilsCallback != VK_NULL_HANDLE) {
+            mFunctions.DestroyDebugUtilsMessengerEXT(mInstance, mDebugUtilsCallback, nullptr);
+            mDebugUtilsCallback = VK_NULL_HANDLE;
+        }
+
         if (mDebugReportCallback != VK_NULL_HANDLE) {
             mFunctions.DestroyDebugReportCallbackEXT(mInstance, mDebugReportCallback, nullptr);
             mDebugReportCallback = VK_NULL_HANDLE;
@@ -69,9 +74,9 @@ namespace dawn_native { namespace vulkan {
 #if defined(DAWN_ENABLE_VULKAN_VALIDATION_LAYERS)
         if (GetInstance()->IsBackendValidationEnabled()) {
             std::string vkDataDir = GetExecutableDirectory() + DAWN_VK_DATA_DIR;
-            if (!SetEnvironmentVar("VK_LAYER_PATH", vkDataDir.c_str())) {
+            /*if (!SetEnvironmentVar("VK_LAYER_PATH", vkDataDir.c_str())) {
                 return DAWN_DEVICE_LOST_ERROR("Couldn't set VK_LAYER_PATH");
-            }
+            }*/
         }
 #endif
 #if defined(DAWN_SWIFTSHADER_VK_ICD_JSON)
@@ -95,6 +100,10 @@ namespace dawn_native { namespace vulkan {
         *static_cast<VulkanGlobalKnobs*>(&mGlobalInfo) = usedGlobalKnobs;
 
         DAWN_TRY(mFunctions.LoadInstanceProcs(mInstance, mGlobalInfo));
+
+        if (usedGlobalKnobs.debugUtils) {
+            DAWN_TRY(RegisterDebugUtils());
+        }
 
         if (usedGlobalKnobs.debugReport) {
             DAWN_TRY(RegisterDebugReport());
@@ -151,6 +160,10 @@ namespace dawn_native { namespace vulkan {
             if (mGlobalInfo.standardValidation) {
                 layersToRequest.push_back(kLayerNameLunargStandardValidation);
                 usedKnobs.standardValidation = true;
+            }
+            if (mGlobalInfo.debugUtils) {
+                extensionsToRequest.push_back(kExtensionNameExtDebugUtils);
+                usedKnobs.debugUtils = true;
             }
             if (mGlobalInfo.debugReport) {
                 extensionsToRequest.push_back(kExtensionNameExtDebugReport);
@@ -225,10 +238,30 @@ namespace dawn_native { namespace vulkan {
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionsToRequest.size());
         createInfo.ppEnabledExtensionNames = extensionsToRequest.data();
 
+        if (usedKnobs.debugUtils) {
+            mDebugUtilsMessengerEXTInfo.sType =
+                VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+            mDebugUtilsMessengerEXTInfo.messageSeverity =
+                (VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT);
+            mDebugUtilsMessengerEXTInfo.messageType =
+                (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT);
+            mDebugUtilsMessengerEXTInfo.pfnUserCallback = Backend::OnDebugUtilsCallback;
+            createInfo.pNext = &mDebugUtilsMessengerEXTInfo;
+        }
+
         DAWN_TRY(CheckVkSuccess(mFunctions.CreateInstance(&createInfo, nullptr, &mInstance),
                                 "vkCreateInstance"));
 
         return usedKnobs;
+    }
+
+    MaybeError Backend::RegisterDebugUtils() {
+        return CheckVkSuccess(
+            mFunctions.CreateDebugUtilsMessengerEXT(mInstance, &mDebugUtilsMessengerEXTInfo,
+                                                    nullptr, &mDebugUtilsCallback),
+            "vkCreateDebugUtilsMessengerEXT");
     }
 
     MaybeError Backend::RegisterDebugReport() {
@@ -242,6 +275,19 @@ namespace dawn_native { namespace vulkan {
         return CheckVkSuccess(mFunctions.CreateDebugReportCallbackEXT(
                                   mInstance, &createInfo, nullptr, &mDebugReportCallback),
                               "vkCreateDebugReportcallback");
+    }
+
+    VKAPI_ATTR VkBool32 VKAPI_CALL
+    Backend::OnDebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                  VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                                  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                  void* pUserData) {
+        /*std::string msg;
+        msg += pCallbackData->pMessageIdName;
+        msg += "::";
+        msg += pCallbackData->pMessage;
+        dawn::WarningLog() << msg;*/
+        return VK_FALSE;
     }
 
     VKAPI_ATTR VkBool32 VKAPI_CALL

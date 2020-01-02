@@ -31,6 +31,7 @@ namespace dawn_native { namespace vulkan {
     extern const char kLayerNameFuchsiaImagePipeSwapchain[];
 
     extern const char kExtensionNameExtDebugMarker[];
+    extern const char kExtensionNameExtDebugUtils[];
     extern const char kExtensionNameExtDebugReport[];
     extern const char kExtensionNameMvkMacosSurface[];
     extern const char kExtensionNameKhrExternalMemory[];
@@ -64,6 +65,7 @@ namespace dawn_native { namespace vulkan {
         bool fuchsiaImagePipeSwapchain = false;
 
         // Extensions
+        bool debugUtils = false;
         bool debugReport = false;
         bool externalMemoryCapabilities = false;
         bool externalSemaphoreCapabilities = false;
@@ -89,6 +91,7 @@ namespace dawn_native { namespace vulkan {
         VkPhysicalDeviceFeatures features;
 
         // Extensions
+        bool debugUtils = false;
         bool debugMarker = false;
         bool externalMemory = false;
         bool externalMemoryFD = false;

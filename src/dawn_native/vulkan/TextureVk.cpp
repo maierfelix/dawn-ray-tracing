@@ -152,7 +152,8 @@ namespace dawn_native { namespace vulkan {
             if (usage & (wgpu::TextureUsage::Sampled | wgpu::TextureUsage::Storage)) {
                 flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
             }
             if (usage & wgpu::TextureUsage::OutputAttachment) {
                 if (format.HasDepthOrStencil()) {

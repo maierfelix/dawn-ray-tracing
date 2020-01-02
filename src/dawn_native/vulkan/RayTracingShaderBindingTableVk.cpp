@@ -14,13 +14,13 @@
 
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
-#include "dawn_native/vulkan/StagingBufferVk.h"
 #include "dawn_native/vulkan/ShaderModuleVk.h"
+#include "dawn_native/vulkan/StagingBufferVk.h"
 
-#include "dawn_native/vulkan/DeviceVk.h"
-#include "dawn_native/vulkan/VulkanError.h"
 #include "dawn_native/vulkan/AdapterVk.h"
+#include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/UtilsVulkan.h"
+#include "dawn_native/vulkan/VulkanError.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -83,7 +83,7 @@ namespace dawn_native { namespace vulkan {
 
                 VkRayTracingShaderGroupCreateInfoNV stageInfo{};
                 stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-                stageInfo.type = (VkRayTracingShaderGroupTypeNV) type;
+                stageInfo.type = (VkRayTracingShaderGroupTypeNV)type;
                 stageInfo.generalShader = generalShader;
                 stageInfo.closestHitShader = closestHitShader;
                 stageInfo.anyHitShader = anyHitShader;
@@ -105,7 +105,6 @@ namespace dawn_native { namespace vulkan {
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
-
     }
 
     std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetGroups() {

@@ -106,6 +106,16 @@ namespace dawn_native {
             return {};
         }
 
+        MaybeError ValidateAccelerationContainerBinding(const DeviceBase* device,
+                                         const BindGroupBinding& binding) {
+            if (binding.accelerationContainer == nullptr) {
+                return DAWN_VALIDATION_ERROR("expected acceleration container binding");
+            }
+            DAWN_TRY(device->ValidateObject(binding.accelerationContainer));
+
+            return {};
+        }
+
     }  // anonymous namespace
 
     MaybeError ValidateBindGroupDescriptor(DeviceBase* device,
@@ -162,6 +172,9 @@ namespace dawn_native {
                     break;
                 case wgpu::BindingType::StorageTexture:
                     UNREACHABLE();
+                    break;
+                case wgpu::BindingType::AccelerationContainer:
+                    DAWN_TRY(ValidateAccelerationContainerBinding(device, binding));
                     break;
             }
         }

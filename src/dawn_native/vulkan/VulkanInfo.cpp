@@ -54,6 +54,7 @@ namespace dawn_native { namespace vulkan {
     const char kLayerNameFuchsiaImagePipeSwapchain[] = "VK_LAYER_FUCHSIA_imagepipe_swapchain";
 
     const char kExtensionNameExtDebugMarker[] = "VK_EXT_debug_marker";
+    const char kExtensionNameExtDebugUtils[] = "VK_EXT_debug_utils";
     const char kExtensionNameExtDebugReport[] = "VK_EXT_debug_report";
     const char kExtensionNameMvkMacosSurface[] = "VK_MVK_macos_surface";
     const char kExtensionNameKhrExternalMemory[] = "VK_KHR_external_memory";
@@ -128,6 +129,9 @@ namespace dawn_native { namespace vulkan {
             }
 
             for (const auto& extension : info.extensions) {
+                if (IsExtensionName(extension, kExtensionNameExtDebugUtils)) {
+                    info.debugUtils = true;
+                }
                 if (IsExtensionName(extension, kExtensionNameExtDebugReport)) {
                     info.debugReport = true;
                 }

@@ -35,6 +35,7 @@ namespace dawn_native { namespace vulkan {
         void OnMapWriteCommandSerialFinished(uint32_t mapSerial, void* data);
 
         VkBuffer GetHandle() const;
+        ResourceMemoryAllocation GetMemoryResource() const;
 
         // Transitions the buffer to be used as `usage`, recording any necessary barrier in
         // `commands`.

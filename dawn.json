@@ -112,7 +112,7 @@
             {"name": "instance offset", "type": "uint32_t", "default": "0"},
             {"name": "transform length", "type": "uint32_t"},
             {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"},
-            {"name": "geometryContainer", "type": "ray tracing acceleration container"}
+            {"name": "geometry container", "type": "ray tracing acceleration container"}
         ]
     },
     "ray tracing acceleration container descriptor": {
@@ -339,7 +339,8 @@
             {"value": 32, "name": "vertex"},
             {"value": 64, "name": "uniform"},
             {"value": 128, "name": "storage"},
-            {"value": 256, "name": "indirect"}
+            {"value": 256, "name": "indirect"},
+            {"value": 512, "name": "ray tracing"}
         ]
     },
     "char": {

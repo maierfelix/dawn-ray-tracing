@@ -69,6 +69,11 @@ namespace dawn_native {
                     break;
                 case wgpu::BindingType::StorageTexture:
                     return DAWN_VALIDATION_ERROR("storage textures aren't supported (yet)");
+                case wgpu::BindingType::AccelerationContainer:
+                    if (binding.hasDynamicOffset) {
+                        return DAWN_VALIDATION_ERROR("Acceleration Container cannot be dynamic");
+                    }
+                    break;
             }
 
             if (binding.multisampled) {
@@ -156,6 +161,7 @@ namespace dawn_native {
                     case wgpu::BindingType::SampledTexture:
                     case wgpu::BindingType::Sampler:
                     case wgpu::BindingType::StorageTexture:
+                    case wgpu::BindingType::AccelerationContainer:
                         UNREACHABLE();
                         break;
                 }

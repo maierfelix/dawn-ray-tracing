@@ -39,7 +39,15 @@ namespace dawn_native { namespace vulkan {
       private:
         ResultOrError<VulkanGlobalKnobs> CreateInstance();
 
+        MaybeError RegisterDebugUtils();
         MaybeError RegisterDebugReport();
+
+        static VKAPI_ATTR VkBool32 VKAPI_CALL
+        OnDebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                             VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                             void* pUserData);
+
         static VKAPI_ATTR VkBool32 VKAPI_CALL
         OnDebugReportCallback(VkDebugReportFlagsEXT flags,
                               VkDebugReportObjectTypeEXT objectType,
@@ -54,6 +62,9 @@ namespace dawn_native { namespace vulkan {
         VulkanGlobalInfo mGlobalInfo = {};
         VkInstance mInstance = VK_NULL_HANDLE;
         VulkanFunctions mFunctions;
+
+        VkDebugUtilsMessengerEXT mDebugUtilsCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerCreateInfoEXT mDebugUtilsMessengerEXTInfo = {};
 
         VkDebugReportCallbackEXT mDebugReportCallback = VK_NULL_HANDLE;
 

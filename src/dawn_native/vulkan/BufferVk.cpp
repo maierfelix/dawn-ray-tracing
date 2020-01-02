@@ -50,6 +50,9 @@ namespace dawn_native { namespace vulkan {
             if (usage & wgpu::BufferUsage::Indirect) {
                 flags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
             }
+            if (usage & wgpu::BufferUsage::RayTracing) {
+                flags |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+            }
 
             return flags;
         }
@@ -70,7 +73,8 @@ namespace dawn_native { namespace vulkan {
                 (wgpu::BufferUsage::Uniform | wgpu::BufferUsage::Storage | kReadOnlyStorage)) {
                 flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
             }
             if (usage & wgpu::BufferUsage::Indirect) {
                 flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
@@ -180,6 +184,10 @@ namespace dawn_native { namespace vulkan {
 
     VkBuffer Buffer::GetHandle() const {
         return mHandle;
+    }
+
+    ResourceMemoryAllocation Buffer::GetMemoryResource() const {
+        return mMemoryAllocation;
     }
 
     void Buffer::TransitionUsageNow(CommandRecordingContext* recordingContext,

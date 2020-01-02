@@ -23,19 +23,34 @@ namespace dawn_native {
     // RayTracingAccelerationContainer
 
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
+        if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
+            descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            return DAWN_VALIDATION_ERROR("Invalid Container Level. Must be Top or Bottom");
+        }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             if (descriptor->geometryCount > 0) {
                 return DAWN_VALIDATION_ERROR("Geometry Count for Top-Level Acceleration Container must be zero");
             }
+            if (descriptor->instanceCount == 0) {
+                return DAWN_VALIDATION_ERROR(
+                    "No data provided for Top-Level Acceleration Container");
+            }
+            for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
+                RayTracingAccelerationInstanceDescriptor instance = descriptor->instances[ii];
+                if (instance.geometryContainer == nullptr) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Acceleration Container Instance requires a Geometry Container");
+                }
+            };
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             if (descriptor->instanceCount > 0) {
                 return DAWN_VALIDATION_ERROR("Instance Count for Bottom-Level Acceleration Container must be zero");
             }
-        }
-        if (descriptor->geometryCount == 0 && descriptor->instanceCount == 0) {
-            return DAWN_VALIDATION_ERROR(
-                "No data provided for Acceleration Container");
+            if (descriptor->geometryCount == 0) {
+                return DAWN_VALIDATION_ERROR(
+                    "No data provided for TopBottomLevel Acceleration Container");
+            }
         }
         return {};
     }

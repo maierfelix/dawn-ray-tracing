@@ -161,6 +161,9 @@ namespace dawn_native { namespace vulkan {
                             case wgpu::BindingType::SampledTexture:
                                 // Don't require barriers.
 
+                            case wgpu::BindingType::AccelerationContainer:
+                                break;
+
                             default:
                                 UNREACHABLE();
                                 break;
@@ -201,6 +204,9 @@ namespace dawn_native { namespace vulkan {
                             case wgpu::BindingType::Sampler:
                             case wgpu::BindingType::SampledTexture:
                                 // Don't require barriers.
+
+                            case wgpu::BindingType::AccelerationContainer:
+                                break;
 
                             default:
                                 UNREACHABLE();
@@ -489,59 +495,104 @@ namespace dawn_native { namespace vulkan {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         size_t nextPassNumber = 0;
 
+        RayTracingAccelerationContainer* lastAccelerationContainer = nullptr;
+
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
+
                 case Command::BuildRayTracingAccelerationContainer: {
                     BuildRayTracingAccelerationContainerCmd* build =
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    VkAccelerationStructureInfoNV asInfo = {};
-                    asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-                    asInfo.type = container->GetLevel();
-                    asInfo.flags = container->GetFlags();
+                    if (container->GetScratchMemory().build.buffer == VK_NULL_HANDLE) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Container has no Scratch Memory");
+                    }
+
+                    VkMemoryBarrier barrier;
+                    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                    barrier.pNext = nullptr;
+                    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+                    barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 
                     // bottom-level AS
                     if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
-                        std::vector<VkGeometryNV>& geometries = container->GetGeometries();
-                        asInfo.instanceCount = 0;
-                        asInfo.geometryCount = geometries.size();
-                        asInfo.pGeometries = geometries.data();
+                        if (lastAccelerationContainer == nullptr) {
+                            lastAccelerationContainer = container;
+                        } else {
+                            return DAWN_VALIDATION_ERROR("Build instruction for Bottom-Level Container requires Top-Level Container build in next command");
+                        }
+                    }
+                    // top-level AS
+                    else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
 
-                        if (container->GetScratchMemory().result.buffer == VK_NULL_HANDLE) {
-                            printf("Invalid Scratch Buffer!!\n");
+                        if (lastAccelerationContainer != nullptr) {
+                            std::vector<VkGeometryNV>& geometries =
+                                lastAccelerationContainer->GetGeometries();
+
+                            VkAccelerationStructureInfoNV asInfo{};
+                            asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+                            asInfo.pNext = nullptr;
+                            asInfo.flags = lastAccelerationContainer->GetFlags();
+                            asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+                            asInfo.instanceCount = 0;
+                            asInfo.geometryCount = geometries.size();
+                            asInfo.pGeometries = geometries.data();
+
+                            device->fn.CmdBuildAccelerationStructureNV(
+                                commands, &asInfo, nullptr, 0, build->update,
+                                lastAccelerationContainer->GetAccelerationStructure(),
+                                build->update ? nullptr : nullptr,  // ignored
+                                lastAccelerationContainer->GetScratchMemory().build.buffer,
+                                lastAccelerationContainer->GetScratchMemory().build.offset);
+
+                            device->fn.CmdPipelineBarrier(
+                                commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1,
+                                &barrier, 0, nullptr, 0, nullptr);
+                        } else {
+                            return DAWN_VALIDATION_ERROR(
+                                "Top-Level Container misses Bottom-Level Container link");
+                        }
+
+                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
+
+                        VkAccelerationStructureInfoNV asInfo{};
+                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+                        asInfo.pNext = nullptr;
+                        asInfo.flags = container->GetFlags();
+                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+                        asInfo.instanceCount = instances.size();
+                        asInfo.geometryCount = 0;
+                        asInfo.pGeometries = nullptr;
+
+                        if (container->GetScratchMemory().build.buffer == VK_NULL_HANDLE) {
+                            return DAWN_VALIDATION_ERROR(
+                                "Invalid Scratch Memory for Top-Level Container");
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, nullptr, 0, build->update,
-                            container->GetAccelerationStructure(),
-                            build->update ? nullptr : nullptr,
-                            container->GetScratchMemory().result.buffer,
-                            container->GetScratchMemory().result.offset);
-                    // top-level AS
-                    } else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
-                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
-                        asInfo.instanceCount = instances.size();
-                        asInfo.geometryCount = 0;
-                        device->fn.CmdBuildAccelerationStructureNV(
                             commands, &asInfo, container->GetInstanceBuffer(), 0, build->update,
                             container->GetAccelerationStructure(),
-                            build->update ? nullptr : nullptr,
-                            container->GetScratchMemory().result.buffer,
-                            container->GetScratchMemory().result.offset);
+                            build->update ? nullptr : nullptr,  // ignored
+                            container->GetScratchMemory().build.buffer,
+                            container->GetScratchMemory().build.offset);
+
+                        device->fn.CmdPipelineBarrier(
+                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &barrier,
+                            0, nullptr, 0, nullptr);
+
+                        lastAccelerationContainer = nullptr;
                     }
-                    VkMemoryBarrier memoryBarrier = {};
-                    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-                    memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                                  VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-                    memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                                  VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-                    device->fn.CmdPipelineBarrier(
-                        commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &memoryBarrier,
-                        0, nullptr, 0, nullptr);
+
+
                 } break;
+
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
                     Buffer* srcBuffer = ToBackend(copy->source.Get());
@@ -858,13 +909,20 @@ namespace dawn_native { namespace vulkan {
 
                     device->fn.CmdTraceRaysNV(commands,
                         // ray-gen
-                        sbtBuffer, rayGenOffset,
+                        sbtBuffer,
+                        rayGenOffset,
                         // ray-miss
-                        sbtBuffer, rayMissOffset, groupHandleSize,
+                        sbtBuffer,
+                        rayMissOffset,
+                        groupHandleSize,
                         // ray-hit
-                        sbtBuffer, rayClosestHitOffset, groupHandleSize,
+                        sbtBuffer,
+                        rayClosestHitOffset,
+                        groupHandleSize,
                         // callable
-                        VK_NULL_HANDLE, 0, 0,
+                        VK_NULL_HANDLE,
+                        0,
+                        0,
                         // dimensions
                         traceRays->width, traceRays->height, traceRays->depth
                     );
@@ -890,9 +948,10 @@ namespace dawn_native { namespace vulkan {
 
                     device->fn.CmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
                                                pipeline->GetHandle());
-                    descriptorSets.OnSetPipeline(pipeline);
 
                     usedPipeline = pipeline;
+
+                    descriptorSets.OnSetPipeline(pipeline);
                 } break;
 
                 case Command::InsertDebugMarker: {

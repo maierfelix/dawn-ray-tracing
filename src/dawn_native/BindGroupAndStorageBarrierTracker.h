@@ -52,6 +52,7 @@ namespace dawn_native {
                         case wgpu::BindingType::ReadonlyStorageBuffer:
                         case wgpu::BindingType::Sampler:
                         case wgpu::BindingType::SampledTexture:
+                        case wgpu::BindingType::AccelerationContainer:
                             // Don't require barriers.
                             break;
 

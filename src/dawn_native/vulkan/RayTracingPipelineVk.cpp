@@ -21,6 +21,7 @@
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
 #include "dawn_native/vulkan/UtilsVulkan.h"
+#include "dawn_native/vulkan/ResourceHeapVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -43,62 +44,59 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkPipelineShaderStageCreateInfo> stages = shaderBindingTable->GetStages();
         std::vector<VkRayTracingShaderGroupCreateInfoNV> groups = shaderBindingTable->GetGroups();
 
-        VkRayTracingPipelineCreateInfoNV createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        createInfo.stageCount = stages.size();
-        createInfo.pStages = stages.data();
-        createInfo.pGroups = groups.data();
-        createInfo.groupCount = groups.size();
-        createInfo.maxRecursionDepth = descriptor->rayTracingState->maxRecursionDepth;
-        createInfo.layout = ToBackend(descriptor->layout)->GetHandle();
-        createInfo.basePipelineHandle = nullptr;
-        createInfo.basePipelineIndex = 0;
-
         {
+            VkRayTracingPipelineCreateInfoNV createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0;
+            createInfo.pStages = stages.data();
+            createInfo.stageCount = stages.size();
+            createInfo.pGroups = groups.data();
+            createInfo.groupCount = groups.size();
+            createInfo.maxRecursionDepth = descriptor->rayTracingState->maxRecursionDepth;
+            createInfo.layout = ToBackend(descriptor->layout)->GetHandle();
+            createInfo.basePipelineHandle = VK_NULL_HANDLE;
+            createInfo.basePipelineIndex = -1;
+
             MaybeError result = CheckVkSuccess(
                 device->fn.CreateRayTracingPipelinesNV(device->GetVkDevice(), VK_NULL_HANDLE, 1,
                                                        &createInfo, nullptr, &mHandle),
-                "CreateRayTracingPipelinesNV");
+                "vkCreateRayTracingPipelinesNV");
             if (result.IsError())
                 return result.AcquireError();
         }
 
-        uint64_t bufferSize = stages.size() * shaderBindingTable->GetShaderGroupHandleSize();
-        VkBufferUsageFlags usage =
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
-
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.pNext = nullptr;
-        bufferInfo.flags = 0;
-        bufferInfo.size = bufferSize;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        bufferInfo.queueFamilyIndexCount = 0;
-        bufferInfo.pQueueFamilyIndices = nullptr;
-
         {
-            MaybeError result = CheckVkSuccess(
-                device->fn.CreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, &mGroupBuffer),
-                "CreateBuffer");
-            if (result.IsError())
-                return result;
-        }
+            uint64_t bufferSize = stages.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
-        VkMemoryRequirements requirements;
-        device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mGroupBuffer, &requirements);
+            VkBufferCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0;
+            createInfo.size = bufferSize;
+            createInfo.usage =
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = 0;
 
-        DAWN_TRY_ASSIGN(mGroupBufferResource, device->AllocateMemory(requirements, true));
-        {
-            MaybeError result = CreateBufferFromResourceMemoryAllocation(
-                device, &mGroupBuffer, bufferSize, usage, mGroupBufferResource);
-            if (result.IsError())
-                return result;
-        }
+            Device* device = ToBackend(GetDevice());
+            DAWN_TRY(CheckVkSuccess(
+                device->fn.CreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &mGroupBuffer),
+                "vkCreateBuffer"));
 
-        {
+            VkMemoryRequirements requirements;
+            device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mGroupBuffer,
+                                                   &requirements);
+
+            DAWN_TRY_ASSIGN(mGroupBufferResource, device->AllocateMemory(requirements, true));
+
+            DAWN_TRY(
+                CheckVkSuccess(device->fn.BindBufferMemory(
+                                   device->GetVkDevice(), mGroupBuffer,
+                                   ToBackend(mGroupBufferResource.GetResourceHeap())->GetMemory(),
+                                   mGroupBufferResource.GetOffset()),
+                               "vkBindBufferMemory"));
             MaybeError result =
                 CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesNV(
                                    device->GetVkDevice(), mHandle, 0, stages.size(), bufferSize,
@@ -106,6 +104,7 @@ namespace dawn_native { namespace vulkan {
                                "GetRayTracingShaderGroupHandlesNV");
             if (result.IsError())
                 return result.AcquireError();
+
         }
 
         return {};

@@ -70,6 +70,10 @@ namespace dawn_native { namespace vulkan {
         // device is created.
         PFN_vkDestroyDevice DestroyDevice = nullptr;
 
+        // VK_EXT_debug_utils
+        PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT = nullptr;
+        PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT = nullptr;
+
         // VK_EXT_debug_report
         PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT = nullptr;
         PFN_vkDebugReportMessageEXT DebugReportMessageEXT = nullptr;
