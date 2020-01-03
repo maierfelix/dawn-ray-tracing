@@ -83,6 +83,10 @@ namespace dawn_native { namespace vulkan {
                         ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
                     VkAccelerationStructureNV instance = container->GetAccelerationStructure();
 
+                    if (container->GetLevel() != VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+                        return DAWN_VALIDATION_ERROR("Only Top-Level Containers can be bound");
+                    }
+
                     writeAccelerationInfo[numWrites].pNext = nullptr;
                     writeAccelerationInfo[numWrites].sType =
                         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;

@@ -15,10 +15,11 @@
 #ifndef DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 #define DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 
+#include "dawn_native/DynamicUploader.h"
+
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
-#include "dawn_native/ResourceMemoryAllocation.h"
-#include "dawn_native/DynamicUploader.h"
+#include "dawn_native/vulkan/BufferVk.h"
 
 #include <vector>
 
@@ -52,7 +53,7 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingAccelerationContainer*> Create(Device* device, const RayTracingAccelerationContainerDescriptor* descriptor);
         ~RayTracingAccelerationContainer();
 
-        MaybeError GetHandle(uint64_t* handle) const;
+        uint64_t GetHandle() const;
         VkAccelerationStructureTypeNV GetLevel() const;
         VkBuildAccelerationStructureFlagBitsNV GetFlags() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
@@ -61,7 +62,8 @@ namespace dawn_native { namespace vulkan {
         uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
-        VkBuffer GetInstanceBuffer() const;
+        VkBuffer GetInstanceBufferHandle() const;
+        uint32_t GetInstanceBufferOffset() const;
         
         std::vector<VkGeometryNV>& GetGeometries();
         std::vector<VkAccelerationInstance>& GetInstances();
@@ -82,7 +84,6 @@ namespace dawn_native { namespace vulkan {
         // instance buffer for top-level containers
         VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation mInstanceResource;
-        UploadHandle mInstanceHandle;
 
         // scratch memory
         ScratchMemoryPool mScratchMemory;
@@ -92,10 +93,8 @@ namespace dawn_native { namespace vulkan {
         MaybeError RayTracingAccelerationContainer::ReserveScratchMemory(
             const RayTracingAccelerationContainerDescriptor* descriptor);
 
-        MaybeError CreateScratchMemory(ScratchMemoryPool* memory,
-                                       uint32_t resultSize,
-                                       uint32_t buildSize,
-                                       uint32_t updateSize);
+        uint64_t mHandle;
+        MaybeError FetchHandle(uint64_t* handle);
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

@@ -58,6 +58,9 @@ namespace dawn_native {
                     case wgpu::BindingType::Sampler:
                         break;
 
+                    case wgpu::BindingType::AccelerationContainer:
+                        break;
+
                     case wgpu::BindingType::StorageTexture:
                         UNREACHABLE();
                         break;

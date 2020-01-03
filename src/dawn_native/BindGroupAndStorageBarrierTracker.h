@@ -42,7 +42,13 @@ namespace dawn_native {
                 const auto& info = layout->GetBindingInfo();
 
                 for (uint32_t binding : IterateBitSet(info.mask)) {
-                    if ((info.visibilities[binding] & wgpu::ShaderStage::Compute) == 0) {
+                    if (
+                        ((info.visibilities[binding] & wgpu::ShaderStage::Compute) == 0) ||
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayGeneration) == 0) ||
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayAnyHit) == 0) ||
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayClosestHit) == 0) ||
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayMiss) == 0)
+                        ) {
                         continue;
                     }
 

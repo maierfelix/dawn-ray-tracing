@@ -56,7 +56,7 @@ namespace dawn_native { namespace vulkan {
             createInfo.maxRecursionDepth = descriptor->rayTracingState->maxRecursionDepth;
             createInfo.layout = ToBackend(descriptor->layout)->GetHandle();
             createInfo.basePipelineHandle = VK_NULL_HANDLE;
-            createInfo.basePipelineIndex = -1;
+            createInfo.basePipelineIndex = 0;
 
             MaybeError result = CheckVkSuccess(
                 device->fn.CreateRayTracingPipelinesNV(device->GetVkDevice(), VK_NULL_HANDLE, 1,
@@ -74,13 +74,11 @@ namespace dawn_native { namespace vulkan {
             createInfo.pNext = nullptr;
             createInfo.flags = 0;
             createInfo.size = bufferSize;
-            createInfo.usage =
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = 0;
 
-            Device* device = ToBackend(GetDevice());
             DAWN_TRY(CheckVkSuccess(
                 device->fn.CreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &mGroupBuffer),
                 "vkCreateBuffer"));
@@ -97,14 +95,14 @@ namespace dawn_native { namespace vulkan {
                                    ToBackend(mGroupBufferResource.GetResourceHeap())->GetMemory(),
                                    mGroupBufferResource.GetOffset()),
                                "vkBindBufferMemory"));
+
             MaybeError result =
                 CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesNV(
                                    device->GetVkDevice(), mHandle, 0, stages.size(), bufferSize,
                                    mGroupBufferResource.GetMappedPointer()),
-                               "GetRayTracingShaderGroupHandlesNV");
+                               "vkGetRayTracingShaderGroupHandlesNV");
             if (result.IsError())
                 return result.AcquireError();
-
         }
 
         return {};

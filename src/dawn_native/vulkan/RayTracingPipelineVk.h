@@ -22,6 +22,8 @@
 #include "common/vulkan_platform.h"
 #include "dawn_native/Error.h"
 
+#include "dawn_native/vulkan/BufferVk.h"
+
 namespace dawn_native { namespace vulkan {
 
     class Device;
@@ -42,7 +44,7 @@ namespace dawn_native { namespace vulkan {
 
         VkPipeline mHandle = VK_NULL_HANDLE;
 
-        // space for group handles
+        // group handle buffer
         VkBuffer mGroupBuffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation mGroupBufferResource;
     };
