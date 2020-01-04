@@ -18,6 +18,8 @@
 #include "common/Math.h"
 #include "dawn_native/Device.h"
 
+#include "dawn_native/Buffer.h"
+
 namespace dawn_native {
 
     // RayTracingAccelerationContainer
@@ -51,6 +53,27 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR(
                     "No data provided for TopBottomLevel Acceleration Container");
             }
+            for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
+                RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
+
+                // for now, we lock the supported geometry types to triangle-only
+                if (geomDsc.type != wgpu::RayTracingAccelerationGeometryType::Triangles) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Other Geometry types than 'Triangles' is unsupported");
+                }
+
+                // geometry for acceleration containers doesn't have to be device local
+                // but the performance for geometry on host memory is seriously slow
+                // so we force users to provide the geometry buffers staged
+                if ((geomDsc.vertexBuffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                    return DAWN_VALIDATION_ERROR("Vertex data must be staged");
+                }
+                if (geomDsc.indexBuffer != nullptr) {
+                    if ((geomDsc.indexBuffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("Index data must be staged");
+                    }
+                }
+            };
         }
         return {};
     }

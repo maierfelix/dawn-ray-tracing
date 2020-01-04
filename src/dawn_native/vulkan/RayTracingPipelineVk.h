@@ -36,17 +36,12 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingPipeline();
 
         VkPipeline GetHandle() const;
-        VkBuffer GetGroupBufferHandle() const;
 
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
 
         VkPipeline mHandle = VK_NULL_HANDLE;
-
-        // group handle buffer
-        VkBuffer mGroupBuffer = VK_NULL_HANDLE;
-        ResourceMemoryAllocation mGroupBufferResource;
     };
 
 }}  // namespace dawn_native::vulkan

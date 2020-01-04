@@ -879,7 +879,7 @@ namespace dawn_native { namespace vulkan {
                     RayTracingShaderBindingTable* sbt =
                         ToBackend(usedPipeline->GetShaderBindingTable());
 
-                    VkBuffer sbtBuffer = usedPipeline->GetGroupBufferHandle();
+                    VkBuffer sbtBuffer = sbt->GetGroupBufferHandle();
 
                     uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
 

@@ -50,58 +50,83 @@ namespace dawn_native { namespace vulkan {
 
         mRayTracingProperties = GetRayTracingProperties(*adapter);
 
-        if (descriptor->shaderCount > 0) {
-            for (unsigned int ii = 0; ii < descriptor->shaderCount; ++ii) {
-                RayTracingShaderBindingTableShadersDescriptor shader = descriptor->shaders[ii];
-                auto type = VK_SHADER_UNUSED_NV;
-                auto generalShader = VK_SHADER_UNUSED_NV;
-                auto closestHitShader = VK_SHADER_UNUSED_NV;
-                auto anyHitShader = VK_SHADER_UNUSED_NV;
-                auto intersectionShader = VK_SHADER_UNUSED_NV;
-                switch (shader.stage) {
-                    case wgpu::ShaderStage::RayGeneration:
-                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                        generalShader = mGroups.size();
-                        mRayGenerationCount++;
-                        break;
-                    case wgpu::ShaderStage::RayAnyHit:
-                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                        anyHitShader = mGroups.size();
-                        mRayAnyHitCount++;
-                        break;
-                    case wgpu::ShaderStage::RayClosestHit:
-                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                        closestHitShader = mGroups.size();
-                        mRayClosestHitCount++;
-                        break;
-                    case wgpu::ShaderStage::RayMiss:
-                        type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                        generalShader = mGroups.size();
-                        mRayMissCount++;
-                        break;
-                };
-
-                VkRayTracingShaderGroupCreateInfoNV stageInfo{};
-                stageInfo.pNext = nullptr;
-                stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-                stageInfo.type = (VkRayTracingShaderGroupTypeNV)type;
-                stageInfo.generalShader = generalShader;
-                stageInfo.closestHitShader = closestHitShader;
-                stageInfo.anyHitShader = anyHitShader;
-                stageInfo.intersectionShader = intersectionShader;
-                mGroups.push_back(stageInfo);
-
-                VkPipelineShaderStageCreateInfo pipelineShaderStageInfo{};
-                pipelineShaderStageInfo.pNext = nullptr;
-                pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-                pipelineShaderStageInfo.stage =
-                    static_cast<VkShaderStageFlagBits>(VulkanShaderStageFlags(shader.stage));
-                pipelineShaderStageInfo.module = ToBackend(shader.module)->GetHandle();
-                pipelineShaderStageInfo.pName = "main";
-
-                mStages.push_back(pipelineShaderStageInfo);
+        for (unsigned int ii = 0; ii < descriptor->shaderCount; ++ii) {
+            RayTracingShaderBindingTableShadersDescriptor shader = descriptor->shaders[ii];
+            auto type = VK_SHADER_UNUSED_NV;
+            auto generalShader = VK_SHADER_UNUSED_NV;
+            auto closestHitShader = VK_SHADER_UNUSED_NV;
+            auto anyHitShader = VK_SHADER_UNUSED_NV;
+            auto intersectionShader = VK_SHADER_UNUSED_NV;
+            switch (shader.stage) {
+                case wgpu::ShaderStage::RayGeneration:
+                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+                    generalShader = mGroups.size();
+                    mRayGenerationCount++;
+                    break;
+                case wgpu::ShaderStage::RayAnyHit:
+                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                    anyHitShader = mGroups.size();
+                    mRayAnyHitCount++;
+                    break;
+                case wgpu::ShaderStage::RayClosestHit:
+                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                    closestHitShader = mGroups.size();
+                    mRayClosestHitCount++;
+                    break;
+                case wgpu::ShaderStage::RayMiss:
+                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+                    generalShader = mGroups.size();
+                    mRayMissCount++;
+                    break;
             };
-        }
+
+            VkRayTracingShaderGroupCreateInfoNV stageInfo{};
+            stageInfo.pNext = nullptr;
+            stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
+            stageInfo.type = (VkRayTracingShaderGroupTypeNV)type;
+            stageInfo.generalShader = generalShader;
+            stageInfo.closestHitShader = closestHitShader;
+            stageInfo.anyHitShader = anyHitShader;
+            stageInfo.intersectionShader = intersectionShader;
+            mGroups.push_back(stageInfo);
+
+            VkPipelineShaderStageCreateInfo pipelineShaderStageInfo{};
+            pipelineShaderStageInfo.pNext = nullptr;
+            pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            pipelineShaderStageInfo.stage =
+                static_cast<VkShaderStageFlagBits>(VulkanShaderStageFlags(shader.stage));
+            pipelineShaderStageInfo.module = ToBackend(shader.module)->GetHandle();
+            pipelineShaderStageInfo.pName = "main";
+
+            mStages.push_back(pipelineShaderStageInfo);
+        };
+
+        uint64_t bufferSize = mStages.size() * GetShaderGroupHandleSize();
+
+        VkBufferCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.size = bufferSize;
+        createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = 0;
+
+        DAWN_TRY(CheckVkSuccess(
+            device->fn.CreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &mGroupBuffer),
+            "vkCreateBuffer"));
+
+        VkMemoryRequirements requirements;
+        device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mGroupBuffer, &requirements);
+
+        DAWN_TRY_ASSIGN(mGroupBufferResource, device->AllocateMemory(requirements, true));
+
+        DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
+                                    device->GetVkDevice(), mGroupBuffer,
+                                    ToBackend(mGroupBufferResource.GetResourceHeap())->GetMemory(),
+                                    mGroupBufferResource.GetOffset()),
+                                "vkBindBufferMemory"));
 
         return {};
     }
@@ -115,6 +140,14 @@ namespace dawn_native { namespace vulkan {
 
     std::vector<VkPipelineShaderStageCreateInfo>& RayTracingShaderBindingTable::GetStages() {
         return mStages;
+    }
+
+    VkBuffer RayTracingShaderBindingTable::GetGroupBufferHandle() const {
+        return mGroupBuffer;
+    }
+
+    ResourceMemoryAllocation RayTracingShaderBindingTable::GetGroupBufferResource() const {
+        return mGroupBufferResource;
     }
 
     uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {

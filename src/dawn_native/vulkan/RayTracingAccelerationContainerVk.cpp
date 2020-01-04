@@ -90,9 +90,12 @@ namespace dawn_native { namespace vulkan {
         }
 
         // generates a 4x3 transform matrix in row-major order
-        void Fill4x3TransformMatrix(float* out, const Transform3D* translation,
-                                     const Transform3D* rotation,
-                                     const Transform3D* scale) {
+        void Fill4x3TransformMatrix(float* out,
+                                    const Transform3D* translation,
+                                    const Transform3D* rotation,
+                                    const Transform3D* scale) {
+            const float PI = 3.14159265358979f;
+
             // make identity
             out[0] = 1.0f;
             out[5] = 1.0f;
@@ -115,7 +118,8 @@ namespace dawn_native { namespace vulkan {
                 float y = rotation->y;
                 float z = rotation->z;
                 // x rotation
-                {
+                if (x != 0.0f) {
+                    x = x * (PI / 180.0f);
                     float s = sinf(x);
                     float c = cosf(x);
                     float a10 = out[4];
@@ -136,7 +140,8 @@ namespace dawn_native { namespace vulkan {
                     out[11] = a23 * c - a13 * s;
                 }
                 // y rotation
-                {
+                if (y != 0.0f) {
+                    y = y * (PI / 180.0f);
                     float s = sinf(y);
                     float c = cosf(y);
                     float a00 = out[0];
@@ -157,7 +162,8 @@ namespace dawn_native { namespace vulkan {
                     out[11] = a03 * s + a23 * c;
                 }
                 // z rotation
-                {
+                if (z != 0.0f) {
+                    z = z * (PI / 180.0f);
                     float s = sinf(z);
                     float c = cosf(z);
                     float a00 = out[0];
@@ -237,20 +243,11 @@ namespace dawn_native { namespace vulkan {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
 
-                VkGeometryNV geometryInfo{};
-
-                // for now, we lock the geometry type to triangle-only
-                if (geomDsc.type != wgpu::RayTracingAccelerationGeometryType::Triangles) {
-                    return DAWN_VALIDATION_ERROR(
-                        "Other Geometry types than 'Triangles' is unsupported");
-                }
-
                 Buffer* vertexBuffer = ToBackend(geomDsc.vertexBuffer);
-                if (vertexBuffer->GetHandle() == VK_NULL_HANDLE) {
-                    return DAWN_VALIDATION_ERROR(
-                        "Invalid vertex data");
-                }
+                Buffer* indexBuffer =
+                    geomDsc.indexBuffer != nullptr ? ToBackend(geomDsc.indexBuffer) : nullptr;
 
+                VkGeometryNV geometryInfo{};
                 geometryInfo.pNext = nullptr;
                 geometryInfo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
                 geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
@@ -265,11 +262,7 @@ namespace dawn_native { namespace vulkan {
                 geometryInfo.geometry.triangles.vertexFormat =
                     VulkanVertexFormat(geomDsc.vertexFormat);
                 // index buffer is optional
-                if (geomDsc.indexBuffer != nullptr) {
-                    Buffer* indexBuffer = ToBackend(geomDsc.indexBuffer);
-                    if (indexBuffer->GetHandle() == VK_NULL_HANDLE) {
-                        return DAWN_VALIDATION_ERROR("Invalid index data");
-                    }
+                if (indexBuffer != nullptr) {
                     geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
                     geometryInfo.geometry.triangles.indexOffset = geomDsc.indexOffset;
                     geometryInfo.geometry.triangles.indexCount = geomDsc.indexCount;
@@ -327,6 +320,7 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
 
+            // TODO: stage this buffer
             VkBufferCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
             createInfo.pNext = nullptr;

@@ -41,6 +41,10 @@ namespace dawn_native {
     // RayTracingShaderBindingTable
 
     MaybeError ValidateRayTracingShaderBindingTableDescriptor(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor) {
+        if (descriptor->shaderCount == 0) {
+            return DAWN_VALIDATION_ERROR("No shaders provided");
+        }
+
         return {};
     }
 

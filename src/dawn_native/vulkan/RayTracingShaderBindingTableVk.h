@@ -34,6 +34,9 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();
         std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
 
+        VkBuffer GetGroupBufferHandle() const;
+        ResourceMemoryAllocation GetGroupBufferResource() const;
+
         uint32_t GetShaderGroupHandleSize() const;
 
       protected:
@@ -51,6 +54,10 @@ namespace dawn_native { namespace vulkan {
         uint32_t mRayMissCount = 0;
         
         VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
+
+        // group handle buffer
+        VkBuffer mGroupBuffer = VK_NULL_HANDLE;
+        ResourceMemoryAllocation mGroupBufferResource;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

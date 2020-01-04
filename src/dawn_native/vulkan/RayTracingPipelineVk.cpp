@@ -69,37 +69,10 @@ namespace dawn_native { namespace vulkan {
         {
             uint64_t bufferSize = stages.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
-            VkBufferCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            createInfo.pNext = nullptr;
-            createInfo.flags = 0;
-            createInfo.size = bufferSize;
-            createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;
-            createInfo.pQueueFamilyIndices = 0;
-
-            DAWN_TRY(CheckVkSuccess(
-                device->fn.CreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &mGroupBuffer),
-                "vkCreateBuffer"));
-
-            VkMemoryRequirements requirements;
-            device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mGroupBuffer,
-                                                   &requirements);
-
-            DAWN_TRY_ASSIGN(mGroupBufferResource, device->AllocateMemory(requirements, true));
-
-            DAWN_TRY(
-                CheckVkSuccess(device->fn.BindBufferMemory(
-                                   device->GetVkDevice(), mGroupBuffer,
-                                   ToBackend(mGroupBufferResource.GetResourceHeap())->GetMemory(),
-                                   mGroupBufferResource.GetOffset()),
-                               "vkBindBufferMemory"));
-
             MaybeError result =
                 CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesNV(
                                    device->GetVkDevice(), mHandle, 0, stages.size(), bufferSize,
-                                   mGroupBufferResource.GetMappedPointer()),
+                                   shaderBindingTable->GetGroupBufferResource().GetMappedPointer()),
                                "vkGetRayTracingShaderGroupHandlesNV");
             if (result.IsError())
                 return result.AcquireError();
@@ -117,10 +90,6 @@ namespace dawn_native { namespace vulkan {
 
     VkPipeline RayTracingPipeline::GetHandle() const {
         return mHandle;
-    }
-
-    VkBuffer RayTracingPipeline::GetGroupBufferHandle() const {
-        return mGroupBuffer;
     }
 
 }}  // namespace dawn_native::vulkan
