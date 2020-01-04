@@ -37,12 +37,12 @@ namespace dawn_native { namespace vulkan {
 
         VkIndexType VulkanIndexFormat(wgpu::IndexFormat format) {
             switch (format) {
+                case wgpu::IndexFormat::None:
+                    return VK_INDEX_TYPE_NONE_NV;
                 case wgpu::IndexFormat::Uint16:
                     return VK_INDEX_TYPE_UINT16;
                 case wgpu::IndexFormat::Uint32:
                     return VK_INDEX_TYPE_UINT32;
-                case wgpu::IndexFormat::None:
-                    return VK_INDEX_TYPE_NONE_NV;
                 default:
                     UNREACHABLE();
             }
@@ -50,66 +50,10 @@ namespace dawn_native { namespace vulkan {
 
         VkFormat VulkanVertexFormat(wgpu::VertexFormat format) {
             switch (format) {
-                case wgpu::VertexFormat::UChar2:
-                    return VK_FORMAT_R8G8_UINT;
-                case wgpu::VertexFormat::UChar4:
-                    return VK_FORMAT_R8G8B8A8_UINT;
-                case wgpu::VertexFormat::Char2:
-                    return VK_FORMAT_R8G8_SINT;
-                case wgpu::VertexFormat::Char4:
-                    return VK_FORMAT_R8G8B8A8_SINT;
-                case wgpu::VertexFormat::UChar2Norm:
-                    return VK_FORMAT_R8G8_UNORM;
-                case wgpu::VertexFormat::UChar4Norm:
-                    return VK_FORMAT_R8G8B8A8_UNORM;
-                case wgpu::VertexFormat::Char2Norm:
-                    return VK_FORMAT_R8G8_SNORM;
-                case wgpu::VertexFormat::Char4Norm:
-                    return VK_FORMAT_R8G8B8A8_SNORM;
-                case wgpu::VertexFormat::UShort2:
-                    return VK_FORMAT_R16G16_UINT;
-                case wgpu::VertexFormat::UShort4:
-                    return VK_FORMAT_R16G16B16A16_UINT;
-                case wgpu::VertexFormat::Short2:
-                    return VK_FORMAT_R16G16_SINT;
-                case wgpu::VertexFormat::Short4:
-                    return VK_FORMAT_R16G16B16A16_SINT;
-                case wgpu::VertexFormat::UShort2Norm:
-                    return VK_FORMAT_R16G16_UNORM;
-                case wgpu::VertexFormat::UShort4Norm:
-                    return VK_FORMAT_R16G16B16A16_UNORM;
-                case wgpu::VertexFormat::Short2Norm:
-                    return VK_FORMAT_R16G16_SNORM;
-                case wgpu::VertexFormat::Short4Norm:
-                    return VK_FORMAT_R16G16B16A16_SNORM;
-                case wgpu::VertexFormat::Half2:
-                    return VK_FORMAT_R16G16_SFLOAT;
-                case wgpu::VertexFormat::Half4:
-                    return VK_FORMAT_R16G16B16A16_SFLOAT;
-                case wgpu::VertexFormat::Float:
-                    return VK_FORMAT_R32_SFLOAT;
                 case wgpu::VertexFormat::Float2:
                     return VK_FORMAT_R32G32_SFLOAT;
                 case wgpu::VertexFormat::Float3:
                     return VK_FORMAT_R32G32B32_SFLOAT;
-                case wgpu::VertexFormat::Float4:
-                    return VK_FORMAT_R32G32B32A32_SFLOAT;
-                case wgpu::VertexFormat::UInt:
-                    return VK_FORMAT_R32_UINT;
-                case wgpu::VertexFormat::UInt2:
-                    return VK_FORMAT_R32G32_UINT;
-                case wgpu::VertexFormat::UInt3:
-                    return VK_FORMAT_R32G32B32_UINT;
-                case wgpu::VertexFormat::UInt4:
-                    return VK_FORMAT_R32G32B32A32_UINT;
-                case wgpu::VertexFormat::Int:
-                    return VK_FORMAT_R32_SINT;
-                case wgpu::VertexFormat::Int2:
-                    return VK_FORMAT_R32G32_SINT;
-                case wgpu::VertexFormat::Int3:
-                    return VK_FORMAT_R32G32B32_SINT;
-                case wgpu::VertexFormat::Int4:
-                    return VK_FORMAT_R32G32B32A32_SINT;
                 default:
                     UNREACHABLE();
             }
@@ -143,6 +87,124 @@ namespace dawn_native { namespace vulkan {
                 flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
             }
             return static_cast<VkBuildAccelerationStructureFlagBitsNV>(flags);
+        }
+
+        // generates a 4x3 transform matrix in row-major order
+        void Fill4x3TransformMatrix(float* out, const Transform3D* translation,
+                                     const Transform3D* rotation,
+                                     const Transform3D* scale) {
+            // make identity
+            out[0] = 1.0f;
+            out[5] = 1.0f;
+            out[10] = 1.0f;
+            out[15] = 1.0f;
+            // apply translation
+            if (translation != nullptr) {
+                float x = translation->x;
+                float y = translation->y;
+                float z = translation->z;
+                out[12] = out[0] * x + out[4] * y + out[8] * z + out[12];
+                out[13] = out[1] * x + out[5] * y + out[9] * z + out[13];
+                out[14] = out[2] * x + out[6] * y + out[10] * z + out[14];
+                out[15] = out[3] * x + out[7] * y + out[11] * z + out[15];
+            }
+            // apply rotation
+            if (rotation != nullptr) {
+                // TODO: beautify this
+                float x = rotation->x;
+                float y = rotation->y;
+                float z = rotation->z;
+                // x rotation
+                {
+                    float s = sinf(x);
+                    float c = cosf(x);
+                    float a10 = out[4];
+                    float a11 = out[5];
+                    float a12 = out[6];
+                    float a13 = out[7];
+                    float a20 = out[8];
+                    float a21 = out[9];
+                    float a22 = out[10];
+                    float a23 = out[11];
+                    out[4] = a10 * c + a20 * s;
+                    out[5] = a11 * c + a21 * s;
+                    out[6] = a12 * c + a22 * s;
+                    out[7] = a13 * c + a23 * s;
+                    out[8] = a20 * c - a10 * s;
+                    out[9] = a21 * c - a11 * s;
+                    out[10] = a22 * c - a12 * s;
+                    out[11] = a23 * c - a13 * s;
+                }
+                // y rotation
+                {
+                    float s = sinf(y);
+                    float c = cosf(y);
+                    float a00 = out[0];
+                    float a01 = out[1];
+                    float a02 = out[2];
+                    float a03 = out[3];
+                    float a20 = out[8];
+                    float a21 = out[9];
+                    float a22 = out[10];
+                    float a23 = out[11];
+                    out[0] = a00 * c - a20 * s;
+                    out[1] = a01 * c - a21 * s;
+                    out[2] = a02 * c - a22 * s;
+                    out[3] = a03 * c - a23 * s;
+                    out[8] = a00 * s + a20 * c;
+                    out[9] = a01 * s + a21 * c;
+                    out[10] = a02 * s + a22 * c;
+                    out[11] = a03 * s + a23 * c;
+                }
+                // z rotation
+                {
+                    float s = sinf(z);
+                    float c = cosf(z);
+                    float a00 = out[0];
+                    float a01 = out[1];
+                    float a02 = out[2];
+                    float a03 = out[3];
+                    float a10 = out[4];
+                    float a11 = out[5];
+                    float a12 = out[6];
+                    float a13 = out[7];
+                    out[0] = a00 * c + a10 * s;
+                    out[1] = a01 * c + a11 * s;
+                    out[2] = a02 * c + a12 * s;
+                    out[3] = a03 * c + a13 * s;
+                    out[4] = a10 * c - a00 * s;
+                    out[5] = a11 * c - a01 * s;
+                    out[6] = a12 * c - a02 * s;
+                    out[7] = a13 * c - a03 * s;
+                }
+            }
+            // apply scale
+            if (scale != nullptr) {
+                float x = scale->x;
+                float y = scale->y;
+                float z = scale->z;
+                out[0] = out[0] * x;
+                out[1] = out[1] * x;
+                out[2] = out[2] * x;
+                out[3] = out[3] * x;
+                out[4] = out[4] * y;
+                out[5] = out[5] * y;
+                out[6] = out[6] * y;
+                out[7] = out[7] * y;
+                out[8] = out[8] * z;
+                out[9] = out[9] * z;
+                out[10] = out[10] * z;
+                out[11] = out[11] * z;
+            }
+            // turn into 4x3
+            out[3] = out[12];
+            out[7] = out[13];
+            out[11] = out[14];
+            // reset last row
+            out[12] = 0.0f;
+            out[13] = 0.0f;
+            out[14] = 0.0f;
+            out[15] = 0.0f;
         }
 
     }  // anonymous namespace
@@ -189,27 +251,36 @@ namespace dawn_native { namespace vulkan {
                         "Invalid vertex data");
                 }
 
-                Buffer* indexBuffer = ToBackend(geomDsc.indexBuffer);
-                if (indexBuffer->GetHandle() == VK_NULL_HANDLE) {
-                    return DAWN_VALIDATION_ERROR("Invalid index data");
-                }
-
                 geometryInfo.pNext = nullptr;
                 geometryInfo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
                 geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
-                geometryInfo.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
+                geometryInfo.geometryType = VulkanGeometryType(geomDsc.type);
                 // triangle
                 geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
                 geometryInfo.geometry.triangles.pNext = nullptr;
                 geometryInfo.geometry.triangles.vertexData = vertexBuffer->GetHandle();
-                geometryInfo.geometry.triangles.vertexOffset = 0;
-                geometryInfo.geometry.triangles.vertexCount = 9;
-                geometryInfo.geometry.triangles.vertexStride = 3 * sizeof(float);
-                geometryInfo.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-                geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
-                geometryInfo.geometry.triangles.indexOffset = 0;
-                geometryInfo.geometry.triangles.indexCount = 3;
-                geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
+                geometryInfo.geometry.triangles.vertexOffset = geomDsc.vertexOffset;
+                geometryInfo.geometry.triangles.vertexCount = geomDsc.vertexCount;
+                geometryInfo.geometry.triangles.vertexStride = geomDsc.vertexStride;
+                geometryInfo.geometry.triangles.vertexFormat =
+                    VulkanVertexFormat(geomDsc.vertexFormat);
+                // index buffer is optional
+                if (geomDsc.indexBuffer != nullptr) {
+                    Buffer* indexBuffer = ToBackend(geomDsc.indexBuffer);
+                    if (indexBuffer->GetHandle() == VK_NULL_HANDLE) {
+                        return DAWN_VALIDATION_ERROR("Invalid index data");
+                    }
+                    geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
+                    geometryInfo.geometry.triangles.indexOffset = geomDsc.indexOffset;
+                    geometryInfo.geometry.triangles.indexCount = geomDsc.indexCount;
+                    geometryInfo.geometry.triangles.indexType =
+                        VulkanIndexFormat(geomDsc.indexFormat);
+                } else {
+                    geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
+                    geometryInfo.geometry.triangles.indexOffset = 0;
+                    geometryInfo.geometry.triangles.indexCount = 0;
+                    geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_NONE_NV;
+                }
                 geometryInfo.geometry.triangles.transformData = nullptr;
                 geometryInfo.geometry.triangles.transformOffset = 0;
                 // aabb
@@ -236,12 +307,14 @@ namespace dawn_native { namespace vulkan {
                 RayTracingAccelerationContainer* geometryContainer =
                     ToBackend(instance.geometryContainer);
                 VkAccelerationInstance instanceData{};
-                memcpy(&instanceData.transform, const_cast<float*>(instance.transform),
-                       sizeof(instanceData.transform));
+                float transform[16] = {};
+                Fill4x3TransformMatrix(transform, instance.transform->translation,
+                                       instance.transform->rotation, instance.transform->scale);
+                memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
                 instanceData.instanceId = instance.instanceId;
-                instanceData.mask = 0xFF;
-                instanceData.instanceOffset = 0;
-                instanceData.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+                instanceData.mask = instance.mask;
+                instanceData.instanceOffset = instance.instanceOffset;
+                instanceData.flags = static_cast<uint32_t>(instance.flags);
                 instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
                 if (geometryContainer->GetHandle() == 0) {
                     return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");

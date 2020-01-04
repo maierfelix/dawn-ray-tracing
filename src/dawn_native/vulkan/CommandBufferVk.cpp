@@ -531,11 +531,6 @@ namespace dawn_native { namespace vulkan {
                             container->GetScratchMemory().build.buffer,
                             container->GetScratchMemory().build.offset);
 
-                        device->fn.CmdPipelineBarrier(
-                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &barrier,
-                            0, 0, 0, 0);
-
                     }
                     // top-level AS
                     else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
@@ -555,6 +550,11 @@ namespace dawn_native { namespace vulkan {
                                 "Invalid Scratch Memory for Top-Level Container");
                         }
 
+                        device->fn.CmdPipelineBarrier(
+                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &barrier,
+                            0, 0, 0, 0);
+
                         device->fn.CmdBuildAccelerationStructureNV(
                             commands, &asInfo, container->GetInstanceBufferHandle(),
                             0, VK_FALSE,
@@ -564,7 +564,8 @@ namespace dawn_native { namespace vulkan {
 
                         device->fn.CmdPipelineBarrier(
                             commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
+                                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
                             0, 1, &barrier, 0, 0, 0, 0);
                     }
                     // invalid

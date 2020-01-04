@@ -95,11 +95,30 @@
             {"name": "type", "type": "ray tracing acceleration geometry type"},
             {"name": "vertex buffer", "type": "buffer"},
             {"name": "vertex format", "type": "vertex format"},
-            {"name": "vertex stride", "type": "uint32_t", "default": "0"},
+            {"name": "vertex stride", "type": "uint32_t"},
             {"name": "vertex offset", "type": "uint64_t", "default": "0"},
+            {"name": "vertex count", "type": "uint32_t"},
             {"name": "index buffer", "type": "buffer", "optional": true},
             {"name": "index format", "type": "index format", "default": "none"},
-            {"name": "index offset", "type": "uint64_t", "default": "0"}
+            {"name": "index offset", "type": "uint64_t", "default": "0"},
+            {"name": "index count", "type": "uint32_t", "default": "0"}
+        ]
+    },
+    "transform 3D": {
+        "category": "structure",
+        "members": [
+            {"name": "x", "type": "float", "default": "0.0f"},
+            {"name": "y", "type": "float", "default": "0.0f"},
+            {"name": "z", "type": "float", "default": "0.0f"}
+        ]
+    },
+    "ray tracing acceleration instance transform descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "translation", "type": "transform 3D", "annotation": "const*", "optional": true},
+            {"name": "rotation", "type": "transform 3D", "annotation": "const*", "optional": true},
+            {"name": "scale", "type": "transform 3D", "annotation": "const*", "optional": true}
         ]
     },
     "ray tracing acceleration instance descriptor": {
@@ -110,8 +129,7 @@
             {"name": "mask", "type": "uint32_t", "default": "0xFF"},
             {"name": "instance id", "type": "uint32_t", "default": "0"},
             {"name": "instance offset", "type": "uint32_t", "default": "0"},
-            {"name": "transform length", "type": "uint32_t"},
-            {"name": "transform", "type": "float", "annotation": "const*", "length": "transform length"},
+            {"name": "transform", "type": "ray tracing acceleration instance transform descriptor", "annotation": "const*", "optional": true},
             {"name": "geometry container", "type": "ray tracing acceleration container"}
         ]
     },
@@ -165,7 +183,7 @@
             {"name": "type", "type": "binding type"},
             {"name": "has dynamic offset", "type": "bool", "default": "false"},
             {"name": "multisampled", "type": "bool", "default": "false"},
-            {"name": "texture dimension", "type": "texture view dimension", "default": "undefined"},
+            {"name": "texture dimension", "type": "texture view dimension", "default": "2D"},
             {"name": "texture component type", "type": "texture component type", "default": "float"}
         ]
     },
