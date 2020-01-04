@@ -441,6 +441,13 @@
                 ]
             },
             {
+                "name": "copy ray tracing acceleration container",
+                "args": [
+                    {"name": "src container", "type": "ray tracing acceleration container"},
+                    {"name": "dst container", "type": "ray tracing acceleration container"}
+                ]
+            },
+            {
                 "name": "copy buffer to buffer",
                 "args": [
                     {"name": "source", "type": "buffer"},

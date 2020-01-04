@@ -247,10 +247,14 @@ namespace dawn_native {
 
         MaybeError ValidateRayTracingAccelerationContainerCanBuild(
             const RayTracingAccelerationContainerBase* container) {
-            if (container->IsBuilt()) {
-                return DAWN_VALIDATION_ERROR("Acceleration Container is already built.");
-            }
+            // TODO
+            return {};
+        }
 
+        MaybeError ValidateRayTracingAccelerationContainerCanCopy(
+            const RayTracingAccelerationContainerBase* srcContainer,
+            const RayTracingAccelerationContainerBase* dstContainer) {
+            // TODO
             return {};
         }
 
@@ -654,6 +658,24 @@ namespace dawn_native {
         });
     }
 
+    void CommandEncoder::CopyRayTracingAccelerationContainer(
+        RayTracingAccelerationContainerBase* srcContainer,
+        RayTracingAccelerationContainerBase* dstContainer) {
+        mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
+            DAWN_TRY(GetDevice()->ValidateObject((ObjectBase*)srcContainer));
+            DAWN_TRY(GetDevice()->ValidateObject((ObjectBase*)dstContainer));
+
+            CopyRayTracingAccelerationContainerCmd* build =
+                allocator->Allocate<CopyRayTracingAccelerationContainerCmd>(
+                    Command::CopyRayTracingAccelerationContainer);
+            build->srcContainer = srcContainer;
+            build->dstContainer = dstContainer;
+
+            return {};
+        });
+    }
+
+
     void CommandEncoder::CopyBufferToBuffer(BufferBase* source,
                                             uint64_t sourceOffset,
                                             BufferBase* destination,
@@ -862,9 +884,18 @@ namespace dawn_native {
                     const BuildRayTracingAccelerationContainerCmd* build =
                         commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
 
-                    if (!build->update)
+                    if (!build->update) {
                         DAWN_TRY(ValidateRayTracingAccelerationContainerCanBuild(
                             build->container.Get()));
+                    }
+                } break;
+
+                case Command::CopyRayTracingAccelerationContainer: {
+                    const CopyRayTracingAccelerationContainerCmd* copy =
+                        commands->NextCommand<CopyRayTracingAccelerationContainerCmd>();
+
+                    DAWN_TRY(ValidateRayTracingAccelerationContainerCanCopy(
+                        copy->srcContainer.Get(), copy->dstContainer.Get()));
                 } break;
 
                 case Command::CopyBufferToBuffer: {

@@ -576,6 +576,21 @@ namespace dawn_native { namespace vulkan {
 
                 } break;
 
+                case Command::CopyRayTracingAccelerationContainer: {
+                    CopyRayTracingAccelerationContainerCmd* copy =
+                        mCommands.NextCommand<CopyRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* srcContainer =
+                        ToBackend(copy->srcContainer.Get());
+                    RayTracingAccelerationContainer* dstContainer =
+                        ToBackend(copy->dstContainer.Get());
+
+                    device->fn.CmdCopyAccelerationStructureNV(
+                        commands, dstContainer->GetAccelerationStructure(),
+                        srcContainer->GetAccelerationStructure(),
+                        VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV);
+
+                } break;
+
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
                     Buffer* srcBuffer = ToBackend(copy->source.Get());

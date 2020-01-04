@@ -43,6 +43,9 @@ namespace dawn_native {
         void BuildRayTracingAccelerationContainer(RayTracingAccelerationContainerBase* container,
                                 bool update);
 
+        void CopyRayTracingAccelerationContainer(RayTracingAccelerationContainerBase* srcContainer,
+                                                 RayTracingAccelerationContainerBase* dstContainer);
+
         void CopyBufferToBuffer(BufferBase* source,
                                 uint64_t sourceOffset,
                                 BufferBase* destination,

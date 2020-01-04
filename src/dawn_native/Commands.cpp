@@ -49,6 +49,11 @@ namespace dawn_native {
                         commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     build->~BuildRayTracingAccelerationContainerCmd();
                 } break;
+                case Command::CopyRayTracingAccelerationContainer: {
+                    CopyRayTracingAccelerationContainerCmd* build =
+                        commands->NextCommand<CopyRayTracingAccelerationContainerCmd>();
+                    build->~CopyRayTracingAccelerationContainerCmd();
+                } break;
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = commands->NextCommand<CopyBufferToBufferCmd>();
                     copy->~CopyBufferToBufferCmd();
@@ -193,6 +198,10 @@ namespace dawn_native {
 
             case Command::BuildRayTracingAccelerationContainer:
                 commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
+                break;
+
+            case Command::CopyRayTracingAccelerationContainer:
+                commands->NextCommand<CopyRayTracingAccelerationContainerCmd>();
                 break;
 
             case Command::CopyBufferToBuffer:
