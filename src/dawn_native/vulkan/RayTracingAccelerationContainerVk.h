@@ -45,7 +45,6 @@ namespace dawn_native { namespace vulkan {
     struct ScratchMemoryPool {
         ScratchMemory result;
         ScratchMemory build;
-        ScratchMemory update;
     };
 
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {

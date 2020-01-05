@@ -67,8 +67,7 @@
             {"value": 1, "name": "triangle cull disable"},
             {"value": 2, "name": "triangle front counterclockwise"},
             {"value": 4, "name": "force opaque"},
-            {"value": 8, "name": "no opaque"},
-            {"value": 16, "name": "copy dst"}
+            {"value": 8, "name": "force no opaque"}
         ]
     },
     "ray tracing acceleration container flag": {

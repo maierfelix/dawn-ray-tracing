@@ -491,6 +491,8 @@ namespace dawn_native { namespace vulkan {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         size_t nextPassNumber = 0;
 
+        bool hasBottomLevelContainerBuild = false;
+
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
@@ -526,11 +528,13 @@ namespace dawn_native { namespace vulkan {
                         asInfo.pGeometries = geometries.data();
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, VK_NULL_HANDLE, 0, VK_FALSE,
-                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
+                            commands, &asInfo, VK_NULL_HANDLE, 0, build->update,
+                            container->GetAccelerationStructure(),
+                            build->update ? container->GetAccelerationStructure() : VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
                             container->GetScratchMemory().build.offset);
 
+                        hasBottomLevelContainerBuild = true;
                     }
                     // top-level AS
                     else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
@@ -550,18 +554,23 @@ namespace dawn_native { namespace vulkan {
                                 "Invalid Scratch Memory for Top-Level Container");
                         }
 
-                        device->fn.CmdPipelineBarrier(
-                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &barrier,
-                            0, 0, 0, 0);
+                        // barrier only needed when in same command buffer record
+                        // a bottom-level container was previosuly built
+                        if (hasBottomLevelContainerBuild) {
+                            device->fn.CmdPipelineBarrier(
+                                commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1,
+                                &barrier, 0, 0, 0, 0);
+                        }
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceBufferHandle(),
-                            0, VK_FALSE,
-                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
+                            commands, &asInfo, container->GetInstanceBufferHandle(), 0,
+                            build->update, container->GetAccelerationStructure(),
+                            build->update ? container->GetAccelerationStructure() : VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
                             container->GetScratchMemory().build.offset);
 
+                        // probably not needed
                         device->fn.CmdPipelineBarrier(
                             commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
                             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
