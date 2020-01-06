@@ -411,36 +411,58 @@ namespace dawn_native { namespace vulkan {
         uint32_t updateSize = GetMemoryRequirementSize(
             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
 
+        VkMemoryRequirements2 resultRequirements =
+            GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
+        resultRequirements.memoryRequirements.size = resultSize;
+
+        VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
+            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
+        buildRequirements.memoryRequirements.size = buildSize;
+
+        VkMemoryRequirements2 updateRequirements = GetMemoryRequirements(
+            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
+        updateRequirements.memoryRequirements.size = updateSize;
+
+        // allocate scratch result memory
         {
-            // allocate scratch result memory
-            VkMemoryRequirements2 resultRequirements =
-                GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-            resultRequirements.memoryRequirements.size = resultSize;
-            DAWN_TRY_ASSIGN(mScratchMemory.result.resource,
-                            device->AllocateMemory(resultRequirements.memoryRequirements, false));
-            mScratchMemory.result.offset = mScratchMemory.result.resource.GetOffset();
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                           resultSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mScratchMemory.result.allocation = buffer;
+            mScratchMemory.result.buffer = buffer->GetHandle();
+            mScratchMemory.result.offset = buffer->GetMemoryResource().GetOffset();
+            mScratchMemory.result.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+        }
 
-            // allocate scratch build memory
-            VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
-                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
-            buildRequirements.memoryRequirements.size = buildSize;
-            DAWN_TRY_ASSIGN(mScratchMemory.build.resource,
-                            device->AllocateMemory(buildRequirements.memoryRequirements, false));
-            mScratchMemory.build.offset = mScratchMemory.build.resource.GetOffset();
+        // allocate scratch build memory
+        {
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst, buildSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mScratchMemory.build.allocation = buffer;
+            mScratchMemory.build.buffer = buffer->GetHandle();
+            mScratchMemory.build.offset = buffer->GetMemoryResource().GetOffset();
+            mScratchMemory.build.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+        }
 
-            MaybeError result = CreateBufferFromResourceMemoryAllocation(
-                device, &mScratchMemory.build.buffer, std::max(buildSize, updateSize),
-                VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, mScratchMemory.build.resource);
-            if (result.IsError())
-                return result;
+        // allocate scratch update memory
+        if (updateSize > 0) {
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                           updateSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mScratchMemory.update.allocation = buffer;
+            mScratchMemory.update.buffer = buffer->GetHandle();
+            mScratchMemory.update.offset = buffer->GetMemoryResource().GetOffset();
+            mScratchMemory.update.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
         }
 
         // bind scratch result memory
         VkBindAccelerationStructureMemoryInfoNV memoryBindInfo{};
         memoryBindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
         memoryBindInfo.accelerationStructure = GetAccelerationStructure();
-        memoryBindInfo.memory =
-            ToBackend(mScratchMemory.result.resource.GetResourceHeap())->GetMemory();
+        memoryBindInfo.memory = mScratchMemory.result.memory;
         memoryBindInfo.memoryOffset = mScratchMemory.result.offset;
         memoryBindInfo.deviceIndexCount = 0;
         memoryBindInfo.pDeviceIndices = nullptr;

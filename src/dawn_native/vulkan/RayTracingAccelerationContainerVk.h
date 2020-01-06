@@ -39,11 +39,13 @@ namespace dawn_native { namespace vulkan {
     struct ScratchMemory {
         uint32_t offset = 0;
         VkBuffer buffer = VK_NULL_HANDLE;
-        ResourceMemoryAllocation resource;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        Buffer* allocation;
     };
 
     struct ScratchMemoryPool {
         ScratchMemory result;
+        ScratchMemory update;
         ScratchMemory build;
     };
 

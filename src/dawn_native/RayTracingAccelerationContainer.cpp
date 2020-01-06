@@ -27,7 +27,7 @@ namespace dawn_native {
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
         if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
             descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-            return DAWN_VALIDATION_ERROR("Invalid Container Level. Must be Top or Bottom");
+            return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Level. Must be Top or Bottom");
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             if (descriptor->geometryCount > 0) {
@@ -51,7 +51,7 @@ namespace dawn_native {
             }
             if (descriptor->geometryCount == 0) {
                 return DAWN_VALIDATION_ERROR(
-                    "No data provided for TopBottomLevel Acceleration Container");
+                    "No data provided for Bottom-Level Acceleration Container");
             }
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
@@ -59,7 +59,7 @@ namespace dawn_native {
                 // for now, we lock the supported geometry types to triangle-only
                 if (geomDsc.type != wgpu::RayTracingAccelerationGeometryType::Triangles) {
                     return DAWN_VALIDATION_ERROR(
-                        "Other Geometry types than 'Triangles' is unsupported");
+                        "Other Geometry types than 'Triangles' are not supported");
                 }
 
                 // geometry for acceleration containers doesn't have to be device local
@@ -94,6 +94,10 @@ namespace dawn_native {
 
     bool RayTracingAccelerationContainerBase::IsBuilt() const {
         return mIsBuilt;
+    }
+
+    void RayTracingAccelerationContainerBase::SetBuildState(bool state) {
+        mIsBuilt = state;
     }
 
 }  // namespace dawn_native

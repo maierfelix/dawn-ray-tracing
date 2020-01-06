@@ -435,8 +435,7 @@
             {
                 "name": "build ray tracing acceleration container",
                 "args": [
-                    {"name": "container", "type": "ray tracing acceleration container"},
-                    {"name": "update", "type": "bool", "default": "false"}
+                    {"name": "container", "type": "ray tracing acceleration container"}
                 ]
             },
             {
@@ -444,6 +443,12 @@
                 "args": [
                     {"name": "src container", "type": "ray tracing acceleration container"},
                     {"name": "dst container", "type": "ray tracing acceleration container"}
+                ]
+            },
+            {
+                "name": "update ray tracing acceleration container",
+                "args": [
+                    {"name": "container", "type": "ray tracing acceleration container"}
                 ]
             },
             {

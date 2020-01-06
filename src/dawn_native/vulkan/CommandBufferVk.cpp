@@ -492,6 +492,7 @@ namespace dawn_native { namespace vulkan {
         size_t nextPassNumber = 0;
 
         bool hasBottomLevelContainerBuild = false;
+        bool hasBottomLevelContainerUpdate = false;
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
@@ -502,8 +503,9 @@ namespace dawn_native { namespace vulkan {
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    if (container->GetScratchMemory().build.buffer == VK_NULL_HANDLE) {
-                        return DAWN_VALIDATION_ERROR("Container has no Scratch Memory");
+                    // check if container is already built
+                    if (container->IsBuilt()) {
+                        return DAWN_VALIDATION_ERROR("Acceleration Container is already built");
                     }
 
                     VkMemoryBarrier barrier;
@@ -528,11 +530,11 @@ namespace dawn_native { namespace vulkan {
                         asInfo.pGeometries = geometries.data();
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, VK_NULL_HANDLE, 0, build->update,
-                            container->GetAccelerationStructure(),
-                            build->update ? container->GetAccelerationStructure() : VK_NULL_HANDLE,
+                            commands, &asInfo, VK_NULL_HANDLE, 0, false,
+                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
                             container->GetScratchMemory().build.offset);
+                        container->SetBuildState(true);
 
                         hasBottomLevelContainerBuild = true;
                     }
@@ -549,13 +551,8 @@ namespace dawn_native { namespace vulkan {
                         asInfo.geometryCount = 0;
                         asInfo.pGeometries = nullptr;
 
-                        if (container->GetScratchMemory().build.buffer == VK_NULL_HANDLE) {
-                            return DAWN_VALIDATION_ERROR(
-                                "Invalid Scratch Memory for Top-Level Container");
-                        }
-
                         // barrier only needed when in same command buffer record
-                        // a bottom-level container was previosuly built
+                        // a bottom-level container was previously built
                         if (hasBottomLevelContainerBuild) {
                             device->fn.CmdPipelineBarrier(
                                 commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
@@ -564,9 +561,8 @@ namespace dawn_native { namespace vulkan {
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceBufferHandle(), 0,
-                            build->update, container->GetAccelerationStructure(),
-                            build->update ? container->GetAccelerationStructure() : VK_NULL_HANDLE,
+                            commands, &asInfo, container->GetInstanceBufferHandle(), 0, false,
+                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
                             container->GetScratchMemory().build.offset);
 
@@ -576,11 +572,8 @@ namespace dawn_native { namespace vulkan {
                             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
                                 VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
                             0, 1, &barrier, 0, 0, 0, 0);
-                    }
-                    // invalid
-                    else {
-                        return DAWN_VALIDATION_ERROR(
-                            "Invalid Acceleration Container Level");
+
+                        container->SetBuildState(true);
                     }
 
                 } break;
@@ -597,6 +590,94 @@ namespace dawn_native { namespace vulkan {
                         commands, dstContainer->GetAccelerationStructure(),
                         srcContainer->GetAccelerationStructure(),
                         VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV);
+
+                } break;
+
+                case Command::UpdateRayTracingAccelerationContainer: {
+                    UpdateRayTracingAccelerationContainerCmd* build =
+                        mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
+
+                    // check if container can be updated
+                    if ((container->GetFlags() &
+                         VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV) == 0) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration Container does not support Updates");
+                    }
+
+                    // only allow updates after the container was built
+                    if (!container->IsBuilt()) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration Container must be built before updating");
+                    }
+
+                    VkMemoryBarrier barrier;
+                    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                    barrier.pNext = nullptr;
+                    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+                    barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
+                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+
+                    // bottom-level AS
+                    if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
+                        std::vector<VkGeometryNV>& geometries = container->GetGeometries();
+
+                        VkAccelerationStructureInfoNV asInfo{};
+                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+                        asInfo.pNext = nullptr;
+                        asInfo.flags = container->GetFlags();
+                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+                        asInfo.instanceCount = 0;
+                        asInfo.geometryCount = geometries.size();
+                        asInfo.pGeometries = geometries.data();
+
+                        device->fn.CmdBuildAccelerationStructureNV(
+                            commands, &asInfo, VK_NULL_HANDLE, 0, true,
+                            container->GetAccelerationStructure(),
+                            container->GetAccelerationStructure(),
+                            container->GetScratchMemory().update.buffer,
+                            container->GetScratchMemory().update.offset);
+
+                        hasBottomLevelContainerUpdate = true;
+                    }
+                    // top-level AS
+                    else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
+
+                        VkAccelerationStructureInfoNV asInfo{};
+                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+                        asInfo.pNext = nullptr;
+                        asInfo.flags = container->GetFlags();
+                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+                        asInfo.instanceCount = instances.size();
+                        asInfo.geometryCount = 0;
+                        asInfo.pGeometries = nullptr;
+
+                        // barrier only needed when in same command buffer record
+                        // a bottom-level container was previously built
+                        if (hasBottomLevelContainerUpdate) {
+                            device->fn.CmdPipelineBarrier(
+                                commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1,
+                                &barrier, 0, 0, 0, 0);
+                        }
+
+                        device->fn.CmdBuildAccelerationStructureNV(
+                            commands, &asInfo, container->GetInstanceBufferHandle(), 0, true,
+                            container->GetAccelerationStructure(),
+                            container->GetAccelerationStructure(),
+                            container->GetScratchMemory().build.buffer,
+                            container->GetScratchMemory().build.offset);
+
+                        // probably not needed
+                        device->fn.CmdPipelineBarrier(
+                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
+                                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
+                            0, 1, &barrier, 0, 0, 0, 0);
+
+                    }
 
                 } break;
 

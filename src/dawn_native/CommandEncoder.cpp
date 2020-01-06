@@ -251,6 +251,12 @@ namespace dawn_native {
             return {};
         }
 
+        MaybeError ValidateRayTracingAccelerationContainerCanUpdate(
+            const RayTracingAccelerationContainerBase* container) {
+            // TODO
+            return {};
+        }
+
         MaybeError ValidateRayTracingAccelerationContainerCanCopy(
             const RayTracingAccelerationContainerBase* srcContainer,
             const RayTracingAccelerationContainerBase* dstContainer) {
@@ -643,8 +649,7 @@ namespace dawn_native {
     }
 
     void CommandEncoder::BuildRayTracingAccelerationContainer(
-        RayTracingAccelerationContainerBase* container,
-        bool update) {
+        RayTracingAccelerationContainerBase* container) {
         mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
             DAWN_TRY(GetDevice()->ValidateObject((ObjectBase*)container));
 
@@ -652,7 +657,6 @@ namespace dawn_native {
                 allocator->Allocate<BuildRayTracingAccelerationContainerCmd>(
                     Command::BuildRayTracingAccelerationContainer);
             build->container = container;
-            build->update = update;
 
             return {};
         });
@@ -675,6 +679,19 @@ namespace dawn_native {
         });
     }
 
+    void CommandEncoder::UpdateRayTracingAccelerationContainer(
+        RayTracingAccelerationContainerBase* container) {
+        mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
+            DAWN_TRY(GetDevice()->ValidateObject((ObjectBase*)container));
+
+            UpdateRayTracingAccelerationContainerCmd* update =
+                allocator->Allocate<UpdateRayTracingAccelerationContainerCmd>(
+                    Command::UpdateRayTracingAccelerationContainer);
+            update->container = container;
+
+            return {};
+        });
+    }
 
     void CommandEncoder::CopyBufferToBuffer(BufferBase* source,
                                             uint64_t sourceOffset,
@@ -884,10 +901,16 @@ namespace dawn_native {
                     const BuildRayTracingAccelerationContainerCmd* build =
                         commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
 
-                    if (!build->update) {
-                        DAWN_TRY(ValidateRayTracingAccelerationContainerCanBuild(
-                            build->container.Get()));
-                    }
+                    DAWN_TRY(
+                        ValidateRayTracingAccelerationContainerCanBuild(build->container.Get()));
+                } break;
+
+                case Command::UpdateRayTracingAccelerationContainer: {
+                    const UpdateRayTracingAccelerationContainerCmd* build =
+                        commands->NextCommand<UpdateRayTracingAccelerationContainerCmd>();
+
+                    DAWN_TRY(
+                        ValidateRayTracingAccelerationContainerCanUpdate(build->container.Get()));
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {

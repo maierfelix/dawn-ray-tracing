@@ -35,6 +35,8 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         bool IsBuilt() const;
+        void RayTracingAccelerationContainerBase::SetBuildState(bool state);
+
       private:
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 

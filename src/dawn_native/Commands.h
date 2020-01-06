@@ -37,6 +37,7 @@ namespace dawn_native {
         BeginRenderPass,
         BuildRayTracingAccelerationContainer,
         CopyRayTracingAccelerationContainer,
+        UpdateRayTracingAccelerationContainer,
         CopyBufferToBuffer,
         CopyBufferToTexture,
         CopyTextureToBuffer,
@@ -100,12 +101,15 @@ namespace dawn_native {
 
     struct BuildRayTracingAccelerationContainerCmd {
         Ref<RayTracingAccelerationContainerBase> container;
-        bool update;
     };
 
     struct CopyRayTracingAccelerationContainerCmd {
         Ref<RayTracingAccelerationContainerBase> srcContainer;
         Ref<RayTracingAccelerationContainerBase> dstContainer;
+    };
+
+    struct UpdateRayTracingAccelerationContainerCmd {
+        Ref<RayTracingAccelerationContainerBase> container;
     };
 
     struct BufferCopy {
