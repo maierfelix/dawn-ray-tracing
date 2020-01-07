@@ -20,9 +20,6 @@
 #include "tests/perf_tests/DawnPerfTestPlatform.h"
 #include "utils/Timer.h"
 
-#include <json/value.h>
-#include <json/writer.h>
-
 #include <fstream>
 #include <limits>
 
@@ -36,45 +33,37 @@ namespace {
         std::ofstream outFile;
         outFile.open(traceFile, std::ios_base::app);
 
-        Json::StreamWriterBuilder builder;
-        std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-
         for (const DawnPerfTestPlatform::TraceEvent& traceEvent : traceEventBuffer) {
-            Json::Value value(Json::objectValue);
-
-            const Json::LargestInt microseconds =
-                static_cast<Json::LargestInt>(traceEvent.timestamp * 1000.0 * 1000.0);
-
-            char phase[2] = {traceEvent.phase, '\0'};
-
-            value["name"] = traceEvent.name;
+            const char* category = nullptr;
             switch (traceEvent.category) {
                 case dawn_platform::TraceCategory::General:
-                    value["cat"] = "general";
+                    category = "general";
                     break;
                 case dawn_platform::TraceCategory::Validation:
-                    value["cat"] = "validation";
+                    category = "validation";
                     break;
                 case dawn_platform::TraceCategory::Recording:
-                    value["cat"] = "recording";
+                    category = "recording";
                     break;
                 case dawn_platform::TraceCategory::GPUWork:
-                    value["cat"] = "gpu";
+                    category = "gpu";
                     break;
                 default:
                     UNREACHABLE();
             }
-            value["ph"] = &phase[0];
-            value["id"] = traceEvent.id;
-            value["tid"] = traceEvent.threadId;
-            value["ts"] = microseconds;
-            value["pid"] = "Dawn";
 
-            outFile << ", ";
-            writer->write(value, &outFile);
-            outFile.flush();
+            uint64_t microseconds = static_cast<uint64_t>(traceEvent.timestamp * 1000.0 * 1000.0);
+
+            outFile << ", { "
+                    << "\"name\": \"" << traceEvent.name << "\", "
+                    << "\"cat\": \"" << category << "\", "
+                    << "\"ph\": \"" << traceEvent.phase << "\", "
+                    << "\"id\": " << traceEvent.id << ", "
+                    << "\"tid\": " << traceEvent.threadId << ", "
+                    << "\"ts\": " << microseconds << ", "
+                    << "\"pid\": \"Dawn\""
+                    << " }";
         }
-
         outFile.close();
     }
 
@@ -115,7 +104,7 @@ DawnPerfTestEnvironment::DawnPerfTestEnvironment(int argc, char** argv)
         if (strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
             dawn::InfoLog()
                 << "Additional flags:"
-                << " [--calibration] [--override-steps=x] [--enable-tracing] [--trace-file=file]\n"
+                << " [--calibration] [--override-steps=x] [--trace-file=file]\n"
                 << "  --calibration: Only run calibration. Calibration allows the perf test"
                    " runner script to save some time.\n"
                 << " --override-steps: Set a fixed number of steps to run for each test\n"
@@ -381,30 +370,30 @@ void DawnPerfTestBase::PrintResult(const std::string& trace,
                                    double value,
                                    const std::string& units,
                                    bool important) const {
-    const ::testing::TestInfo* const testInfo =
-        ::testing::UnitTest::GetInstance()->current_test_info();
-
-    const char* testName = testInfo->name();
-    const char* testSuite = testInfo->test_suite_name();
-
-    // The results are printed according to the format specified at
-    // [chromium]//build/scripts/slave/performance_log_processor.py
-    dawn::InfoLog() << (important ? "*" : "") << "RESULT " << testSuite << testName << ": " << trace
-                    << "= " << value << " " << units;
+    PrintResultImpl(trace, std::to_string(value), units, important);
 }
 
 void DawnPerfTestBase::PrintResult(const std::string& trace,
                                    unsigned int value,
                                    const std::string& units,
                                    bool important) const {
+    PrintResultImpl(trace, std::to_string(value), units, important);
+}
+
+void DawnPerfTestBase::PrintResultImpl(const std::string& trace,
+                                       const std::string& value,
+                                       const std::string& units,
+                                       bool important) const {
     const ::testing::TestInfo* const testInfo =
         ::testing::UnitTest::GetInstance()->current_test_info();
 
-    const char* testName = testInfo->name();
-    const char* testSuite = testInfo->test_suite_name();
+    std::string metric = std::string(testInfo->test_suite_name()) + "." + trace;
+
+    std::string story = testInfo->name();
+    std::replace(story.begin(), story.end(), '/', '_');
 
     // The results are printed according to the format specified at
-    // [chromium]//build/scripts/slave/performance_log_processor.py
-    dawn::InfoLog() << (important ? "*" : "") << "RESULT " << testSuite << testName << ": " << trace
-                    << "= " << value << " " << units;
+    // [chromium]//src/tools/perf/generate_legacy_perf_dashboard_json.py
+    dawn::InfoLog() << (important ? "*" : "") << "RESULT " << metric << ": " << story << "= "
+                    << value << " " << units;
 }

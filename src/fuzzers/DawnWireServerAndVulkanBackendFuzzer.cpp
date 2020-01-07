@@ -1,4 +1,4 @@
-// Copyright 2018 The Dawn Authors
+// Copyright 2019 The Dawn Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 #include "DawnWireServerFuzzer.h"
 
-#include "common/Assert.h"
 #include "dawn_native/DawnNative.h"
 
 extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
@@ -27,16 +26,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         [](dawn_native::Instance* instance) {
             std::vector<dawn_native::Adapter> adapters = instance->GetAdapters();
 
-            wgpu::Device nullDevice;
+            wgpu::Device device;
             for (dawn_native::Adapter adapter : adapters) {
-                if (adapter.GetBackendType() == dawn_native::BackendType::Null) {
-                    nullDevice = wgpu::Device::Acquire(adapter.CreateDevice());
+                if (adapter.GetBackendType() == dawn_native::BackendType::Vulkan &&
+                    adapter.GetDeviceType() == dawn_native::DeviceType::CPU) {
+                    device = wgpu::Device::Acquire(adapter.CreateDevice());
                     break;
                 }
             }
-
-            ASSERT(nullDevice.Get() != nullptr);
-            return nullDevice;
+            return device;
         },
-        false /* supportsErrorInjection */);
+        true /* supportsErrorInjection */);
 }
