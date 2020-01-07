@@ -24,6 +24,20 @@ namespace dawn_native {
 
     // RayTracingAccelerationContainer
 
+    namespace {
+
+        template <typename T, typename E>
+        bool VectorReferenceAlreadyExists(std::vector<Ref<T>> const& vec, E* el) {
+            for (auto const& element : vec) {
+                if (element.Get() == el) {
+                    return true;
+                }
+            };
+            return false;
+        }
+
+    }
+
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
         if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
             descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
@@ -80,7 +94,34 @@ namespace dawn_native {
 
     RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor)
         : ObjectBase(device) {
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            // save unique references to used vertex and index buffers
+            for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
+                const RayTracingAccelerationGeometryDescriptor& geometry =
+                    descriptor->geometries[ii];
+                BufferBase* vertexBuffer = geometry.vertexBuffer;
+                BufferBase* indexBuffer = geometry.indexBuffer;
 
+                if (!VectorReferenceAlreadyExists(mVertexBuffers, vertexBuffer)) {
+                    mVertexBuffers.push_back(vertexBuffer);
+                }
+                if (!VectorReferenceAlreadyExists(mIndexBuffers, indexBuffer)) {
+                    mIndexBuffers.push_back(indexBuffer);
+                }
+            };
+        }
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            // save unique references to used geometry containers
+            for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
+                const RayTracingAccelerationInstanceDescriptor& instance =
+                    descriptor->instances[ii];
+                RayTracingAccelerationContainerBase* container = instance.geometryContainer;
+
+                if (!VectorReferenceAlreadyExists(mGeometryContainers, container)) {
+                    mGeometryContainers.push_back(container);
+                }
+            };
+        }
     }
 
     RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag)

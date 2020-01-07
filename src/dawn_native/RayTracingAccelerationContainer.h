@@ -21,16 +21,20 @@
 
 #include "dawn_native/dawn_platform.h"
 
+#include <vector>
 #include <memory>
 
 namespace dawn_native {
 
-    MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device,
-                                           const RayTracingAccelerationContainerDescriptor* descriptor);
+    MaybeError ValidateRayTracingAccelerationContainerDescriptor(
+        DeviceBase* device,
+        const RayTracingAccelerationContainerDescriptor* descriptor);
 
     class RayTracingAccelerationContainerBase : public ObjectBase {
       public:
-        RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor);
+        RayTracingAccelerationContainerBase(
+            DeviceBase* device,
+            const RayTracingAccelerationContainerDescriptor* descriptor);
 
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
@@ -39,6 +43,13 @@ namespace dawn_native {
 
       private:
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+
+        // bottom-level references
+        std::vector<Ref<BufferBase>> mVertexBuffers;
+        std::vector<Ref<BufferBase>> mIndexBuffers;
+
+        // top-level references
+        std::vector<Ref<RayTracingAccelerationContainerBase>> mGeometryContainers;
 
         bool mIsBuilt = false;
     };
