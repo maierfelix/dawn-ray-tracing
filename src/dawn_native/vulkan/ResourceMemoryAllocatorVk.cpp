@@ -29,7 +29,7 @@ namespace dawn_native { namespace vulkan {
         // suballocate but it should ideally depend on the size of the memory heaps and other
         // factors.
         constexpr uint64_t kMaxBuddySystemSize = 32ull * 1024ull * 1024ull * 1024ull;  // 32GB
-        constexpr uint64_t kMaxSizeForSubAllocation = 32ull * 1024ull * 1024ull;        // 32MB
+        constexpr uint64_t kMaxSizeForSubAllocation = 4ull * 1024ull * 1024ull;        // 4MB
 
         // Have each bucket of the buddy system allocate at least some resource of the maximum
         // size

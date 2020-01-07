@@ -533,7 +533,7 @@ namespace dawn_native { namespace vulkan {
                             commands, &asInfo, VK_NULL_HANDLE, 0, false,
                             container->GetAccelerationStructure(), VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
-                            container->GetScratchMemory().build.offset);
+                            0);
                         container->SetBuildState(true);
 
                         hasBottomLevelContainerBuild = true;
@@ -561,10 +561,10 @@ namespace dawn_native { namespace vulkan {
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceBufferHandle(), 0, false,
+                            commands, &asInfo, container->GetInstanceMemory().buffer, 0, false,
                             container->GetAccelerationStructure(), VK_NULL_HANDLE,
                             container->GetScratchMemory().build.buffer,
-                            container->GetScratchMemory().build.offset);
+                            0);
 
                         // probably not needed
                         device->fn.CmdPipelineBarrier(
@@ -637,7 +637,7 @@ namespace dawn_native { namespace vulkan {
                             container->GetAccelerationStructure(),
                             container->GetAccelerationStructure(),
                             container->GetScratchMemory().update.buffer,
-                            container->GetScratchMemory().update.offset);
+                            0);
 
                         hasBottomLevelContainerUpdate = true;
                     }
@@ -664,11 +664,11 @@ namespace dawn_native { namespace vulkan {
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceBufferHandle(), 0, true,
+                            commands, &asInfo, container->GetInstanceMemory().buffer, 0, true,
                             container->GetAccelerationStructure(),
                             container->GetAccelerationStructure(),
-                            container->GetScratchMemory().build.buffer,
-                            container->GetScratchMemory().build.offset);
+                            container->GetScratchMemory().update.buffer,
+                            0);
 
                         // probably not needed
                         device->fn.CmdPipelineBarrier(

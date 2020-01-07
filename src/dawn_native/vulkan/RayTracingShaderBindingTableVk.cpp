@@ -15,7 +15,7 @@
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
 #include "dawn_native/vulkan/ShaderModuleVk.h"
-#include "dawn_native/vulkan/StagingBufferVk.h"
+#include "dawn_native/vulkan/FencedDeleter.h"
 
 #include "dawn_native/vulkan/AdapterVk.h"
 #include "dawn_native/vulkan/DeviceVk.h"
@@ -132,6 +132,12 @@ namespace dawn_native { namespace vulkan {
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
+        Device* device = ToBackend(GetDevice());
+        if (mGroupBuffer != VK_NULL_HANDLE) {
+            device->DeallocateMemory(&mGroupBufferResource);
+            device->GetFencedDeleter()->DeleteWhenUnused(mGroupBuffer);
+            mGroupBuffer = VK_NULL_HANDLE;
+        }
     }
 
     std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetGroups() {

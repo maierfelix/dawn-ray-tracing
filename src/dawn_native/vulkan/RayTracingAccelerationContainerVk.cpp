@@ -14,9 +14,9 @@
 
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
-#include "dawn_native/vulkan/StagingBufferVk.h"
 
 #include "dawn_native/vulkan/DeviceVk.h"
+#include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/UtilsVulkan.h"
 #include "dawn_native/vulkan/VulkanError.h"
 
@@ -260,7 +260,7 @@ namespace dawn_native { namespace vulkan {
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
-                RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
+                const RayTracingAccelerationGeometryDescriptor& geomDsc = descriptor->geometries[ii];
 
                 Buffer* vertexBuffer = ToBackend(geomDsc.vertexBuffer);
                 Buffer* indexBuffer =
@@ -315,7 +315,7 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             // create data for instance buffer
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
-                RayTracingAccelerationInstanceDescriptor instance = descriptor->instances[ii];
+                const RayTracingAccelerationInstanceDescriptor& instance = descriptor->instances[ii];
                 RayTracingAccelerationContainer* geometryContainer =
                     ToBackend(instance.geometryContainer);
                 VkAccelerationInstance instanceData{};
@@ -339,35 +339,17 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
 
-            // TODO: stage this buffer
-            VkBufferCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            createInfo.pNext = nullptr;
-            createInfo.flags = 0;
-            createInfo.size = bufferSize;
-            createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;
-            createInfo.pQueueFamilyIndices = 0;
-
-            DAWN_TRY(CheckVkSuccess(device->fn.CreateBuffer(device->GetVkDevice(), &createInfo,
-                                                            nullptr, &mInstanceBuffer),
-                                    "vkCreateBuffer"));
-
-            VkMemoryRequirements requirements;
-            device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mInstanceBuffer,
-                                                   &requirements);
-
-            DAWN_TRY_ASSIGN(mInstanceResource, device->AllocateMemory(requirements, true));
-
-            DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
-                                        device->GetVkDevice(), mInstanceBuffer,
-                                        ToBackend(mInstanceResource.GetResourceHeap())->GetMemory(),
-                                        mInstanceResource.GetOffset()),
-                                    "vkBindBufferMemory"));
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                           bufferSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mInstanceMemory.allocation = AcquireRef(buffer);
+            mInstanceMemory.buffer = buffer->GetHandle();
+            mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
+            mInstanceMemory.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
 
             // copy instance data into instance buffer
-            memcpy(mInstanceResource.GetMappedPointer(), mInstances.data(), bufferSize);
+            buffer->SetSubData(0, bufferSize, mInstances.data());
         }
 
         // reserve scratch memory
@@ -388,15 +370,35 @@ namespace dawn_native { namespace vulkan {
 
         return {};
     }
-
+    
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
         Device* device = ToBackend(GetDevice());
         if (mAccelerationStructure != VK_NULL_HANDLE) {
-            device->fn.DestroyAccelerationStructureNV(device->GetVkDevice(), mAccelerationStructure,
-                                                      nullptr);
+            // delete scratch memory
+            if (mScratchMemory.build.buffer != VK_NULL_HANDLE) {
+                Buffer* buffer = mScratchMemory.build.allocation.Get();
+                buffer->Release();
+                mScratchMemory.build.buffer = VK_NULL_HANDLE;
+            }
+            if (mScratchMemory.result.buffer != VK_NULL_HANDLE) {
+                Buffer* buffer = mScratchMemory.result.allocation.Get();
+                buffer->Release();
+                mScratchMemory.result.buffer = VK_NULL_HANDLE;
+            }
+            if (mScratchMemory.update.buffer != VK_NULL_HANDLE) {
+                Buffer* buffer = mScratchMemory.update.allocation.Get();
+                buffer->Release();
+                mScratchMemory.update.buffer = VK_NULL_HANDLE;
+            }
+            if (mInstanceMemory.buffer != VK_NULL_HANDLE) {
+                Buffer* buffer = mInstanceMemory.allocation.Get();
+                buffer->Release();
+                mInstanceMemory.buffer = VK_NULL_HANDLE;
+            }
+            // delete acceleration structure
+            device->GetFencedDeleter()->DeleteWhenUnused(mAccelerationStructure);
             mAccelerationStructure = VK_NULL_HANDLE;
         }
-        mScratchMemory = {};
     }
 
     MaybeError RayTracingAccelerationContainer::ReserveScratchMemory(
@@ -404,11 +406,11 @@ namespace dawn_native { namespace vulkan {
         Device* device = ToBackend(GetDevice());
 
         // create scratch memory for this container
-        uint32_t resultSize =
+        uint64_t resultSize =
             GetMemoryRequirementSize(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-        uint32_t buildSize = GetMemoryRequirementSize(
+        uint64_t buildSize = GetMemoryRequirementSize(
             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
-        uint32_t updateSize = GetMemoryRequirementSize(
+        uint64_t updateSize = GetMemoryRequirementSize(
             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
 
         VkMemoryRequirements2 resultRequirements =
@@ -423,12 +425,21 @@ namespace dawn_native { namespace vulkan {
             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
         updateRequirements.memoryRequirements.size = updateSize;
 
+        VkBufferCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.usage = VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = 0;
+
         // allocate scratch result memory
         {
             BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
                                            resultSize};
             Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-            mScratchMemory.result.allocation = buffer;
+            mScratchMemory.result.allocation = AcquireRef(buffer);
             mScratchMemory.result.buffer = buffer->GetHandle();
             mScratchMemory.result.offset = buffer->GetMemoryResource().GetOffset();
             mScratchMemory.result.memory =
@@ -439,7 +450,7 @@ namespace dawn_native { namespace vulkan {
         {
             BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst, buildSize};
             Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-            mScratchMemory.build.allocation = buffer;
+            mScratchMemory.build.allocation = AcquireRef(buffer);
             mScratchMemory.build.buffer = buffer->GetHandle();
             mScratchMemory.build.offset = buffer->GetMemoryResource().GetOffset();
             mScratchMemory.build.memory =
@@ -451,7 +462,7 @@ namespace dawn_native { namespace vulkan {
             BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
                                            updateSize};
             Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-            mScratchMemory.update.allocation = buffer;
+            mScratchMemory.update.allocation = AcquireRef(buffer);
             mScratchMemory.update.buffer = buffer->GetHandle();
             mScratchMemory.update.offset = buffer->GetMemoryResource().GetOffset();
             mScratchMemory.update.memory =
@@ -498,7 +509,7 @@ namespace dawn_native { namespace vulkan {
         return memoryRequirements2;
     }
 
-    uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
+    uint64_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
         VkAccelerationStructureMemoryRequirementsTypeNV type) const {
         return GetMemoryRequirements(type).memoryRequirements.size;
     }
@@ -538,12 +549,8 @@ namespace dawn_native { namespace vulkan {
         return {};
     }
 
-    VkBuffer RayTracingAccelerationContainer::GetInstanceBufferHandle() const {
-        return mInstanceBuffer;
-    }
-
-    uint32_t RayTracingAccelerationContainer::GetInstanceBufferOffset() const {
-        return mInstanceResource.GetOffset();
+    MemoryEntry& RayTracingAccelerationContainer::GetInstanceMemory() {
+        return mInstanceMemory;
     }
 
     MaybeError RayTracingAccelerationContainer::FetchHandle(uint64_t* handle) {
@@ -581,7 +588,7 @@ namespace dawn_native { namespace vulkan {
         return mInstances;
     }
 
-    ScratchMemoryPool RayTracingAccelerationContainer::GetScratchMemory() const {
+    ScratchMemoryPool& RayTracingAccelerationContainer::GetScratchMemory() {
         return mScratchMemory;
     }
 

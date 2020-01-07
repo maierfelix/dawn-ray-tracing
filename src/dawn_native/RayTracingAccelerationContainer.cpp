@@ -52,7 +52,7 @@ namespace dawn_native {
                     "No data provided for Top-Level Acceleration Container");
             }
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
-                RayTracingAccelerationInstanceDescriptor instance = descriptor->instances[ii];
+                const RayTracingAccelerationInstanceDescriptor& instance = descriptor->instances[ii];
                 if (instance.geometryContainer == nullptr) {
                     return DAWN_VALIDATION_ERROR(
                         "Acceleration Container Instance requires a Geometry Container");

@@ -15,8 +15,6 @@
 #ifndef DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 #define DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 
-#include "dawn_native/DynamicUploader.h"
-
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/vulkan/BufferVk.h"
@@ -36,17 +34,10 @@ namespace dawn_native { namespace vulkan {
         uint64_t accelerationStructureHandle;
     };
 
-    struct ScratchMemory {
-        uint32_t offset = 0;
-        VkBuffer buffer = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
-        Buffer* allocation;
-    };
-
     struct ScratchMemoryPool {
-        ScratchMemory result;
-        ScratchMemory update;
-        ScratchMemory build;
+        MemoryEntry result;
+        MemoryEntry update;
+        MemoryEntry build;
     };
 
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
@@ -60,16 +51,15 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureNV GetAccelerationStructure() const;
         VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
-        uint32_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
+        uint64_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
-        VkBuffer GetInstanceBufferHandle() const;
-        uint32_t GetInstanceBufferOffset() const;
+        MemoryEntry& GetInstanceMemory();
         
         std::vector<VkGeometryNV>& GetGeometries();
         std::vector<VkAccelerationInstance>& GetInstances();
 
-        ScratchMemoryPool GetScratchMemory() const;
+        ScratchMemoryPool& GetScratchMemory();
 
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
@@ -82,12 +72,11 @@ namespace dawn_native { namespace vulkan {
         VkBuildAccelerationStructureFlagBitsNV mFlags;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
-        // instance buffer for top-level containers
-        VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
-        ResourceMemoryAllocation mInstanceResource;
-
         // scratch memory
         ScratchMemoryPool mScratchMemory;
+
+        // instance buffer
+        MemoryEntry mInstanceMemory;
 
         MaybeError RayTracingAccelerationContainer::CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);

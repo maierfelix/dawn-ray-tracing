@@ -18,7 +18,6 @@
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/ResourceMemoryAllocation.h"
-#include "dawn_native/DynamicUploader.h"
 
 #include <vector>
 

@@ -81,6 +81,13 @@ namespace dawn_native { namespace vulkan {
         SerialQueue<Request> mInflightRequests;
     };
 
+    struct MemoryEntry {
+        uint64_t offset = 0;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        Ref<Buffer> allocation;
+    };
+
 }}  // namespace dawn_native::vulkan
 
 #endif  // DAWNNATIVE_VULKAN_BUFFERVK_H_
