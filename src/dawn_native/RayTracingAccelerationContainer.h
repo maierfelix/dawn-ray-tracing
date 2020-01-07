@@ -39,7 +39,9 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         bool IsBuilt() const;
+        bool IsUpdated() const;
         void RayTracingAccelerationContainerBase::SetBuildState(bool state);
+        void RayTracingAccelerationContainerBase::SetUpdateState(bool state);
 
       private:
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
@@ -52,6 +54,7 @@ namespace dawn_native {
         std::vector<Ref<RayTracingAccelerationContainerBase>> mGeometryContainers;
 
         bool mIsBuilt = false;
+        bool mIsUpdated = false;
     };
 
 }  // namespace dawn_native

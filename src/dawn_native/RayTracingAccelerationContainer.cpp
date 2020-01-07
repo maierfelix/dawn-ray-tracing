@@ -137,8 +137,16 @@ namespace dawn_native {
         return mIsBuilt;
     }
 
+    bool RayTracingAccelerationContainerBase::IsUpdated() const {
+        return mIsUpdated;
+    }
+
     void RayTracingAccelerationContainerBase::SetBuildState(bool state) {
         mIsBuilt = state;
+    }
+
+    void RayTracingAccelerationContainerBase::SetUpdateState(bool state) {
+        mIsUpdated = state;
     }
 
 }  // namespace dawn_native

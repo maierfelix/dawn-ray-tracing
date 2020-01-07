@@ -619,6 +619,12 @@ namespace dawn_native { namespace vulkan {
                     barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
                                             VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 
+                    // we can destroy the scratch build memory after the first update
+                    if (container->IsBuilt() && !container->IsUpdated()) {
+                        container->DestroyScratchBuildMemory();
+                        container->SetUpdateState(true);
+                    }
+
                     // bottom-level AS
                     if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
                         std::vector<VkGeometryNV>& geometries = container->GetGeometries();

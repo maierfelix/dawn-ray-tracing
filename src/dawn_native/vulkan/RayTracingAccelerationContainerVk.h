@@ -54,12 +54,13 @@ namespace dawn_native { namespace vulkan {
         uint64_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
-        MemoryEntry& GetInstanceMemory();
-        
         std::vector<VkGeometryNV>& GetGeometries();
         std::vector<VkAccelerationInstance>& GetInstances();
 
+        MemoryEntry& GetInstanceMemory();
+        
         ScratchMemoryPool& GetScratchMemory();
+        void DestroyScratchBuildMemory();
 
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;

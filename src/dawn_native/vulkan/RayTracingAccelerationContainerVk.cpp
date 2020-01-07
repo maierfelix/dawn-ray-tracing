@@ -374,30 +374,34 @@ namespace dawn_native { namespace vulkan {
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
         Device* device = ToBackend(GetDevice());
         if (mAccelerationStructure != VK_NULL_HANDLE) {
-            // delete scratch memory
-            if (mScratchMemory.build.buffer != VK_NULL_HANDLE) {
-                Buffer* buffer = mScratchMemory.build.allocation.Get();
-                buffer->Release();
-                mScratchMemory.build.buffer = VK_NULL_HANDLE;
-            }
+            DestroyScratchBuildMemory();
             if (mScratchMemory.result.buffer != VK_NULL_HANDLE) {
                 Buffer* buffer = mScratchMemory.result.allocation.Get();
-                buffer->Release();
+                buffer->Destroy();
                 mScratchMemory.result.buffer = VK_NULL_HANDLE;
             }
             if (mScratchMemory.update.buffer != VK_NULL_HANDLE) {
                 Buffer* buffer = mScratchMemory.update.allocation.Get();
-                buffer->Release();
+                buffer->Destroy();
                 mScratchMemory.update.buffer = VK_NULL_HANDLE;
             }
             if (mInstanceMemory.buffer != VK_NULL_HANDLE) {
                 Buffer* buffer = mInstanceMemory.allocation.Get();
-                buffer->Release();
+                buffer->Destroy();
                 mInstanceMemory.buffer = VK_NULL_HANDLE;
             }
             // delete acceleration structure
             device->GetFencedDeleter()->DeleteWhenUnused(mAccelerationStructure);
             mAccelerationStructure = VK_NULL_HANDLE;
+        }
+    }
+
+    void RayTracingAccelerationContainer::DestroyScratchBuildMemory() {
+        // delete scratch build memory
+        if (mScratchMemory.build.buffer != VK_NULL_HANDLE) {
+            Buffer* buffer = mScratchMemory.build.allocation.Get();
+            buffer->Destroy();
+            mScratchMemory.build.buffer = VK_NULL_HANDLE;
         }
     }
 
