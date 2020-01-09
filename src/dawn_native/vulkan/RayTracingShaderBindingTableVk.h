@@ -44,6 +44,8 @@ namespace dawn_native { namespace vulkan {
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
+        void DestroyImpl() override;
+
         std::vector<VkRayTracingShaderGroupCreateInfoNV> mGroups;
         std::vector<VkPipelineShaderStageCreateInfo> mStages;
 

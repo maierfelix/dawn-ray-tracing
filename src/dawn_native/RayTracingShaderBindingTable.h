@@ -34,6 +34,10 @@ namespace dawn_native {
                                          const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTableBase();
 
+        void Destroy();
+        bool IsDestroyed() const;
+        void SetDestroyState(bool state);
+
         static RayTracingShaderBindingTableBase* MakeError(DeviceBase* device);
 
         uint32_t GetOffset(wgpu::ShaderStage stageKind);
@@ -41,9 +45,14 @@ namespace dawn_native {
       protected:
         RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
+        void DestroyInternal();
+
       private:
         virtual uint32_t GetOffsetImpl(wgpu::ShaderStage stageKind);
 
+        bool mIsDestroyed = false;
+
+        virtual void DestroyImpl() = 0;
     };
 
 }  // namespace dawn_native

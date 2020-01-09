@@ -21,6 +21,7 @@
 #include "dawn_native/ErrorScopeTracker.h"
 #include "dawn_native/Fence.h"
 #include "dawn_native/FenceSignalTracker.h"
+#include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/Texture.h"
 #include "dawn_platform/DawnPlatform.h"
 #include "dawn_platform/tracing/TraceEvent.h"
@@ -86,6 +87,9 @@ namespace dawn_native {
                 for (const TextureBase* texture : passUsages.textures) {
                     DAWN_TRY(texture->ValidateCanUseInSubmitNow());
                 }
+                for (const RayTracingAccelerationContainerBase* container : passUsages.accelerationContainers) {
+                    DAWN_TRY(container->ValidateCanUseInSubmitNow());
+                }
             }
 
             for (const BufferBase* buffer : usages.topLevelBuffers) {
@@ -93,6 +97,10 @@ namespace dawn_native {
             }
             for (const TextureBase* texture : usages.topLevelTextures) {
                 DAWN_TRY(texture->ValidateCanUseInSubmitNow());
+            }
+            for (const RayTracingAccelerationContainerBase* container :
+                 usages.topLevelAccelerationContainers) {
+                DAWN_TRY(container->ValidateCanUseInSubmitNow());
             }
         }
 

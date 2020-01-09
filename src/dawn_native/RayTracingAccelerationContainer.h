@@ -48,6 +48,8 @@ namespace dawn_native {
         void RayTracingAccelerationContainerBase::SetUpdateState(bool state);
         void RayTracingAccelerationContainerBase::SetDestroyState(bool state);
 
+        MaybeError ValidateCanUseInSubmitNow() const;
+
         wgpu::RayTracingAccelerationContainerFlag GetFlags() const;
         wgpu::RayTracingAccelerationContainerLevel GetLevel() const;
 

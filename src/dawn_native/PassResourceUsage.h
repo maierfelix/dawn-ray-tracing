@@ -24,6 +24,7 @@ namespace dawn_native {
 
     class BufferBase;
     class TextureBase;
+    class RayTracingAccelerationContainerBase;
 
     // Which resources are used by pass and how they are used. The command buffer validation
     // pre-computes this information so that backends with explicit barriers don't have to
@@ -34,6 +35,8 @@ namespace dawn_native {
 
         std::vector<TextureBase*> textures;
         std::vector<wgpu::TextureUsage> textureUsages;
+
+        std::vector<RayTracingAccelerationContainerBase*> accelerationContainers;
     };
 
     using PerPassUsages = std::vector<PassResourceUsage>;
@@ -42,6 +45,7 @@ namespace dawn_native {
         PerPassUsages perPass;
         std::set<BufferBase*> topLevelBuffers;
         std::set<TextureBase*> topLevelTextures;
+        std::set<RayTracingAccelerationContainerBase*> topLevelAccelerationContainers;
     };
 
 }  // namespace dawn_native

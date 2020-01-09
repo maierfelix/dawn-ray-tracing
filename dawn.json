@@ -42,6 +42,9 @@
                 "args": [
                     {"name": "shader stage", "type": "shader stage"}
                 ]
+            },
+            {
+                "name": "destroy"
             }
         ]
     },

@@ -24,16 +24,19 @@ namespace dawn_native {
 
         class ErrorRayTracingShaderBindingTable : public RayTracingShaderBindingTableBase {
           public:
-            ErrorRayTracingShaderBindingTable(DeviceBase* device) : RayTracingShaderBindingTableBase(device, ObjectBase::kError) {
+            ErrorRayTracingShaderBindingTable(DeviceBase* device)
+                : RayTracingShaderBindingTableBase(device, ObjectBase::kError) {
             }
-            
+
           private:
-          
             uint32_t GetOffsetImpl(wgpu::ShaderStage shaderStage) override {
                 UNREACHABLE();
                 return 0;
             }
 
+            void DestroyImpl() override {
+                UNREACHABLE();
+            }
         };
 
     }  // anonymous namespace
@@ -67,6 +70,25 @@ namespace dawn_native {
 
     uint32_t RayTracingShaderBindingTableBase::GetOffsetImpl(wgpu::ShaderStage shaderStage) {
         return GetOffsetImpl(shaderStage);
+    }
+
+    void RayTracingShaderBindingTableBase::Destroy() {
+        DestroyInternal();
+    }
+
+    void RayTracingShaderBindingTableBase::DestroyInternal() {
+        if (!IsDestroyed()) {
+            DestroyImpl();
+        }
+        SetDestroyState(true);
+    }
+
+    bool RayTracingShaderBindingTableBase::IsDestroyed() const {
+        return mIsDestroyed;
+    }
+
+    void RayTracingShaderBindingTableBase::SetDestroyState(bool state) {
+        mIsDestroyed = state;
     }
 
     // static

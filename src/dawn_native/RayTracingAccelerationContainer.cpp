@@ -186,6 +186,14 @@ namespace dawn_native {
         mIsDestroyed = state;
     }
 
+    MaybeError RayTracingAccelerationContainerBase::ValidateCanUseInSubmitNow() const {
+        ASSERT(!IsError());
+        if (IsDestroyed()) {
+            return DAWN_VALIDATION_ERROR("Destroyed acceleration container used in a submit");
+        }
+        return {};
+    }
+
     wgpu::RayTracingAccelerationContainerFlag RayTracingAccelerationContainerBase::GetFlags()
         const {
         return mFlags;

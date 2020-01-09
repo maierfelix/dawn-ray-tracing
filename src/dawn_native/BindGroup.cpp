@@ -33,7 +33,7 @@ namespace dawn_native {
                                          const BindGroupBinding& binding,
                                          wgpu::BufferUsage requiredUsage) {
             if (binding.buffer == nullptr || binding.sampler != nullptr ||
-                binding.textureView != nullptr) {
+                binding.textureView != nullptr || binding.accelerationContainer != nullptr) {
                 return DAWN_VALIDATION_ERROR("expected buffer binding");
             }
             DAWN_TRY(device->ValidateObject(binding.buffer));
@@ -69,7 +69,7 @@ namespace dawn_native {
                                           wgpu::TextureComponentType requiredComponentType,
                                           wgpu::TextureViewDimension requiredDimension) {
             if (binding.textureView == nullptr || binding.sampler != nullptr ||
-                binding.buffer != nullptr) {
+                binding.buffer != nullptr || binding.accelerationContainer != nullptr) {
                 return DAWN_VALIDATION_ERROR("expected texture binding");
             }
             DAWN_TRY(device->ValidateObject(binding.textureView));
@@ -98,7 +98,7 @@ namespace dawn_native {
         MaybeError ValidateSamplerBinding(const DeviceBase* device,
                                           const BindGroupBinding& binding) {
             if (binding.sampler == nullptr || binding.textureView != nullptr ||
-                binding.buffer != nullptr) {
+                binding.buffer != nullptr || binding.accelerationContainer != nullptr) {
                 return DAWN_VALIDATION_ERROR("expected sampler binding");
             }
             DAWN_TRY(device->ValidateObject(binding.sampler));
@@ -108,7 +108,8 @@ namespace dawn_native {
 
         MaybeError ValidateAccelerationContainerBinding(const DeviceBase* device,
                                          const BindGroupBinding& binding) {
-            if (binding.accelerationContainer == nullptr) {
+            if (binding.accelerationContainer == nullptr || binding.sampler != nullptr ||
+                binding.textureView != nullptr || binding.buffer != nullptr) {
                 return DAWN_VALIDATION_ERROR("expected acceleration container binding");
             }
             DAWN_TRY(device->ValidateObject(binding.accelerationContainer));

@@ -75,6 +75,7 @@ namespace dawn_native {
         EncodingContext mEncodingContext;
         std::set<BufferBase*> mTopLevelBuffers;
         std::set<TextureBase*> mTopLevelTextures;
+        std::set<RayTracingAccelerationContainerBase*> mTopLevelAccelerationContainers;
     };
 
 }  // namespace dawn_native

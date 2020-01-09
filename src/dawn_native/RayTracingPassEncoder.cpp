@@ -68,6 +68,10 @@ namespace dawn_native {
         mEncodingContext->TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
             DAWN_TRY(GetDevice()->ValidateObject(pipeline));
 
+            if (pipeline->GetShaderBindingTable()->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR("Shader binding table is destroyed");
+            }
+
             SetRayTracingPipelineCmd* setPipeline =
                 allocator->Allocate<SetRayTracingPipelineCmd>(Command::SetRayTracingPipeline);
             setPipeline->pipeline = pipeline;

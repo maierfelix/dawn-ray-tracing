@@ -547,7 +547,8 @@ namespace dawn_native {
     CommandBufferResourceUsage CommandEncoder::AcquireResourceUsages() {
         return CommandBufferResourceUsage{mEncodingContext.AcquirePassUsages(),
                                           std::move(mTopLevelBuffers),
-                                          std::move(mTopLevelTextures)};
+                                          std::move(mTopLevelTextures),
+                                          std::move(mTopLevelAccelerationContainers)};
     }
 
     CommandIterator CommandEncoder::AcquireCommands() {
@@ -688,6 +689,10 @@ namespace dawn_native {
                     Command::BuildRayTracingAccelerationContainer);
             build->container = container;
 
+            if (GetDevice()->IsValidationEnabled()) {
+                mTopLevelAccelerationContainers.insert(container);
+            }
+
             return {};
         });
     }
@@ -705,6 +710,11 @@ namespace dawn_native {
             build->srcContainer = srcContainer;
             build->dstContainer = dstContainer;
 
+            if (GetDevice()->IsValidationEnabled()) {
+                mTopLevelAccelerationContainers.insert(srcContainer);
+                mTopLevelAccelerationContainers.insert(dstContainer);
+            }
+
             return {};
         });
     }
@@ -718,6 +728,10 @@ namespace dawn_native {
                 allocator->Allocate<UpdateRayTracingAccelerationContainerCmd>(
                     Command::UpdateRayTracingAccelerationContainer);
             update->container = container;
+
+            if (GetDevice()->IsValidationEnabled()) {
+                mTopLevelAccelerationContainers.insert(container);
+            }
 
             return {};
         });

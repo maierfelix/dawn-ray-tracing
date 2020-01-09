@@ -38,6 +38,15 @@ namespace dawn_native { namespace vulkan {
         return geometry.release();
     }
 
+    void RayTracingShaderBindingTable::DestroyImpl() {
+        Device* device = ToBackend(GetDevice());
+        if (mGroupBuffer != VK_NULL_HANDLE) {
+            device->DeallocateMemory(&mGroupBufferResource);
+            device->GetFencedDeleter()->DeleteWhenUnused(mGroupBuffer);
+            mGroupBuffer = VK_NULL_HANDLE;
+        }
+    }
+
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
@@ -132,12 +141,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
-        Device* device = ToBackend(GetDevice());
-        if (mGroupBuffer != VK_NULL_HANDLE) {
-            device->DeallocateMemory(&mGroupBufferResource);
-            device->GetFencedDeleter()->DeleteWhenUnused(mGroupBuffer);
-            mGroupBuffer = VK_NULL_HANDLE;
-        }
+        DestroyInternal();
     }
 
     std::vector<VkRayTracingShaderGroupCreateInfoNV>& RayTracingShaderBindingTable::GetGroups() {
