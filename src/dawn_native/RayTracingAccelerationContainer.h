@@ -31,6 +31,7 @@ namespace dawn_native {
         const RayTracingAccelerationContainerDescriptor* descriptor);
 
     class RayTracingAccelerationContainerBase : public ObjectBase {
+
       public:
         RayTracingAccelerationContainerBase(
             DeviceBase* device,
@@ -38,13 +39,24 @@ namespace dawn_native {
 
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
+        void Destroy();
+
         bool IsBuilt() const;
         bool IsUpdated() const;
+        bool IsDestroyed() const;
         void RayTracingAccelerationContainerBase::SetBuildState(bool state);
         void RayTracingAccelerationContainerBase::SetUpdateState(bool state);
+        void RayTracingAccelerationContainerBase::SetDestroyState(bool state);
+
+        wgpu::RayTracingAccelerationContainerFlag GetFlags() const;
+        wgpu::RayTracingAccelerationContainerLevel GetLevel() const;
+
+      protected:
+        RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+
+        void DestroyInternal();
 
       private:
-        RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
         // bottom-level references
         std::vector<Ref<BufferBase>> mVertexBuffers;
@@ -55,6 +67,12 @@ namespace dawn_native {
 
         bool mIsBuilt = false;
         bool mIsUpdated = false;
+        bool mIsDestroyed = false;
+
+        wgpu::RayTracingAccelerationContainerFlag mFlags;
+        wgpu::RayTracingAccelerationContainerLevel mLevel;
+
+        virtual void DestroyImpl() = 0;
     };
 
 }  // namespace dawn_native

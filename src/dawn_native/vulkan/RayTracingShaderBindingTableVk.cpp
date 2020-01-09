@@ -94,7 +94,7 @@ namespace dawn_native { namespace vulkan {
             pipelineShaderStageInfo.pNext = nullptr;
             pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             pipelineShaderStageInfo.stage =
-                static_cast<VkShaderStageFlagBits>(VulkanShaderStageFlags(shader.stage));
+                static_cast<VkShaderStageFlagBits>(ToVulkanShaderStageFlags(shader.stage));
             pipelineShaderStageInfo.module = ToBackend(shader.module)->GetHandle();
             pipelineShaderStageInfo.pName = "main";
 

@@ -26,7 +26,12 @@
         "category": "object"
     },
     "ray tracing acceleration container": {
-        "category": "object"
+        "category": "object",
+        "methods": [
+            {
+                "name": "destroy"
+            }
+        ]
     },
     "ray tracing shader binding table": {
         "category": "object",

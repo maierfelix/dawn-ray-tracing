@@ -247,20 +247,50 @@ namespace dawn_native {
 
         MaybeError ValidateRayTracingAccelerationContainerCanBuild(
             const RayTracingAccelerationContainerBase* container) {
-            // TODO
+            if (container->IsBuilt()) {
+                return DAWN_VALIDATION_ERROR("Acceleration Container is already built");
+            }
+            if (container->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR("Cannot build a destroyed Acceleration Container");
+            }
             return {};
         }
 
         MaybeError ValidateRayTracingAccelerationContainerCanUpdate(
             const RayTracingAccelerationContainerBase* container) {
-            // TODO
+            if (!container->IsBuilt()) {
+                return DAWN_VALIDATION_ERROR("Acceleration Container must be built before updating");
+            }
+            if ((container->GetFlags() & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) ==
+                0) {
+                return DAWN_VALIDATION_ERROR("Acceleration Container does not support updating");
+            }
+            if (container->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR("Cannot update a destroyed Acceleration Container");
+            }
             return {};
         }
 
         MaybeError ValidateRayTracingAccelerationContainerCanCopy(
             const RayTracingAccelerationContainerBase* srcContainer,
             const RayTracingAccelerationContainerBase* dstContainer) {
-            // TODO
+            if (!srcContainer->IsBuilt()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Source Acceleration Container must be built before copying");
+            }
+            if (srcContainer->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Source Acceleration Container is destroyed and cannot be used for copying");
+            }
+            if (!dstContainer->IsBuilt()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Destination Acceleration Container must be built before copying");
+            }
+            if (dstContainer->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Destination Acceleration Container is destroyed and cannot be used for "
+                    "copying");
+            }
             return {};
         }
 

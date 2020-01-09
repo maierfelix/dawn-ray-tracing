@@ -503,11 +503,6 @@ namespace dawn_native { namespace vulkan {
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    // check if container is already built
-                    if (container->IsBuilt()) {
-                        return DAWN_VALIDATION_ERROR("Acceleration Container is already built");
-                    }
-
                     VkMemoryBarrier barrier;
                     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
                     barrier.pNext = nullptr;
@@ -517,13 +512,13 @@ namespace dawn_native { namespace vulkan {
                                             VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 
                     // bottom-level AS
-                    if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
                         std::vector<VkGeometryNV>& geometries = container->GetGeometries();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
-                        asInfo.flags = container->GetFlags();
+                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
                         asInfo.instanceCount = 0;
                         asInfo.geometryCount = geometries.size();
@@ -539,13 +534,13 @@ namespace dawn_native { namespace vulkan {
                         hasBottomLevelContainerBuild = true;
                     }
                     // top-level AS
-                    else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+                    else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
                         std::vector<VkAccelerationInstance>& instances = container->GetInstances();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
-                        asInfo.flags = container->GetFlags();
+                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
                         asInfo.instanceCount = instances.size();
                         asInfo.geometryCount = 0;
@@ -598,19 +593,6 @@ namespace dawn_native { namespace vulkan {
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    // check if container can be updated
-                    if ((container->GetFlags() &
-                         VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV) == 0) {
-                        return DAWN_VALIDATION_ERROR(
-                            "Acceleration Container does not support Updates");
-                    }
-
-                    // only allow updates after the container was built
-                    if (!container->IsBuilt()) {
-                        return DAWN_VALIDATION_ERROR(
-                            "Acceleration Container must be built before updating");
-                    }
-
                     VkMemoryBarrier barrier;
                     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
                     barrier.pNext = nullptr;
@@ -626,13 +608,13 @@ namespace dawn_native { namespace vulkan {
                     }
 
                     // bottom-level AS
-                    if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV) {
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
                         std::vector<VkGeometryNV>& geometries = container->GetGeometries();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
-                        asInfo.flags = container->GetFlags();
+                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
                         asInfo.instanceCount = 0;
                         asInfo.geometryCount = geometries.size();
@@ -648,13 +630,13 @@ namespace dawn_native { namespace vulkan {
                         hasBottomLevelContainerUpdate = true;
                     }
                     // top-level AS
-                    else if (container->GetLevel() == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV) {
+                    else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
                         std::vector<VkAccelerationInstance>& instances = container->GetInstances();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
-                        asInfo.flags = container->GetFlags();
+                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
                         asInfo.instanceCount = instances.size();
                         asInfo.geometryCount = 0;

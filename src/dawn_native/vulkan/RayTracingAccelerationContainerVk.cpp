@@ -24,90 +24,6 @@ namespace dawn_native { namespace vulkan {
 
     namespace {
 
-        VkGeometryTypeNV VulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType) {
-            switch (geometryType) {
-                case wgpu::RayTracingAccelerationGeometryType::Triangles:
-                    return VK_GEOMETRY_TYPE_TRIANGLES_NV;
-                case wgpu::RayTracingAccelerationGeometryType::Aabbs:
-                    return VK_GEOMETRY_TYPE_AABBS_NV;
-                default:
-                    UNREACHABLE();
-            }
-        }
-
-        VkIndexType VulkanIndexFormat(wgpu::IndexFormat format) {
-            switch (format) {
-                case wgpu::IndexFormat::None:
-                    return VK_INDEX_TYPE_NONE_NV;
-                case wgpu::IndexFormat::Uint16:
-                    return VK_INDEX_TYPE_UINT16;
-                case wgpu::IndexFormat::Uint32:
-                    return VK_INDEX_TYPE_UINT32;
-                default:
-                    UNREACHABLE();
-            }
-        }
-
-        VkFormat VulkanVertexFormat(wgpu::VertexFormat format) {
-            switch (format) {
-                case wgpu::VertexFormat::Float2:
-                    return VK_FORMAT_R32G32_SFLOAT;
-                case wgpu::VertexFormat::Float3:
-                    return VK_FORMAT_R32G32B32_SFLOAT;
-                default:
-                    UNREACHABLE();
-            }
-        }
-
-        VkAccelerationStructureTypeNV VulkanAccelerationContainerLevel(
-            wgpu::RayTracingAccelerationContainerLevel level) {
-            switch (level) {
-                case wgpu::RayTracingAccelerationContainerLevel::Bottom:
-                    return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-                case wgpu::RayTracingAccelerationContainerLevel::Top:
-                    return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-                default:
-                    UNREACHABLE();
-            }
-        }
-
-        VkBuildAccelerationStructureFlagBitsNV VulkanBuildAccelerationStructureFlags(
-            wgpu::RayTracingAccelerationContainerFlag buildFlags) {
-            uint32_t flags = 0;
-            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
-                flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
-            }
-            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
-                flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
-            }
-            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
-                flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
-            }
-            if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
-                flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
-            }
-            return static_cast<VkBuildAccelerationStructureFlagBitsNV>(flags);
-        }
-
-        VkGeometryInstanceFlagBitsNV VulkanAccelerationContainerInstanceFlags(
-            wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
-            uint32_t flags = 0;
-            if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
-                flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
-            }
-            if (instanceFlags &
-                wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise) {
-                flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
-            }
-            if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque) {
-                flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
-            }
-            if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
-                flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
-            }
-            return static_cast<VkGeometryInstanceFlagBitsNV>(flags);
-        }
-
         // generates a 4x3 transform matrix in row-major order
         void Fill4x3TransformMatrix(float* out,
                                     const Transform3D* translation,
@@ -244,13 +160,34 @@ namespace dawn_native { namespace vulkan {
         return geometry.release();
     }
 
+    void RayTracingAccelerationContainer::DestroyImpl() {
+        Device* device = ToBackend(GetDevice());
+        DestroyScratchBuildMemory();
+        if (mScratchMemory.result.buffer != VK_NULL_HANDLE) {
+            Buffer* buffer = mScratchMemory.result.allocation.Get();
+            buffer->Destroy();
+            mScratchMemory.result.buffer = VK_NULL_HANDLE;
+        }
+        if (mScratchMemory.update.buffer != VK_NULL_HANDLE) {
+            Buffer* buffer = mScratchMemory.update.allocation.Get();
+            buffer->Destroy();
+            mScratchMemory.update.buffer = VK_NULL_HANDLE;
+        }
+        if (mInstanceMemory.buffer != VK_NULL_HANDLE) {
+            Buffer* buffer = mInstanceMemory.allocation.Get();
+            buffer->Destroy();
+            mInstanceMemory.buffer = VK_NULL_HANDLE;
+        }
+        if (mAccelerationStructure != VK_NULL_HANDLE) {
+            // delete acceleration structure
+            device->GetFencedDeleter()->DeleteWhenUnused(mAccelerationStructure);
+            mAccelerationStructure = VK_NULL_HANDLE;
+        }
+    }
+
     MaybeError RayTracingAccelerationContainer::Initialize(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
-
-        // save container level
-        mLevel = VulkanAccelerationContainerLevel(descriptor->level);
-        mFlags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
 
         // validate ray tracing calls
         if (device->fn.CreateAccelerationStructureNV == nullptr) {
@@ -270,7 +207,7 @@ namespace dawn_native { namespace vulkan {
                 geometryInfo.pNext = nullptr;
                 geometryInfo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
                 geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
-                geometryInfo.geometryType = VulkanGeometryType(geomDsc.type);
+                geometryInfo.geometryType = ToVulkanGeometryType(geomDsc.type);
                 // triangle
                 geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
                 geometryInfo.geometry.triangles.pNext = nullptr;
@@ -279,14 +216,14 @@ namespace dawn_native { namespace vulkan {
                 geometryInfo.geometry.triangles.vertexCount = geomDsc.vertexCount;
                 geometryInfo.geometry.triangles.vertexStride = geomDsc.vertexStride;
                 geometryInfo.geometry.triangles.vertexFormat =
-                    VulkanVertexFormat(geomDsc.vertexFormat);
+                    ToVulkanVertexFormat(geomDsc.vertexFormat);
                 // index buffer is optional
                 if (indexBuffer != nullptr) {
                     geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
                     geometryInfo.geometry.triangles.indexOffset = geomDsc.indexOffset;
                     geometryInfo.geometry.triangles.indexCount = geomDsc.indexCount;
                     geometryInfo.geometry.triangles.indexType =
-                        VulkanIndexFormat(geomDsc.indexFormat);
+                        ToVulkanIndexFormat(geomDsc.indexFormat);
                 } else {
                     geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.indexOffset = 0;
@@ -326,7 +263,7 @@ namespace dawn_native { namespace vulkan {
                 instanceData.instanceId = instance.instanceId;
                 instanceData.mask = instance.mask;
                 instanceData.instanceOffset = instance.instanceOffset;
-                instanceData.flags = VulkanAccelerationContainerInstanceFlags(instance.flags);
+                instanceData.flags = ToVulkanAccelerationContainerInstanceFlags(instance.flags);
                 instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
                 if (geometryContainer->GetHandle() == 0) {
                     return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
@@ -372,28 +309,7 @@ namespace dawn_native { namespace vulkan {
     }
     
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
-        Device* device = ToBackend(GetDevice());
-        if (mAccelerationStructure != VK_NULL_HANDLE) {
-            DestroyScratchBuildMemory();
-            if (mScratchMemory.result.buffer != VK_NULL_HANDLE) {
-                Buffer* buffer = mScratchMemory.result.allocation.Get();
-                buffer->Destroy();
-                mScratchMemory.result.buffer = VK_NULL_HANDLE;
-            }
-            if (mScratchMemory.update.buffer != VK_NULL_HANDLE) {
-                Buffer* buffer = mScratchMemory.update.allocation.Get();
-                buffer->Destroy();
-                mScratchMemory.update.buffer = VK_NULL_HANDLE;
-            }
-            if (mInstanceMemory.buffer != VK_NULL_HANDLE) {
-                Buffer* buffer = mInstanceMemory.allocation.Get();
-                buffer->Destroy();
-                mInstanceMemory.buffer = VK_NULL_HANDLE;
-            }
-            // delete acceleration structure
-            device->GetFencedDeleter()->DeleteWhenUnused(mAccelerationStructure);
-            mAccelerationStructure = VK_NULL_HANDLE;
-        }
+        DestroyInternal();
     }
 
     void RayTracingAccelerationContainer::DestroyScratchBuildMemory() {
@@ -528,7 +444,8 @@ namespace dawn_native { namespace vulkan {
 
         accelerationStructureCI.info = {};
         accelerationStructureCI.info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-        accelerationStructureCI.info.flags = VulkanBuildAccelerationStructureFlags(descriptor->flags);
+        accelerationStructureCI.info.flags =
+            ToVulkanBuildAccelerationContainerFlags(descriptor->flags);
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             accelerationStructureCI.info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
             accelerationStructureCI.info.instanceCount = descriptor->instanceCount;
@@ -570,14 +487,6 @@ namespace dawn_native { namespace vulkan {
 
     uint64_t RayTracingAccelerationContainer::GetHandle() const {
         return mHandle;
-    }
-
-    VkAccelerationStructureTypeNV RayTracingAccelerationContainer::GetLevel() const {
-        return mLevel;
-    }
-
-    VkBuildAccelerationStructureFlagBitsNV RayTracingAccelerationContainer::GetFlags() const {
-        return mFlags;
     }
 
     VkAccelerationStructureNV RayTracingAccelerationContainer::GetAccelerationStructure() const {

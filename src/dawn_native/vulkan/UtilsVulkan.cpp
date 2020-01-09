@@ -47,7 +47,7 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkShaderStageFlags VulkanShaderStageFlags(wgpu::ShaderStage stages) {
+    VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages) {
         VkShaderStageFlags flags = 0;
 
         if (stages & wgpu::ShaderStage::Vertex) {
@@ -73,6 +73,90 @@ namespace dawn_native { namespace vulkan {
         }
 
         return flags;
+    }
+
+    VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType) {
+        switch (geometryType) {
+            case wgpu::RayTracingAccelerationGeometryType::Triangles:
+                return VK_GEOMETRY_TYPE_TRIANGLES_NV;
+            case wgpu::RayTracingAccelerationGeometryType::Aabbs:
+                return VK_GEOMETRY_TYPE_AABBS_NV;
+            default:
+                UNREACHABLE();
+        }
+    }
+
+    VkIndexType ToVulkanIndexFormat(wgpu::IndexFormat format) {
+        switch (format) {
+            case wgpu::IndexFormat::None:
+                return VK_INDEX_TYPE_NONE_NV;
+            case wgpu::IndexFormat::Uint16:
+                return VK_INDEX_TYPE_UINT16;
+            case wgpu::IndexFormat::Uint32:
+                return VK_INDEX_TYPE_UINT32;
+            default:
+                UNREACHABLE();
+        }
+    }
+
+    VkFormat ToVulkanVertexFormat(wgpu::VertexFormat format) {
+        switch (format) {
+            case wgpu::VertexFormat::Float2:
+                return VK_FORMAT_R32G32_SFLOAT;
+            case wgpu::VertexFormat::Float3:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            default:
+                UNREACHABLE();
+        }
+    }
+
+    VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
+        wgpu::RayTracingAccelerationContainerLevel level) {
+        switch (level) {
+            case wgpu::RayTracingAccelerationContainerLevel::Bottom:
+                return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+            case wgpu::RayTracingAccelerationContainerLevel::Top:
+                return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+            default:
+                UNREACHABLE();
+        }
+    }
+
+    VkBuildAccelerationStructureFlagBitsNV ToVulkanBuildAccelerationContainerFlags(
+        wgpu::RayTracingAccelerationContainerFlag buildFlags) {
+        uint32_t flags = 0;
+        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
+        }
+        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
+        }
+        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+        }
+        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
+        }
+        return static_cast<VkBuildAccelerationStructureFlagBitsNV>(flags);
+    }
+
+    VkGeometryInstanceFlagBitsNV ToVulkanAccelerationContainerInstanceFlags(
+        wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
+        uint32_t flags = 0;
+        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
+            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+        }
+        if (instanceFlags &
+            wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise) {
+            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
+        }
+        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque) {
+            flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
+        }
+        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
+            flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
+        }
+        return static_cast<VkGeometryInstanceFlagBitsNV>(flags);
     }
 
     // Vulkan SPEC requires the source/destination region specified by each element of

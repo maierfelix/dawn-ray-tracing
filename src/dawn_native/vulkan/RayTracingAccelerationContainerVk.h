@@ -46,8 +46,6 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingAccelerationContainer();
 
         uint64_t GetHandle() const;
-        VkAccelerationStructureTypeNV GetLevel() const;
-        VkBuildAccelerationStructureFlagBitsNV GetFlags() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
         VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
@@ -65,12 +63,12 @@ namespace dawn_native { namespace vulkan {
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
+        void DestroyImpl() override;
+
         std::vector<VkGeometryNV> mGeometries;
         std::vector<VkAccelerationInstance> mInstances;
 
         // AS related
-        VkAccelerationStructureTypeNV mLevel;
-        VkBuildAccelerationStructureFlagBitsNV mFlags;
         VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
 
         // scratch memory

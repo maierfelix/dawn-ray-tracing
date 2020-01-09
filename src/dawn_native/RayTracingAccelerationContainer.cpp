@@ -36,7 +36,19 @@ namespace dawn_native {
             return false;
         }
 
-    }
+        class ErrorRayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
+          public:
+            ErrorRayTracingAccelerationContainer(DeviceBase* device)
+                : RayTracingAccelerationContainerBase(device, ObjectBase::kError) {
+            }
+
+          private:
+            void DestroyImpl() override {
+                UNREACHABLE();
+            }
+        };
+
+    }  // anonymous namespace
 
     MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
         if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
@@ -56,6 +68,10 @@ namespace dawn_native {
                 if (instance.geometryContainer == nullptr) {
                     return DAWN_VALIDATION_ERROR(
                         "Acceleration Container Instance requires a Geometry Container");
+                }
+                // linked geometry container must not be destroyed
+                if (instance.geometryContainer->IsDestroyed()) {
+                    return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be destroyed");
                 }
             };
         }
@@ -94,6 +110,8 @@ namespace dawn_native {
 
     RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor)
         : ObjectBase(device) {
+        mFlags = descriptor->flags;
+        mLevel = descriptor->level;
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             // save unique references to used vertex and index buffers
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
@@ -130,7 +148,18 @@ namespace dawn_native {
 
     // static
     RayTracingAccelerationContainerBase* RayTracingAccelerationContainerBase::MakeError(DeviceBase* device) {
-        return new RayTracingAccelerationContainerBase(device, ObjectBase::kError);
+        return new ErrorRayTracingAccelerationContainer(device);
+    }
+
+    void RayTracingAccelerationContainerBase::Destroy() {
+        DestroyInternal();
+    }
+
+    void RayTracingAccelerationContainerBase::DestroyInternal() {
+        if (!IsDestroyed()) {
+            DestroyImpl();
+        }
+        SetDestroyState(true);
     }
 
     bool RayTracingAccelerationContainerBase::IsBuilt() const {
@@ -141,12 +170,30 @@ namespace dawn_native {
         return mIsUpdated;
     }
 
+    bool RayTracingAccelerationContainerBase::IsDestroyed() const {
+        return mIsDestroyed;
+    }
+
     void RayTracingAccelerationContainerBase::SetBuildState(bool state) {
         mIsBuilt = state;
     }
 
     void RayTracingAccelerationContainerBase::SetUpdateState(bool state) {
         mIsUpdated = state;
+    }
+
+    void RayTracingAccelerationContainerBase::SetDestroyState(bool state) {
+        mIsDestroyed = state;
+    }
+
+    wgpu::RayTracingAccelerationContainerFlag RayTracingAccelerationContainerBase::GetFlags()
+        const {
+        return mFlags;
+    }
+
+    wgpu::RayTracingAccelerationContainerLevel RayTracingAccelerationContainerBase::GetLevel()
+        const {
+        return mLevel;
     }
 
 }  // namespace dawn_native

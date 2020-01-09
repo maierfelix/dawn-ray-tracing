@@ -113,6 +113,14 @@ namespace dawn_native {
             }
             DAWN_TRY(device->ValidateObject(binding.accelerationContainer));
 
+            if (binding.accelerationContainer->GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Top) {
+                return DAWN_VALIDATION_ERROR("only top-level acceleration containers can be bound");
+            }
+
+            if (binding.accelerationContainer->IsDestroyed()) {
+                return DAWN_VALIDATION_ERROR("destroyed acceleration container cannot be used as binding");
+            }
+
             return {};
         }
 

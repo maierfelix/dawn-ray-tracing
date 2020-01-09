@@ -25,7 +25,16 @@
 namespace dawn_native { namespace vulkan {
 
     VkCompareOp ToVulkanCompareOp(wgpu::CompareFunction op);
-    VkShaderStageFlags VulkanShaderStageFlags(wgpu::ShaderStage stages);
+    VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages);
+    VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType);
+    VkIndexType ToVulkanIndexFormat(wgpu::IndexFormat format);
+    VkFormat ToVulkanVertexFormat(wgpu::VertexFormat format);
+    VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
+        wgpu::RayTracingAccelerationContainerLevel level);
+    VkBuildAccelerationStructureFlagBitsNV ToVulkanBuildAccelerationContainerFlags(
+        wgpu::RayTracingAccelerationContainerFlag buildFlags);
+    VkGeometryInstanceFlagBitsNV ToVulkanAccelerationContainerInstanceFlags(
+        wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
 
     Extent3D ComputeTextureCopyExtent(const TextureCopy& textureCopy, const Extent3D& copySize);
     VkBufferImageCopy ComputeBufferImageCopyRegion(const BufferCopy& bufferCopy,
