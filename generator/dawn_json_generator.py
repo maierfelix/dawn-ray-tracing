@@ -296,7 +296,6 @@ def compute_wire_params(api_params, wire_json):
 
     # Generate commands from object methods
     for api_object in wire_params['by_category']['object']:
-
         for method in api_object.methods:
             command_name = concat_names(api_object.name, method.name)
             command_suffix = Name(command_name).CamelCase()
