@@ -297,16 +297,12 @@ def compute_wire_params(api_params, wire_json):
     # Generate commands from object methods
     for api_object in wire_params['by_category']['object']:
 
-        # ignore wire implementation
-        if api_object.dict_name == "ray tracing shader binding table":
-            continue
-
         for method in api_object.methods:
             command_name = concat_names(api_object.name, method.name)
             command_suffix = Name(command_name).CamelCase()
 
             # Only object return values or void are supported. Other methods must be handwritten.
-            if method.name != "" and method.return_type.category != 'object' and method.return_type.name.canonical_case() != 'void':
+            if method.return_type.category != 'object' and method.return_type.name.canonical_case() != 'void':
                 assert(command_suffix in wire_json['special items']['client_handwritten_commands'])
                 continue
 

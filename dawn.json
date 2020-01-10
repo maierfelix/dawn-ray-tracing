@@ -37,13 +37,6 @@
         "category": "object",
         "methods": [
             {
-                "name": "get offset",
-                "returns": "uint32_t",
-                "args": [
-                    {"name": "shader stage", "type": "shader stage"}
-                ]
-            },
-            {
                 "name": "destroy"
             }
         ]
