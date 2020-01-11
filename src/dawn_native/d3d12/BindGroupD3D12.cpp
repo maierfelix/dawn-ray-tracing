@@ -122,11 +122,16 @@ namespace dawn_native { namespace d3d12 {
                                                                     bindingOffsets[bindingIndex]));
                 } break;
 
+                case wgpu::BindingType::AccelerationContainer:
+                    UNREACHABLE();
+                    break;
+
                 case wgpu::BindingType::StorageTexture:
                     UNREACHABLE();
                     break;
 
                     // TODO(shaobo.yan@intel.com): Implement dynamic buffer offset.
+
             }
         }
 

@@ -69,7 +69,7 @@ namespace dawn_native {
     }
 
     uint32_t RayTracingShaderBindingTableBase::GetOffsetImpl(wgpu::ShaderStage shaderStage) {
-        return GetOffsetImpl(shaderStage);
+        return 0;
     }
 
     void RayTracingShaderBindingTableBase::Destroy() {

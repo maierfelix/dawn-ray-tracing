@@ -67,6 +67,18 @@ namespace dawn_native { namespace vulkan {
             auto anyHitShader = VK_SHADER_UNUSED_NV;
             auto intersectionShader = VK_SHADER_UNUSED_NV;
             switch (shader.stage) {
+                case wgpu::ShaderStage::Compute:
+                    return DAWN_VALIDATION_ERROR(
+                        "Compute is not a valid Stage for ShaderBindingTable");
+                    break;
+                case wgpu::ShaderStage::Vertex:
+                    return DAWN_VALIDATION_ERROR(
+                        "Vertex is not a valid Stage for ShaderBindingTable");
+                    break;
+                case wgpu::ShaderStage::Fragment:
+                    return DAWN_VALIDATION_ERROR(
+                        "Fragment is not a valid Stage for ShaderBindingTable");
+                    break;
                 case wgpu::ShaderStage::RayGeneration:
                     type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
                     generalShader = mGroups.size();
@@ -86,6 +98,9 @@ namespace dawn_native { namespace vulkan {
                     type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
                     generalShader = mGroups.size();
                     mRayMissCount++;
+                    break;
+                case wgpu::ShaderStage::None:
+                    return DAWN_UNIMPLEMENTED_ERROR("Invalid Shader Stage");
                     break;
             };
 
@@ -167,6 +182,13 @@ namespace dawn_native { namespace vulkan {
     uint32_t RayTracingShaderBindingTable::GetOffsetImpl(wgpu::ShaderStage stageKind) {
         uint32_t offset = 0;
         switch (stageKind) {
+            // invalid
+            case wgpu::ShaderStage::None:
+            case wgpu::ShaderStage::Compute:
+            case wgpu::ShaderStage::Vertex:
+            case wgpu::ShaderStage::Fragment: {
+                offset = 0;
+            } break;
             // 0
             case wgpu::ShaderStage::RayGeneration: {
                 offset = 0;

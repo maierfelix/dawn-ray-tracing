@@ -42,21 +42,23 @@ namespace dawn_native { namespace vulkan {
 
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
       public:
-        static ResultOrError<RayTracingAccelerationContainer*> Create(Device* device, const RayTracingAccelerationContainerDescriptor* descriptor);
+        static ResultOrError<RayTracingAccelerationContainer*> Create(
+            Device* device,
+            const RayTracingAccelerationContainerDescriptor* descriptor);
         ~RayTracingAccelerationContainer();
 
         uint64_t GetHandle() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
-        VkMemoryRequirements2 RayTracingAccelerationContainer::GetMemoryRequirements(
+        VkMemoryRequirements2 GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
-        uint64_t RayTracingAccelerationContainer::GetMemoryRequirementSize(
+        uint64_t GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
         std::vector<VkGeometryNV>& GetGeometries();
         std::vector<VkAccelerationInstance>& GetInstances();
 
         MemoryEntry& GetInstanceMemory();
-        
+
         ScratchMemoryPool& GetScratchMemory();
         void DestroyScratchBuildMemory();
 
@@ -77,9 +79,9 @@ namespace dawn_native { namespace vulkan {
         // instance buffer
         MemoryEntry mInstanceMemory;
 
-        MaybeError RayTracingAccelerationContainer::CreateAccelerationStructure(
+        MaybeError CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);
-        MaybeError RayTracingAccelerationContainer::ReserveScratchMemory(
+        MaybeError ReserveScratchMemory(
             const RayTracingAccelerationContainerDescriptor* descriptor);
 
         uint64_t mHandle;
