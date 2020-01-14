@@ -54,6 +54,7 @@ namespace dawn_native { namespace metal {
                             textureIndex++;
                             break;
                         case wgpu::BindingType::StorageTexture:
+                        case wgpu::BindingType::AccelerationContainer:
                             UNREACHABLE();
                             break;
                     }

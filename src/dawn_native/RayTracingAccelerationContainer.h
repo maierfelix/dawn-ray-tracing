@@ -44,9 +44,9 @@ namespace dawn_native {
         bool IsBuilt() const;
         bool IsUpdated() const;
         bool IsDestroyed() const;
-        void RayTracingAccelerationContainerBase::SetBuildState(bool state);
-        void RayTracingAccelerationContainerBase::SetUpdateState(bool state);
-        void RayTracingAccelerationContainerBase::SetDestroyState(bool state);
+        void SetBuildState(bool state);
+        void SetUpdateState(bool state);
+        void SetDestroyState(bool state);
 
         MaybeError ValidateCanUseInSubmitNow() const;
 
