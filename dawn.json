@@ -61,6 +61,14 @@
             {"value": 1, "name": "aabbs"}
         ]
     },
+    "ray tracing acceleration geometry flag": {
+        "category": "bitmask",
+        "values": [
+            {"value": 0, "name": "none"},
+            {"value": 1, "name": "opaque"},
+            {"value": 2, "name": "allow any hit"}
+        ]
+    },
     "ray tracing acceleration instance flag": {
         "category": "bitmask",
         "values": [
@@ -92,6 +100,7 @@
         "category": "structure",
         "extensible": false,
         "members": [
+            {"name": "flags", "type": "ray tracing acceleration geometry flag", "default": "none"},
             {"name": "type", "type": "ray tracing acceleration geometry type"},
             {"name": "vertex buffer", "type": "buffer"},
             {"name": "vertex format", "type": "vertex format"},

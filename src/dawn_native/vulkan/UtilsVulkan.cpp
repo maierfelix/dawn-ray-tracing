@@ -16,11 +16,11 @@
 
 #include "common/Assert.h"
 #include "dawn_native/Format.h"
-#include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/BufferVk.h"
+#include "dawn_native/vulkan/DeviceVk.h"
+#include "dawn_native/vulkan/ResourceHeapVk.h"
 #include "dawn_native/vulkan/TextureVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
-#include "dawn_native/vulkan/ResourceHeapVk.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -159,6 +159,18 @@ namespace dawn_native { namespace vulkan {
         return static_cast<VkGeometryInstanceFlagBitsNV>(flags);
     }
 
+    VkGeometryFlagBitsNV ToVulkanAccelerationContainerGeometryFlags(
+        wgpu::RayTracingAccelerationGeometryFlag geometryFlags) {
+        uint32_t flags = 0;
+        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::Opaque) {
+            flags |= VK_GEOMETRY_OPAQUE_BIT_NV;
+        }
+        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::AllowAnyHit) {
+            flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;
+        }
+        return static_cast<VkGeometryFlagBitsNV>(flags);
+    }
+
     // Vulkan SPEC requires the source/destination region specified by each element of
     // pRegions must be a region that is contained within srcImage/dstImage. Here the size of
     // the image refers to the virtual size, while Dawn validates texture copy extent with the
@@ -219,7 +231,7 @@ namespace dawn_native { namespace vulkan {
         if (size == 0) {
             return DAWN_VALIDATION_ERROR("Invalid Allocation Size: 0 is not a valid size");
         }
-        
+
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.pNext = nullptr;

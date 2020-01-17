@@ -973,23 +973,24 @@ namespace dawn_native { namespace vulkan {
                         ToBackend(usedPipeline->GetShaderBindingTable());
 
                     VkBuffer sbtBuffer = sbt->GetGroupBufferHandle();
-
+                    
                     uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
 
                     uint32_t rayGenOffset = sbt->GetOffset(wgpu::ShaderStage::RayGeneration);
                     uint32_t rayMissOffset = sbt->GetOffset(wgpu::ShaderStage::RayMiss);
-                    uint32_t rayClosestHitOffset = sbt->GetOffset(wgpu::ShaderStage::RayClosestHit);
+                    // any-hit and closest-hit are group shaders, so their offsets are equal
+                    uint32_t rayHitOffset = sbt->GetOffset(wgpu::ShaderStage::RayAnyHit);
 
                     descriptorSets.Apply(device, recordingContext,
                                          VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
-
+                    
                     device->fn.CmdTraceRaysNV(commands,
                                               // ray-gen
                                               sbtBuffer, rayGenOffset,
                                               // ray-miss
                                               sbtBuffer, rayMissOffset, groupHandleSize,
                                               // ray-hit
-                                              sbtBuffer, rayClosestHitOffset, groupHandleSize,
+                                              sbtBuffer, rayHitOffset, groupHandleSize,
                                               // callable
                                               VK_NULL_HANDLE, 0, 0,
                                               // dimensions

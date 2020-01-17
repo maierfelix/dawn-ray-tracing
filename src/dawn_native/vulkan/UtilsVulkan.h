@@ -35,6 +35,8 @@ namespace dawn_native { namespace vulkan {
         wgpu::RayTracingAccelerationContainerFlag buildFlags);
     VkGeometryInstanceFlagBitsNV ToVulkanAccelerationContainerInstanceFlags(
         wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
+    VkGeometryFlagBitsNV ToVulkanAccelerationContainerGeometryFlags(
+        wgpu::RayTracingAccelerationGeometryFlag geometryFlags);
 
     Extent3D ComputeTextureCopyExtent(const TextureCopy& textureCopy, const Extent3D& copySize);
     VkBufferImageCopy ComputeBufferImageCopyRegion(const BufferCopy& bufferCopy,

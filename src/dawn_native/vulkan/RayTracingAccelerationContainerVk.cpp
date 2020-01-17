@@ -197,33 +197,33 @@ namespace dawn_native { namespace vulkan {
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
-                const RayTracingAccelerationGeometryDescriptor& geomDsc = descriptor->geometries[ii];
+                const RayTracingAccelerationGeometryDescriptor& geometry = descriptor->geometries[ii];
 
-                Buffer* vertexBuffer = ToBackend(geomDsc.vertexBuffer);
+                Buffer* vertexBuffer = ToBackend(geometry.vertexBuffer);
                 Buffer* indexBuffer =
-                    geomDsc.indexBuffer != nullptr ? ToBackend(geomDsc.indexBuffer) : nullptr;
+                    geometry.indexBuffer != nullptr ? ToBackend(geometry.indexBuffer) : nullptr;
 
                 VkGeometryNV geometryInfo{};
                 geometryInfo.pNext = nullptr;
                 geometryInfo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
-                geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
-                geometryInfo.geometryType = ToVulkanGeometryType(geomDsc.type);
+                geometryInfo.flags = ToVulkanAccelerationContainerGeometryFlags(geometry.flags);
+                geometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
                 // triangle
                 geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
                 geometryInfo.geometry.triangles.pNext = nullptr;
                 geometryInfo.geometry.triangles.vertexData = vertexBuffer->GetHandle();
-                geometryInfo.geometry.triangles.vertexOffset = geomDsc.vertexOffset;
-                geometryInfo.geometry.triangles.vertexCount = geomDsc.vertexCount;
-                geometryInfo.geometry.triangles.vertexStride = geomDsc.vertexStride;
+                geometryInfo.geometry.triangles.vertexOffset = geometry.vertexOffset;
+                geometryInfo.geometry.triangles.vertexCount = geometry.vertexCount;
+                geometryInfo.geometry.triangles.vertexStride = geometry.vertexStride;
                 geometryInfo.geometry.triangles.vertexFormat =
-                    ToVulkanVertexFormat(geomDsc.vertexFormat);
+                    ToVulkanVertexFormat(geometry.vertexFormat);
                 // index buffer is optional
                 if (indexBuffer != nullptr) {
                     geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
-                    geometryInfo.geometry.triangles.indexOffset = geomDsc.indexOffset;
-                    geometryInfo.geometry.triangles.indexCount = geomDsc.indexCount;
+                    geometryInfo.geometry.triangles.indexOffset = geometry.indexOffset;
+                    geometryInfo.geometry.triangles.indexCount = geometry.indexCount;
                     geometryInfo.geometry.triangles.indexType =
-                        ToVulkanIndexFormat(geomDsc.indexFormat);
+                        ToVulkanIndexFormat(geometry.indexFormat);
                 } else {
                     geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.indexOffset = 0;

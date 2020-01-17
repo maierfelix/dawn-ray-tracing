@@ -65,7 +65,7 @@ namespace dawn_native { namespace vulkan {
             if (result.IsError())
                 return result.AcquireError();
         }
-
+        
         {
             uint64_t bufferSize = stages.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
