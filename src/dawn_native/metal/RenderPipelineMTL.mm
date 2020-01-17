@@ -128,6 +128,8 @@ namespace dawn_native { namespace metal {
 
         MTLIndexType MTLIndexFormat(wgpu::IndexFormat format) {
             switch (format) {
+                case wgpu::IndexFormat::None:
+                    return MTLIndexTypeUInt16;
                 case wgpu::IndexFormat::Uint16:
                     return MTLIndexTypeUInt16;
                 case wgpu::IndexFormat::Uint32:

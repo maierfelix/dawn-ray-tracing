@@ -74,7 +74,6 @@ namespace dawn_native { namespace metal {
         // TODO(jiawei.shao@intel.com): tighten this workaround when the driver bug is fixed.
         SetToggle(Toggle::AlwaysResolveIntoZeroLevelAndLayer, true);
     }
-
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
         return new BindGroup(this, descriptor);
