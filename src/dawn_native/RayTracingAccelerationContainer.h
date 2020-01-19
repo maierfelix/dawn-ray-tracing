@@ -63,6 +63,7 @@ namespace dawn_native {
         // bottom-level references
         std::vector<Ref<BufferBase>> mVertexBuffers;
         std::vector<Ref<BufferBase>> mIndexBuffers;
+        std::vector<Ref<BufferBase>> mAABBBuffers;
 
         // top-level references
         std::vector<Ref<RayTracingAccelerationContainerBase>> mGeometryContainers;

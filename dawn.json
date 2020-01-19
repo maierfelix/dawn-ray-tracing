@@ -96,21 +96,46 @@
             {"value": 1, "name": "top"}
         ]
     },
+    "ray tracing acceleration geometry vertex descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "buffer", "type": "buffer"},
+            {"name": "format", "type": "vertex format"},
+            {"name": "stride", "type": "uint32_t"},
+            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "count", "type": "uint32_t"}
+        ]
+    },
+    "ray tracing acceleration geometry index descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "buffer", "type": "buffer"},
+            {"name": "format", "type": "index format"},
+            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "count", "type": "uint32_t"}
+        ]
+    },
+    "ray tracing acceleration geometry aabb descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "buffer", "type": "buffer"},
+            {"name": "stride", "type": "uint32_t"},
+            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "count", "type": "uint32_t"}
+        ]
+    },
     "ray tracing acceleration geometry descriptor": {
         "category": "structure",
         "extensible": false,
         "members": [
             {"name": "flags", "type": "ray tracing acceleration geometry flag", "default": "none"},
-            {"name": "type", "type": "ray tracing acceleration geometry type"},
-            {"name": "vertex buffer", "type": "buffer"},
-            {"name": "vertex format", "type": "vertex format"},
-            {"name": "vertex stride", "type": "uint32_t"},
-            {"name": "vertex offset", "type": "uint64_t", "default": "0"},
-            {"name": "vertex count", "type": "uint32_t"},
-            {"name": "index buffer", "type": "buffer", "optional": true},
-            {"name": "index format", "type": "index format", "default": "none"},
-            {"name": "index offset", "type": "uint64_t", "default": "0"},
-            {"name": "index count", "type": "uint32_t", "default": "0"}
+            {"name": "type", "type": "ray tracing acceleration geometry type", "default": "triangles"},
+            {"name": "vertex", "type": "ray tracing acceleration geometry vertex descriptor", "annotation": "const*", "optional": true},
+            {"name": "index", "type": "ray tracing acceleration geometry index descriptor", "annotation": "const*", "optional": true},
+            {"name": "aabb", "type": "ray tracing acceleration geometry aabb descriptor", "annotation": "const*", "optional": true}
         ]
     },
     "transform 3D": {
@@ -1478,7 +1503,8 @@
             {"value": 8, "name": "ray generation"},
             {"value": 16, "name": "ray any hit"},
             {"value": 32, "name": "ray closest hit"},
-            {"value": 64, "name": "ray miss"}
+            {"value": 64, "name": "ray miss"},
+            {"value": 128, "name": "ray intersection"}
         ]
     },
     "stencil operation": {

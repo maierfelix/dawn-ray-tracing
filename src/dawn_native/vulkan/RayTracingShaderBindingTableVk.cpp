@@ -87,10 +87,15 @@ namespace dawn_native { namespace vulkan {
                     generalShader = mGroups.size();
                     mRayMissCount++;
                     break;
-                case wgpu::ShaderStage::None:
-                    return DAWN_UNIMPLEMENTED_ERROR("Invalid Shader Stage");
+                case wgpu::ShaderStage::RayIntersection:
+                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
+                    intersectionShader = mGroups.size();
+                    mRayIntersectionCount++;
                     break;
                 // invalid
+                case wgpu::ShaderStage::None:
+                    return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
+                    break;
                 case wgpu::ShaderStage::Compute:
                     return DAWN_VALIDATION_ERROR(
                         "Compute is not a valid Stage for ShaderBindingTable");

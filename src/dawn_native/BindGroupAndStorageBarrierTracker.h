@@ -47,7 +47,8 @@ namespace dawn_native {
                         ((info.visibilities[binding] & wgpu::ShaderStage::RayGeneration) == 0) ||
                         ((info.visibilities[binding] & wgpu::ShaderStage::RayAnyHit) == 0) ||
                         ((info.visibilities[binding] & wgpu::ShaderStage::RayClosestHit) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayMiss) == 0)
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayMiss) == 0) ||
+                        ((info.visibilities[binding] & wgpu::ShaderStage::RayIntersection) == 0)
                         ) {
                         continue;
                     }

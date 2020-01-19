@@ -142,7 +142,7 @@ namespace dawn_native {
                     }
                     bindingSlot.visibility |= wgpu::ShaderStage::RayGeneration |
                          wgpu::ShaderStage::RayAnyHit | wgpu::ShaderStage::RayClosestHit |
-                         wgpu::ShaderStage::RayMiss;
+                         wgpu::ShaderStage::RayMiss | wgpu::ShaderStage::RayIntersection;
                     bindingSlot.type = bindingInfo.type;
                     bindingSlot.hasDynamicOffset = false;
                     bindingSlot.multisampled = bindingInfo.multisampled;

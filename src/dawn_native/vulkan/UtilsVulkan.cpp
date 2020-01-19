@@ -71,6 +71,9 @@ namespace dawn_native { namespace vulkan {
         if (stages & wgpu::ShaderStage::RayMiss) {
             flags |= VK_SHADER_STAGE_MISS_BIT_NV;
         }
+        if (stages & wgpu::ShaderStage::RayIntersection) {
+            flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+        }
 
         return flags;
     }

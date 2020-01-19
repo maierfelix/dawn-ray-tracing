@@ -50,21 +50,26 @@ namespace dawn_native {
 
     }  // anonymous namespace
 
-    MaybeError ValidateRayTracingAccelerationContainerDescriptor(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor) {
+    MaybeError ValidateRayTracingAccelerationContainerDescriptor(
+        DeviceBase* device,
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
         if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
             descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-            return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Level. Must be Top or Bottom");
+            return DAWN_VALIDATION_ERROR(
+                "Invalid Acceleration Container Level. Must be Top or Bottom");
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             if (descriptor->geometryCount > 0) {
-                return DAWN_VALIDATION_ERROR("Geometry Count for Top-Level Acceleration Container must be zero");
+                return DAWN_VALIDATION_ERROR(
+                    "Geometry Count for Top-Level Acceleration Container must be zero");
             }
             if (descriptor->instanceCount == 0) {
                 return DAWN_VALIDATION_ERROR(
                     "No data provided for Top-Level Acceleration Container");
             }
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
-                const RayTracingAccelerationInstanceDescriptor& instance = descriptor->instances[ii];
+                const RayTracingAccelerationInstanceDescriptor& instance =
+                    descriptor->instances[ii];
                 if (instance.geometryContainer == nullptr) {
                     return DAWN_VALIDATION_ERROR(
                         "Acceleration Container Instance requires a Geometry Container");
@@ -77,38 +82,84 @@ namespace dawn_native {
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             if (descriptor->instanceCount > 0) {
-                return DAWN_VALIDATION_ERROR("Instance Count for Bottom-Level Acceleration Container must be zero");
+                return DAWN_VALIDATION_ERROR(
+                    "Instance Count for Bottom-Level Acceleration Container must be zero");
             }
             if (descriptor->geometryCount == 0) {
                 return DAWN_VALIDATION_ERROR(
                     "No data provided for Bottom-Level Acceleration Container");
             }
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
-                RayTracingAccelerationGeometryDescriptor geomDsc = descriptor->geometries[ii];
-
-                // for now, we lock the supported geometry types to triangle-only
-                if (geomDsc.type != wgpu::RayTracingAccelerationGeometryType::Triangles) {
-                    return DAWN_VALIDATION_ERROR(
-                        "Other Geometry types than 'Triangles' are not supported");
+                RayTracingAccelerationGeometryDescriptor geometry = descriptor->geometries[ii];
+                if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Triangles) {
+                    if (geometry.vertex == nullptr) {
+                        return DAWN_VALIDATION_ERROR("No Vertex data provided");
+                    }
                 }
-
-                // geometry for acceleration containers doesn't have to be device local
-                // but the performance for geometry on host memory is seriously slow
-                // so we force users to provide the geometry buffers staged
-                if ((geomDsc.vertexBuffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
-                    return DAWN_VALIDATION_ERROR("Vertex data must be staged");
+                else if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Aabbs) {
+                    if (geometry.aabb == nullptr) {
+                        return DAWN_VALIDATION_ERROR("No AABB data provided");
+                    }
                 }
-                if (geomDsc.indexBuffer != nullptr) {
-                    if ((geomDsc.indexBuffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                // validate vertex input
+                if (geometry.vertex != nullptr) {
+                    if ((geometry.vertex->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("Vertex data must be staged");
+                    }
+                    if (geometry.vertex->buffer->GetSize() == 0) {
+                        return DAWN_VALIDATION_ERROR("Invalid Buffer for Vertex data");
+                    }
+                    if (geometry.vertex->count == 0) {
+                        return DAWN_VALIDATION_ERROR("Vertex count must not be zero");
+                    }
+                }
+                // validate index input
+                if (geometry.index != nullptr) {
+                    if (geometry.index == nullptr) {
+                        return DAWN_VALIDATION_ERROR("Index data requires Vertex data");
+                    }
+                    if (geometry.index->buffer->GetSize() == 0) {
+                        return DAWN_VALIDATION_ERROR("Invalid Buffer for Index data");
+                    }
+                    if ((geometry.index->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
                         return DAWN_VALIDATION_ERROR("Index data must be staged");
                     }
+                    if (geometry.index->count == 0) {
+                        return DAWN_VALIDATION_ERROR("Index count must not be zero");
+                    }
+                }
+                // validate aabb input
+                if (geometry.aabb != nullptr) {
+                    if (geometry.vertex == nullptr) {
+                        return DAWN_VALIDATION_ERROR(
+                            "AABB is not allowed to be combined with Vertex data");
+                    }
+                    if (geometry.index == nullptr) {
+                        return DAWN_VALIDATION_ERROR(
+                            "AABB is not allowed to be combined with Index data");
+                    }
+                    if (geometry.aabb->buffer->GetSize() == 0) {
+                        return DAWN_VALIDATION_ERROR("Invalid Buffer for AABB data");
+                    }
+                    if ((geometry.aabb->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("AABB data must be staged");
+                    }
+                    if (geometry.aabb->count == 0) {
+                        return DAWN_VALIDATION_ERROR("AABB count must not be zero");
+                    }
+                }
+                if (geometry.vertex == nullptr && geometry.index == nullptr &&
+                    geometry.aabb == nullptr) {
+                    return DAWN_VALIDATION_ERROR("No geometry data provided");
                 }
             };
         }
         return {};
     }
 
-    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, const RayTracingAccelerationContainerDescriptor* descriptor)
+    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(
+        DeviceBase* device,
+        const RayTracingAccelerationContainerDescriptor* descriptor)
         : ObjectBase(device) {
         mFlags = descriptor->flags;
         mLevel = descriptor->level;
@@ -117,14 +168,18 @@ namespace dawn_native {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 const RayTracingAccelerationGeometryDescriptor& geometry =
                     descriptor->geometries[ii];
-                BufferBase* vertexBuffer = geometry.vertexBuffer;
-                BufferBase* indexBuffer = geometry.indexBuffer;
 
-                if (!VectorReferenceAlreadyExists(mVertexBuffers, vertexBuffer)) {
-                    mVertexBuffers.push_back(vertexBuffer);
+                if (geometry.vertex != nullptr &&
+                    !VectorReferenceAlreadyExists(mVertexBuffers, geometry.vertex->buffer)) {
+                    mVertexBuffers.push_back(geometry.vertex->buffer);
                 }
-                if (!VectorReferenceAlreadyExists(mIndexBuffers, indexBuffer)) {
-                    mIndexBuffers.push_back(indexBuffer);
+                if (geometry.index != nullptr &&
+                    !VectorReferenceAlreadyExists(mIndexBuffers, geometry.index->buffer)) {
+                    mIndexBuffers.push_back(geometry.index->buffer);
+                }
+                if (geometry.aabb != nullptr &&
+                    !VectorReferenceAlreadyExists(mAABBBuffers, geometry.aabb->buffer)) {
+                    mAABBBuffers.push_back(geometry.aabb->buffer);
                 }
             };
         }

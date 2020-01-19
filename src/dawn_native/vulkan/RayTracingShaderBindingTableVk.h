@@ -53,6 +53,7 @@ namespace dawn_native { namespace vulkan {
         uint32_t mRayClosestHitCount = 0;
         uint32_t mRayAnyHitCount = 0;
         uint32_t mRayMissCount = 0;
+        uint32_t mRayIntersectionCount = 0;
         
         VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
 
