@@ -278,6 +278,13 @@ namespace dawn_native { namespace vulkan {
                 Fill4x3TransformMatrix(transform, instance.transform->translation,
                                        instance.transform->rotation, instance.transform->scale);
                 memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
+                // validate ranges
+                if (instance.mask >= (2 << 7)) {
+                    return DAWN_VALIDATION_ERROR("Instance Mask out of range");
+                }
+                if (instance.instanceId >= (2 << 23)) {
+                    return DAWN_VALIDATION_ERROR("Instance Id out of range");
+                }
                 instanceData.instanceId = instance.instanceId;
                 instanceData.mask = instance.mask;
                 instanceData.instanceOffset = instance.instanceOffset;
