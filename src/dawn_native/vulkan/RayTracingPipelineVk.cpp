@@ -67,11 +67,11 @@ namespace dawn_native { namespace vulkan {
         }
         
         {
-            uint64_t bufferSize = stages.size() * shaderBindingTable->GetShaderGroupHandleSize();
+            uint64_t bufferSize = groups.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
             MaybeError result =
                 CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesNV(
-                                   device->GetVkDevice(), mHandle, 0, stages.size(), bufferSize,
+                                   device->GetVkDevice(), mHandle, 0, groups.size(), bufferSize,
                                    shaderBindingTable->GetGroupBufferResource().GetMappedPointer()),
                                "vkGetRayTracingShaderGroupHandlesNV");
             if (result.IsError())

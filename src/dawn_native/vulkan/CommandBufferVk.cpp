@@ -973,29 +973,28 @@ namespace dawn_native { namespace vulkan {
                         ToBackend(usedPipeline->GetShaderBindingTable());
 
                     VkBuffer sbtBuffer = sbt->GetGroupBufferHandle();
-                    
+
                     uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
 
-                    uint32_t rayGenOffset = sbt->GetOffset(wgpu::ShaderStage::RayGeneration);
-                    uint32_t rayMissOffset = sbt->GetOffset(wgpu::ShaderStage::RayMiss);
-                    // any-hit and closest-hit are group shaders, so their offsets are equal
-                    uint32_t rayHitOffset = sbt->GetOffset(wgpu::ShaderStage::RayAnyHit);
+                    uint32_t rayGenOffset = traceRays->rayGenerationOffset;
+                    uint32_t rayHitOffset = traceRays->rayHitOffset;
+                    uint32_t rayMissOffset = traceRays->rayMissOffset;
 
                     descriptorSets.Apply(device, recordingContext,
                                          VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
-                    
-                    device->fn.CmdTraceRaysNV(commands,
-                                              // ray-gen
-                                              sbtBuffer, rayGenOffset,
-                                              // ray-miss
-                                              sbtBuffer, rayMissOffset, groupHandleSize,
-                                              // ray-hit
-                                              sbtBuffer, rayHitOffset, groupHandleSize,
-                                              // callable
-                                              VK_NULL_HANDLE, 0, 0,
-                                              // dimensions
-                                              traceRays->width, traceRays->height,
-                                              traceRays->depth);
+
+                    device->fn.CmdTraceRaysNV(
+                        commands,
+                        // ray-gen
+                        sbtBuffer, rayGenOffset * groupHandleSize,
+                        // ray-miss
+                        sbtBuffer, rayMissOffset * groupHandleSize, groupHandleSize,
+                        // ray-hit
+                        sbtBuffer, rayHitOffset * groupHandleSize, groupHandleSize,
+                        // callable
+                        VK_NULL_HANDLE, 0, 0,
+                        // dimensions
+                        traceRays->width, traceRays->height, traceRays->depth);
                 } break;
 
                 case Command::SetBindGroup: {

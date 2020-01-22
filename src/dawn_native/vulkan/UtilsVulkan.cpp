@@ -125,6 +125,20 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
+    VkRayTracingShaderGroupTypeNV ToVulkanShaderBindingTableGroupType(
+        wgpu::RayTracingShaderBindingTableGroupType type) {
+        switch (type) {
+            case wgpu::RayTracingShaderBindingTableGroupType::General:
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+            case wgpu::RayTracingShaderBindingTableGroupType::TrianglesHitGroup:
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+            case wgpu::RayTracingShaderBindingTableGroupType::ProceduralHitGroup:
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
+            default:
+                UNREACHABLE();
+        }
+    }
+
     VkBuildAccelerationStructureFlagBitsNV ToVulkanBuildAccelerationContainerFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags) {
         uint32_t flags = 0;

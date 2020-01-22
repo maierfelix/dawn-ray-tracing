@@ -53,13 +53,20 @@ namespace dawn_native {
         }
     }
 
-    void RayTracingPassEncoder::TraceRays(uint32_t width, uint32_t height, uint32_t depth) {
+    void RayTracingPassEncoder::TraceRays(uint32_t rayGenerationOffset,
+                                          uint32_t rayHitOffset,
+                                          uint32_t rayMissOffset,
+                                          uint32_t width,
+                                          uint32_t height,
+                                          uint32_t depth) {
         mEncodingContext->TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
             TraceRaysCmd* traceRays = allocator->Allocate<TraceRaysCmd>(Command::TraceRays);
+            traceRays->rayGenerationOffset = rayGenerationOffset;
+            traceRays->rayHitOffset = rayHitOffset;
+            traceRays->rayMissOffset = rayMissOffset;
             traceRays->width = width;
             traceRays->height = height;
             traceRays->depth = depth;
-
             return {};
         });
     }

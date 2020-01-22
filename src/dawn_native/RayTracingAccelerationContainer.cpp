@@ -130,11 +130,11 @@ namespace dawn_native {
                 }
                 // validate aabb input
                 if (geometry.aabb != nullptr) {
-                    if (geometry.vertex == nullptr) {
+                    if (geometry.vertex != nullptr) {
                         return DAWN_VALIDATION_ERROR(
                             "AABB is not allowed to be combined with Vertex data");
                     }
-                    if (geometry.index == nullptr) {
+                    if (geometry.index != nullptr) {
                         return DAWN_VALIDATION_ERROR(
                             "AABB is not allowed to be combined with Index data");
                     }

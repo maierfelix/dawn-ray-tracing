@@ -32,7 +32,12 @@ namespace dawn_native {
 
         void EndPass();
 
-        void TraceRays(uint32_t width, uint32_t height, uint32_t depth);
+        void TraceRays(uint32_t rayGenerationOffset,
+                       uint32_t rayHitOffset,
+                       uint32_t rayMissOffset,
+                       uint32_t width,
+                       uint32_t height,
+                       uint32_t depth);
         void SetPipeline(RayTracingPipelineBase* pipeline);
 
       protected:

@@ -96,6 +96,14 @@
             {"value": 1, "name": "top"}
         ]
     },
+    "ray tracing shader binding table group type": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "general"},
+            {"value": 1, "name": "triangles hit group"},
+            {"value": 2, "name": "procedural hit group"}
+        ]
+    },
     "ray tracing acceleration geometry vertex descriptor": {
         "category": "structure",
         "extensible": false,
@@ -179,7 +187,7 @@
             {"name": "instances", "type": "ray tracing acceleration instance descriptor", "annotation": "const*", "length": "instance count", "optional": true}
         ]
     },
-    "ray tracing shader binding table shaders descriptor": {
+    "ray tracing shader binding table stages descriptor": {
         "category": "structure",
         "extensible": false,
         "members": [
@@ -187,12 +195,25 @@
             {"name": "module", "type": "shader module"}
         ]
     },
+    "ray tracing shader binding table groups descriptor": {
+        "category": "structure",
+        "extensible": false,
+        "members": [
+            {"name": "type", "type": "ray tracing shader binding table group type", "default": "general"},
+            {"name": "general index", "type": "int32_t", "default": "-1"},
+            {"name": "closest hit index", "type": "int32_t", "default": "-1"},
+            {"name": "any hit index", "type": "int32_t", "default": "-1"},
+            {"name": "intersection index", "type": "int32_t", "default": "-1"}
+        ]
+    },
     "ray tracing shader binding table descriptor": {
         "category": "structure",
         "extensible": false,
         "members": [
-            {"name": "shader count", "type": "uint32_t", "default": "0"},
-            {"name": "shaders", "type": "ray tracing shader binding table shaders descriptor", "annotation": "const*", "length": "shader count", "optional": true}
+            {"name": "stages count", "type": "uint32_t", "default": "0"},
+            {"name": "stages", "type": "ray tracing shader binding table stages descriptor", "annotation": "const*", "length": "stages count"},
+            {"name": "groups count", "type": "uint32_t", "default": "0"},
+            {"name": "groups", "type": "ray tracing shader binding table groups descriptor", "annotation": "const*", "length": "groups count"}
         ]
     },
     "bind group descriptor": {
@@ -687,6 +708,9 @@
             {
                 "name": "trace rays",
                 "args": [
+                    {"name": "ray generation offset", "type": "uint32_t"},
+                    {"name": "ray hit offset", "type": "uint32_t"},
+                    {"name": "ray miss offset", "type": "uint32_t"},
                     {"name": "width", "type": "uint32_t"},
                     {"name": "height", "type": "uint32_t"},
                     {"name": "depth", "type": "uint32_t", "default": "1"}

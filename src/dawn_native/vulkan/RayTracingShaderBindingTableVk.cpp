@@ -59,79 +59,40 @@ namespace dawn_native { namespace vulkan {
 
         mRayTracingProperties = GetRayTracingProperties(*adapter);
 
-        for (unsigned int ii = 0; ii < descriptor->shaderCount; ++ii) {
-            RayTracingShaderBindingTableShadersDescriptor shader = descriptor->shaders[ii];
-            auto type = VK_SHADER_UNUSED_NV;
-            auto generalShader = VK_SHADER_UNUSED_NV;
-            auto closestHitShader = VK_SHADER_UNUSED_NV;
-            auto anyHitShader = VK_SHADER_UNUSED_NV;
-            auto intersectionShader = VK_SHADER_UNUSED_NV;
-            switch (shader.stage) {
-                case wgpu::ShaderStage::RayGeneration:
-                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                    generalShader = mGroups.size();
-                    mRayGenerationCount++;
-                    break;
-                case wgpu::ShaderStage::RayClosestHit:
-                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                    closestHitShader = mGroups.size();
-                    mRayClosestHitCount++;
-                    break;
-                case wgpu::ShaderStage::RayAnyHit:
-                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-                    anyHitShader = mGroups.size();
-                    mRayAnyHitCount++;
-                    break;
-                case wgpu::ShaderStage::RayMiss:
-                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-                    generalShader = mGroups.size();
-                    mRayMissCount++;
-                    break;
-                case wgpu::ShaderStage::RayIntersection:
-                    type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
-                    intersectionShader = mGroups.size();
-                    mRayIntersectionCount++;
-                    break;
-                // invalid
-                case wgpu::ShaderStage::None:
-                    return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
-                    break;
-                case wgpu::ShaderStage::Compute:
-                    return DAWN_VALIDATION_ERROR(
-                        "Compute is not a valid Stage for ShaderBindingTable");
-                    break;
-                case wgpu::ShaderStage::Vertex:
-                    return DAWN_VALIDATION_ERROR(
-                        "Vertex is not a valid Stage for ShaderBindingTable");
-                    break;
-                case wgpu::ShaderStage::Fragment:
-                    return DAWN_VALIDATION_ERROR(
-                        "Fragment is not a valid Stage for ShaderBindingTable");
-                    break;
-            };
-
-            VkRayTracingShaderGroupCreateInfoNV stageInfo{};
-            stageInfo.pNext = nullptr;
-            stageInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-            stageInfo.type = (VkRayTracingShaderGroupTypeNV)type;
-            stageInfo.generalShader = generalShader;
-            stageInfo.closestHitShader = closestHitShader;
-            stageInfo.anyHitShader = anyHitShader;
-            stageInfo.intersectionShader = intersectionShader;
-            mGroups.push_back(stageInfo);
-
-            VkPipelineShaderStageCreateInfo pipelineShaderStageInfo{};
-            pipelineShaderStageInfo.pNext = nullptr;
-            pipelineShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            pipelineShaderStageInfo.stage =
-                static_cast<VkShaderStageFlagBits>(ToVulkanShaderStageFlags(shader.stage));
-            pipelineShaderStageInfo.module = ToBackend(shader.module)->GetHandle();
-            pipelineShaderStageInfo.pName = "main";
-
-            mStages.push_back(pipelineShaderStageInfo);
+        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
+            RayTracingShaderBindingTableGroupsDescriptor group = descriptor->groups[ii];
+            VkRayTracingShaderGroupCreateInfoNV groupInfo{};
+            groupInfo.pNext = nullptr;
+            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
+            groupInfo.type = ToVulkanShaderBindingTableGroupType(group.type);
+            groupInfo.generalShader = group.generalIndex;
+            groupInfo.closestHitShader = group.closestHitIndex;
+            groupInfo.anyHitShader = group.anyHitIndex;
+            groupInfo.intersectionShader = group.intersectionIndex;
+            if (group.generalIndex == -1)
+                groupInfo.generalShader = VK_SHADER_UNUSED_NV;
+            if (group.closestHitIndex == -1)
+                groupInfo.closestHitShader = VK_SHADER_UNUSED_NV;
+            if (group.anyHitIndex == -1)
+                groupInfo.anyHitShader = VK_SHADER_UNUSED_NV;
+            if (group.intersectionIndex == -1)
+                groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
+            mGroups.push_back(groupInfo);
         };
 
-        uint64_t bufferSize = mStages.size() * GetShaderGroupHandleSize();
+        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
+            RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
+            VkPipelineShaderStageCreateInfo stageInfo{};
+            stageInfo.pNext = nullptr;
+            stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            stageInfo.stage =
+                static_cast<VkShaderStageFlagBits>(ToVulkanShaderStageFlags(stage.stage));
+            stageInfo.module = ToBackend(stage.module)->GetHandle();
+            stageInfo.pName = "main";
+            mStages.push_back(stageInfo);
+        };
+
+        uint64_t bufferSize = mGroups.size() * GetShaderGroupHandleSize();
 
         VkBufferCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -183,33 +144,6 @@ namespace dawn_native { namespace vulkan {
 
     uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {
         return mRayTracingProperties.shaderGroupHandleSize;
-    }
-
-    uint32_t RayTracingShaderBindingTable::GetOffsetImpl(wgpu::ShaderStage stageKind) {
-        uint32_t offset = 0;
-        switch (stageKind) {
-            // 0
-            case wgpu::ShaderStage::RayGeneration: {
-                offset = 0;
-            } break;
-            // 1
-            case wgpu::ShaderStage::RayClosestHit:
-            case wgpu::ShaderStage::RayAnyHit: {
-                offset = mRayGenerationCount;
-            } break;
-            // 2
-            case wgpu::ShaderStage::RayMiss: {
-                offset = mRayGenerationCount + mRayClosestHitCount + mRayAnyHitCount;
-            } break;
-            // invalid
-            case wgpu::ShaderStage::None:
-            case wgpu::ShaderStage::Compute:
-            case wgpu::ShaderStage::Vertex:
-            case wgpu::ShaderStage::Fragment: {
-                UNREACHABLE();
-            } break;
-        };
-        return offset * mRayTracingProperties.shaderGroupHandleSize;
     }
 
 }}  // namespace dawn_native::vulkan

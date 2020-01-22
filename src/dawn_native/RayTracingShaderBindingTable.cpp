@@ -29,10 +29,6 @@ namespace dawn_native {
             }
 
           private:
-            uint32_t GetOffsetImpl(wgpu::ShaderStage shaderStage) override {
-                UNREACHABLE();
-                return 0;
-            }
 
             void DestroyImpl() override {
                 UNREACHABLE();
@@ -44,10 +40,29 @@ namespace dawn_native {
     // RayTracingShaderBindingTable
 
     MaybeError ValidateRayTracingShaderBindingTableDescriptor(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor) {
-        if (descriptor->shaderCount == 0) {
-            return DAWN_VALIDATION_ERROR("No shaders provided");
+        if (descriptor->stagesCount == 0) {
+            return DAWN_VALIDATION_ERROR("ShaderBindingTable stages must not be empty");
         }
-
+        if (descriptor->groupsCount == 0) {
+            return DAWN_VALIDATION_ERROR("ShaderBindingTable groups must not be empty");
+        }
+        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
+            RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
+            switch (stage.stage) {
+                case wgpu::ShaderStage::RayGeneration:
+                case wgpu::ShaderStage::RayClosestHit:
+                case wgpu::ShaderStage::RayAnyHit:
+                case wgpu::ShaderStage::RayMiss:
+                case wgpu::ShaderStage::RayIntersection:
+                    break;
+                // invalid
+                case wgpu::ShaderStage::None:
+                case wgpu::ShaderStage::Compute:
+                case wgpu::ShaderStage::Vertex:
+                case wgpu::ShaderStage::Fragment:
+                    return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
+            };
+        };
         return {};
     }
 
@@ -62,10 +77,6 @@ namespace dawn_native {
 
     RayTracingShaderBindingTableBase::~RayTracingShaderBindingTableBase() {
 
-    }
-
-    uint32_t RayTracingShaderBindingTableBase::GetOffset(wgpu::ShaderStage shaderStage) {
-        return GetOffsetImpl(shaderStage);
     }
 
     uint32_t RayTracingShaderBindingTableBase::GetOffsetImpl(wgpu::ShaderStage shaderStage) {

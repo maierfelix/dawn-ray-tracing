@@ -40,8 +40,6 @@ namespace dawn_native {
 
         static RayTracingShaderBindingTableBase* MakeError(DeviceBase* device);
 
-        uint32_t GetOffset(wgpu::ShaderStage stageKind);
-
       protected:
         RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 

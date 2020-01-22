@@ -30,31 +30,22 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingShaderBindingTable*> Create(Device* device, const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable();
 
-        std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();
         std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
+        std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();
 
         VkBuffer GetGroupBufferHandle() const;
         ResourceMemoryAllocation GetGroupBufferResource() const;
 
         uint32_t GetShaderGroupHandleSize() const;
 
-      protected:
-        uint32_t GetOffsetImpl(wgpu::ShaderStage shaderStage) override;
-
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
         void DestroyImpl() override;
 
-        std::vector<VkRayTracingShaderGroupCreateInfoNV> mGroups;
         std::vector<VkPipelineShaderStageCreateInfo> mStages;
+        std::vector<VkRayTracingShaderGroupCreateInfoNV> mGroups;
 
-        uint32_t mRayGenerationCount = 0;
-        uint32_t mRayClosestHitCount = 0;
-        uint32_t mRayAnyHitCount = 0;
-        uint32_t mRayMissCount = 0;
-        uint32_t mRayIntersectionCount = 0;
-        
         VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
 
         // group handle buffer
