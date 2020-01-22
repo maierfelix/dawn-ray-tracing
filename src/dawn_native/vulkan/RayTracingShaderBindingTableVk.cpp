@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
+#include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
 #include "dawn_native/vulkan/ShaderModuleVk.h"
-#include "dawn_native/vulkan/FencedDeleter.h"
 
 #include "dawn_native/vulkan/AdapterVk.h"
 #include "dawn_native/vulkan/DeviceVk.h"
@@ -32,10 +32,10 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<RayTracingShaderBindingTable*> RayTracingShaderBindingTable::Create(
         Device* device,
         const RayTracingShaderBindingTableDescriptor* descriptor) {
-        std::unique_ptr<RayTracingShaderBindingTable> geometry =
+        std::unique_ptr<RayTracingShaderBindingTable> sbt =
             std::make_unique<RayTracingShaderBindingTable>(device, descriptor);
-        DAWN_TRY(geometry->Initialize(descriptor));
-        return geometry.release();
+        DAWN_TRY(sbt->Initialize(descriptor));
+        return sbt.release();
     }
 
     void RayTracingShaderBindingTable::DestroyImpl() {
@@ -59,27 +59,6 @@ namespace dawn_native { namespace vulkan {
 
         mRayTracingProperties = GetRayTracingProperties(*adapter);
 
-        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
-            RayTracingShaderBindingTableGroupsDescriptor group = descriptor->groups[ii];
-            VkRayTracingShaderGroupCreateInfoNV groupInfo{};
-            groupInfo.pNext = nullptr;
-            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-            groupInfo.type = ToVulkanShaderBindingTableGroupType(group.type);
-            groupInfo.generalShader = group.generalIndex;
-            groupInfo.closestHitShader = group.closestHitIndex;
-            groupInfo.anyHitShader = group.anyHitIndex;
-            groupInfo.intersectionShader = group.intersectionIndex;
-            if (group.generalIndex == -1)
-                groupInfo.generalShader = VK_SHADER_UNUSED_NV;
-            if (group.closestHitIndex == -1)
-                groupInfo.closestHitShader = VK_SHADER_UNUSED_NV;
-            if (group.anyHitIndex == -1)
-                groupInfo.anyHitShader = VK_SHADER_UNUSED_NV;
-            if (group.intersectionIndex == -1)
-                groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
-            mGroups.push_back(groupInfo);
-        };
-
         for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
             RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
             VkPipelineShaderStageCreateInfo stageInfo{};
@@ -90,6 +69,55 @@ namespace dawn_native { namespace vulkan {
             stageInfo.module = ToBackend(stage.module)->GetHandle();
             stageInfo.pName = "main";
             mStages.push_back(stageInfo);
+        };
+
+        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
+            RayTracingShaderBindingTableGroupsDescriptor group = descriptor->groups[ii];
+            VkRayTracingShaderGroupCreateInfoNV groupInfo{};
+            groupInfo.pNext = nullptr;
+            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
+            groupInfo.type = ToVulkanShaderBindingTableGroupType(group.type);
+            groupInfo.generalShader = group.generalIndex;
+            groupInfo.closestHitShader = group.closestHitIndex;
+            groupInfo.anyHitShader = group.anyHitIndex;
+            groupInfo.intersectionShader = group.intersectionIndex;
+
+            if (group.generalIndex != -1) {
+                // generalIndex can be ray gen and miss
+                MaybeError rayGenErr =
+                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+                MaybeError rayMissErr =
+                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_MISS_BIT_NV);
+                if (rayGenErr.IsError() && rayMissErr.IsError()) {
+                    return rayGenErr;
+                }
+                groupInfo.generalShader = group.generalIndex;
+            } else {
+                groupInfo.generalShader = VK_SHADER_UNUSED_NV;
+            }
+            if (group.closestHitIndex != -1) {
+                DAWN_TRY(ValidateGroupStageIndex(group.closestHitIndex,
+                                                 VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV));
+                groupInfo.closestHitShader = group.closestHitIndex;
+            } else {
+                groupInfo.closestHitShader = VK_SHADER_UNUSED_NV;
+            }
+            if (group.anyHitIndex != -1) {
+                DAWN_TRY(
+                    ValidateGroupStageIndex(group.anyHitIndex, VK_SHADER_STAGE_ANY_HIT_BIT_NV));
+                groupInfo.anyHitShader = group.anyHitIndex;
+            } else {
+                groupInfo.anyHitShader = VK_SHADER_UNUSED_NV;
+            }
+            if (group.intersectionIndex != -1) {
+                DAWN_TRY(ValidateGroupStageIndex(group.intersectionIndex,
+                                                 VK_SHADER_STAGE_INTERSECTION_BIT_NV));
+                groupInfo.intersectionShader = group.intersectionIndex;
+            } else {
+                groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
+            }
+
+            mGroups.push_back(groupInfo);
         };
 
         uint64_t bufferSize = mGroups.size() * GetShaderGroupHandleSize();
@@ -144,6 +172,20 @@ namespace dawn_native { namespace vulkan {
 
     uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {
         return mRayTracingProperties.shaderGroupHandleSize;
+    }
+
+    MaybeError RayTracingShaderBindingTable::ValidateGroupStageIndex(
+        int32_t index,
+        VkShaderStageFlagBits validStage) const {
+        if (index < 0 || index >= mStages.size()) {
+            return DAWN_VALIDATION_ERROR("Group index out of range");
+        }
+        VkShaderStageFlagBits stage = mStages[index].stage;
+        if (stage != validStage) {
+            std::string msg = "Invalid stage for group index'" + std::to_string(index) + "'";
+            return DAWN_VALIDATION_ERROR(msg);
+        }
+        return {};
     }
 
 }}  // namespace dawn_native::vulkan
