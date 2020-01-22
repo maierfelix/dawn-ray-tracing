@@ -14,12 +14,44 @@
         "See the License for the specific language governing permissions and",
         "limitations under the License."
     ],
+    "adapter properties": {
+        "category": "structure",
+        "extensible": true,
+        "members": [
+            {"name": "device ID", "type": "uint32_t"},
+            {"name": "vendor ID", "type": "uint32_t"},
+            {"name": "name", "type": "char", "annotation": "const*"},
+            {"name": "adapter type", "type": "adapter type"},
+            {"name": "backend type", "type": "backend type"}
+        ]
+    },
+    "adapter type": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "discrete GPU"},
+            {"value": 1, "name": "integrated GPU"},
+            {"value": 2, "name": "CPU"},
+            {"value": 3, "name": "Unknown"}
+        ]
+    },
     "address mode": {
         "category": "enum",
         "values": [
             {"value": 0, "name": "repeat"},
             {"value": 1, "name": "mirror repeat"},
             {"value": 2, "name": "clamp to edge"}
+        ]
+    },
+    "backend type": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "null"},
+            {"value": 1, "name": "D3D11"},
+            {"value": 2, "name": "D3D12"},
+            {"value": 3, "name": "metal"},
+            {"value": 4, "name": "vulkan"},
+            {"value": 5, "name": "openGL"},
+            {"value": 6, "name": "openGLES"}
         ]
     },
     "bind group": {
@@ -894,6 +926,9 @@
                 "TODO": "enga@: Make this a Dawn extension"
             },
             {
+                "name": "lose for testing"
+            },
+            {
                 "name": "tick"
             },
             {
@@ -1052,6 +1087,23 @@
             {"value": 1, "name": "uint32"},
             {"value": 2, "name": "none"}
         ]
+    },
+    "instance": {
+        "category": "object",
+        "methods": [
+            {
+                "name": "create surface",
+                "returns": "surface",
+                "args": [
+                    {"name": "descriptor", "type": "surface descriptor", "annotation": "const*"}
+                ]
+            }
+        ]
+    },
+    "instance descriptor": {
+        "category": "structure",
+        "extensible": true,
+        "members": []
     },
     "vertex attribute descriptor": {
         "category": "structure",
@@ -1554,6 +1606,39 @@
             {"name": "pass op", "type": "stencil operation", "default": "keep"}
         ]
     },
+    "surface": {
+        "category": "object"
+    },
+    "surface descriptor": {
+        "category": "structure",
+        "extensible": true,
+        "members": [
+            {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true}
+        ]
+    },
+    "surface descriptor from metal layer": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "layer", "type": "void", "annotation": "*"}
+        ]
+    },
+    "surface descriptor from windows HWND": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "hinstance", "type": "void", "annotation": "*"},
+            {"name": "hwnd", "type": "void", "annotation": "*"}
+        ]
+    },
+    "surface descriptor from xlib": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "display", "type": "void", "annotation": "*"},
+            {"name": "window", "type": "uint32_t"}
+        ]
+    },
     "swap chain": {
         "category": "object",
         "methods": [
@@ -1576,6 +1661,15 @@
         "members": [
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "implementation", "type": "uint64_t"}
+        ]
+    },
+    "s type": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "invalid"},
+            {"value": 1, "name": "surface descriptor from metal layer"},
+            {"value": 2, "name": "surface descriptor from windows HWND"},
+            {"value": 3, "name": "surface descriptor from xlib"}
         ]
     },
     "texture": {

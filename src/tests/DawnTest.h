@@ -48,6 +48,15 @@
                           sizeof(RGBA8),                                                  \
                           new detail::ExpectEq<RGBA8>(expected, (width) * (height)))
 
+#define EXPECT_PIXEL_FLOAT_EQ(expected, texture, x, y)                                  \
+    AddTextureExpectation(__FILE__, __LINE__, texture, x, y, 1, 1, 0, 0, sizeof(float), \
+                          new detail::ExpectEq<float>(expected))
+
+#define EXPECT_TEXTURE_FLOAT_EQ(expected, texture, x, y, width, height, level, slice)     \
+    AddTextureExpectation(__FILE__, __LINE__, texture, x, y, width, height, level, slice, \
+                          sizeof(float),                                                  \
+                          new detail::ExpectEq<float>(expected, (width) * (height)))
+
 #define EXPECT_LAZY_CLEAR(N, statement)                                                   \
     if (UsesWire()) {                                                                     \
         statement;                                                                        \
@@ -87,10 +96,10 @@ struct RGBA8 {
 std::ostream& operator<<(std::ostream& stream, const RGBA8& color);
 
 struct DawnTestParam {
-    explicit DawnTestParam(dawn_native::BackendType backendType) : backendType(backendType) {
+    explicit DawnTestParam(wgpu::BackendType backendType) : backendType(backendType) {
     }
 
-    dawn_native::BackendType backendType;
+    wgpu::BackendType backendType;
 
     std::vector<const char*> forceEnabledWorkarounds;
     std::vector<const char*> forceDisabledWorkarounds;
@@ -196,8 +205,6 @@ class DawnTestBase {
     bool HasVendorIdFilter() const;
     uint32_t GetVendorIdFilter() const;
 
-    dawn_native::PCIInfo GetPCIInfo() const;
-
   protected:
     wgpu::Device device;
     wgpu::Queue queue;
@@ -236,6 +243,8 @@ class DawnTestBase {
     // code path to handle the situation when not all extensions are supported.
     virtual std::vector<const char*> GetRequiredExtensions();
 
+    const wgpu::AdapterProperties& GetAdapterProperties() const;
+
   private:
     DawnTestParam mParam;
 
@@ -249,6 +258,7 @@ class DawnTestBase {
 
     // Tracking for validation errors
     static void OnDeviceError(WGPUErrorType type, const char* message, void* userdata);
+    static void OnDeviceLost(const char* message, void* userdata);
     bool mExpectError = false;
     bool mError = false;
 
@@ -294,9 +304,8 @@ class DawnTestBase {
     // Assuming the data is mapped, checks all expectations
     void ResolveExpectations();
 
-    dawn_native::PCIInfo mPCIInfo;
-
     dawn_native::Adapter mBackendAdapter;
+    wgpu::AdapterProperties mAdapterProperties;
 };
 
 // Skip a test when the given condition is satisfied.
@@ -350,7 +359,7 @@ using DawnTest = DawnTestWithParams<>;
 
 namespace detail {
     // Helper functions used for DAWN_INSTANTIATE_TEST
-    bool IsBackendAvailable(dawn_native::BackendType type);
+    bool IsBackendAvailable(wgpu::BackendType type);
     std::vector<DawnTestParam> FilterBackends(const DawnTestParam* params, size_t numParams);
 
     // All classes used to implement the deferred expectations should inherit from this.
@@ -377,6 +386,7 @@ namespace detail {
     extern template class ExpectEq<uint8_t>;
     extern template class ExpectEq<uint32_t>;
     extern template class ExpectEq<RGBA8>;
+    extern template class ExpectEq<float>;
 }  // namespace detail
 
 #endif  // TESTS_DAWNTEST_H_

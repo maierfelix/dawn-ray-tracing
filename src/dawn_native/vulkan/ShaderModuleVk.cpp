@@ -41,18 +41,16 @@ namespace dawn_native { namespace vulkan {
         // have a translation step eventually anyway.
         if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
             shaderc_spvc::CompileOptions options;
-            shaderc_spvc_status status =
-                mSpvcContext.InitializeForGlsl(descriptor->code, descriptor->codeSize, options);
-            if (status != shaderc_spvc_status_success) {
-                return DAWN_VALIDATION_ERROR("Unable to initialize instance of spvc");
-            }
+            DAWN_TRY(CheckSpvcSuccess(
+                mSpvcContext.InitializeForGlsl(descriptor->code, descriptor->codeSize, options),
+                "Unable to initialize instance of spvc"));
 
             spirv_cross::Compiler* compiler =
                 reinterpret_cast<spirv_cross::Compiler*>(mSpvcContext.GetCompiler());
-            ExtractSpirvInfo(*compiler);
+            DAWN_TRY(ExtractSpirvInfo(*compiler));
         } else {
             spirv_cross::Compiler compiler(descriptor->code, descriptor->codeSize);
-            ExtractSpirvInfo(compiler);
+            DAWN_TRY(ExtractSpirvInfo(compiler));
         }
 
         VkShaderModuleCreateInfo createInfo;

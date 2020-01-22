@@ -18,7 +18,9 @@
 #include "dawn_native/Adapter.h"
 #include "dawn_native/BackendConnection.h"
 #include "dawn_native/Extensions.h"
+#include "dawn_native/RefCounted.h"
 #include "dawn_native/Toggles.h"
+#include "dawn_native/dawn_platform.h"
 
 #include <array>
 #include <memory>
@@ -27,15 +29,13 @@
 
 namespace dawn_native {
 
+    class Surface;
+
     // This is called InstanceBase for consistency across the frontend, even if the backends don't
     // specialize this class.
-    class InstanceBase final {
+    class InstanceBase final : public RefCounted {
       public:
-        InstanceBase() = default;
-        ~InstanceBase() = default;
-
-        InstanceBase(const InstanceBase& other) = delete;
-        InstanceBase& operator=(const InstanceBase& other) = delete;
+        static InstanceBase* Create(const InstanceDescriptor* descriptor = nullptr);
 
         void DiscoverDefaultAdapters();
         bool DiscoverAdapters(const AdapterDiscoveryOptionsBase* options);
@@ -66,12 +66,23 @@ namespace dawn_native {
         void SetPlatform(dawn_platform::Platform* platform);
         dawn_platform::Platform* GetPlatform() const;
 
+        // Dawn API
+        Surface* CreateSurface(const SurfaceDescriptor* descriptor);
+
       private:
+        InstanceBase() = default;
+        ~InstanceBase() = default;
+
+        InstanceBase(const InstanceBase& other) = delete;
+        InstanceBase& operator=(const InstanceBase& other) = delete;
+
+        bool Initialize(const InstanceDescriptor* descriptor);
+
         // Lazily creates connections to all backends that have been compiled.
         void EnsureBackendConnections();
 
         // Finds the BackendConnection for `type` or returns an error.
-        ResultOrError<BackendConnection*> FindBackend(BackendType type);
+        ResultOrError<BackendConnection*> FindBackend(wgpu::BackendType type);
 
         MaybeError DiscoverAdaptersInternal(const AdapterDiscoveryOptionsBase* options);
 

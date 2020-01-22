@@ -91,6 +91,25 @@ namespace dawn_native { namespace vulkan {
 
     Device::~Device() {
         BaseDestructor();
+
+        mDescriptorSetService = nullptr;
+
+        // We still need to properly handle Vulkan object deletion even if the device has been lost,
+        // so the Deleter and vkDevice cannot be destroyed in Device::Destroy().
+        // We need handle deleting all child objects by calling Tick() again with a large serial to
+        // force all operations to look as if they were completed, and delete all objects before
+        // destroying the Deleter and vkDevice.
+        mCompletedSerial = std::numeric_limits<Serial>::max();
+        mDeleter->Tick(mCompletedSerial);
+        mDeleter = nullptr;
+
+        // VkQueues are destroyed when the VkDevice is destroyed
+        // The VkDevice is needed to destroy child objects, so it must be destroyed last after all
+        // child objects have been deleted.
+        if (mVkDevice != VK_NULL_HANDLE) {
+            fn.DestroyDevice(mVkDevice, nullptr);
+            mVkDevice = VK_NULL_HANDLE;
+        }
     }
 
     ResultOrError<RayTracingAccelerationContainerBase*> Device::CreateRayTracingAccelerationContainerImpl(
@@ -756,6 +775,8 @@ namespace dawn_native { namespace vulkan {
     }
 
     void Device::Destroy() {
+        ASSERT(mLossStatus != LossStatus::AlreadyLost);
+
         // Immediately tag the recording context as unused so we don't try to submit it in Tick.
         mRecordingContext.used = false;
         fn.DestroyCommandPool(mVkDevice, mRecordingContext.commandPool, nullptr);
@@ -764,7 +785,9 @@ namespace dawn_native { namespace vulkan {
         // on a serial that doesn't have a corresponding fence enqueued. Force all
         // operations to look as if they were completed (because they were).
         mCompletedSerial = mLastSubmittedSerial + 1;
-        Tick();
+
+        // Assert that errors are device loss so that we can continue with destruction
+        AssertAndIgnoreDeviceLossError(TickImpl());
 
         ASSERT(mCommandsInFlight.Empty());
         for (const CommandPoolAndBuffer& commands : mUnusedCommands) {
@@ -785,24 +808,16 @@ namespace dawn_native { namespace vulkan {
 
         // Free services explicitly so that they can free Vulkan objects before vkDestroyDevice
         mDynamicUploader = nullptr;
-        mDescriptorSetService = nullptr;
 
         // Releasing the uploader enqueues buffers to be released.
         // Call Tick() again to clear them before releasing the deleter.
         mDeleter->Tick(mCompletedSerial);
 
-        mDeleter = nullptr;
         mMapRequestTracker = nullptr;
 
         // The VkRenderPasses in the cache can be destroyed immediately since all commands referring
         // to them are guaranteed to be finished executing.
         mRenderPassCache = nullptr;
-
-        // VkQueues are destroyed when the VkDevice is destroyed
-        if (mVkDevice != VK_NULL_HANDLE) {
-            fn.DestroyDevice(mVkDevice, nullptr);
-            mVkDevice = VK_NULL_HANDLE;
-        }
     }
 
 }}  // namespace dawn_native::vulkan

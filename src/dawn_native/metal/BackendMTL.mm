@@ -14,7 +14,7 @@
 
 #include "dawn_native/metal/BackendMTL.h"
 
-#include "common/Constants.h"
+#include "common/GPUInfo.h"
 #include "common/Platform.h"
 #include "dawn_native/Instance.h"
 #include "dawn_native/MetalBackend.h"
@@ -39,11 +39,11 @@ namespace dawn_native { namespace metal {
         };
 
 #if defined(DAWN_PLATFORM_MACOS)
-        const Vendor kVendors[] = {{"AMD", kVendorID_AMD},
-                                   {"Radeon", kVendorID_AMD},
-                                   {"Intel", kVendorID_Intel},
-                                   {"Geforce", kVendorID_Nvidia},
-                                   {"Quadro", kVendorID_Nvidia}};
+        const Vendor kVendors[] = {{"AMD", gpu_info::kVendorID_AMD},
+                                   {"Radeon", gpu_info::kVendorID_AMD},
+                                   {"Intel", gpu_info::kVendorID_Intel},
+                                   {"Geforce", gpu_info::kVendorID_Nvidia},
+                                   {"Quadro", gpu_info::kVendorID_Nvidia}};
 
         // Find vendor ID from MTLDevice name.
         MaybeError GetVendorIdFromVendors(id<MTLDevice> device, PCIIDs* ids) {
@@ -176,7 +176,7 @@ namespace dawn_native { namespace metal {
     class Adapter : public AdapterBase {
       public:
         Adapter(InstanceBase* instance, id<MTLDevice> device)
-            : AdapterBase(instance, BackendType::Metal), mDevice([device retain]) {
+            : AdapterBase(instance, wgpu::BackendType::Metal), mDevice([device retain]) {
             mPCIInfo.name = std::string([mDevice.name UTF8String]);
 
             PCIIDs ids;
@@ -186,12 +186,12 @@ namespace dawn_native { namespace metal {
             };
 
 #if defined(DAWN_PLATFORM_IOS)
-            mDeviceType = DeviceType::IntegratedGPU;
+            mAdapterType = wgpu::AdapterType::IntegratedGPU;
 #elif defined(DAWN_PLATFORM_MACOS)
             if ([device isLowPower]) {
-                mDeviceType = DeviceType::IntegratedGPU;
+                mAdapterType = wgpu::AdapterType::IntegratedGPU;
             } else {
-                mDeviceType = DeviceType::DiscreteGPU;
+                mAdapterType = wgpu::AdapterType::DiscreteGPU;
             }
 #else
 #    error "Unsupported Apple platform."
@@ -221,7 +221,8 @@ namespace dawn_native { namespace metal {
 
     // Implementation of the Metal backend's BackendConnection
 
-    Backend::Backend(InstanceBase* instance) : BackendConnection(instance, BackendType::Metal) {
+    Backend::Backend(InstanceBase* instance)
+        : BackendConnection(instance, wgpu::BackendType::Metal) {
         if (GetInstance()->IsBackendValidationEnabled()) {
             setenv("METAL_DEVICE_WRAPPER_TYPE", "1", 1);
         }

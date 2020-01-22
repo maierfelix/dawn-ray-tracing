@@ -18,6 +18,7 @@
 #include "common/Log.h"
 #include "common/Platform.h"
 #include "utils/BackendBinding.h"
+#include "utils/GLFWUtils.h"
 #include "utils/TerribleCommandBuffer.h"
 
 #include <dawn/dawn_proc.h>
@@ -65,13 +66,13 @@ enum class CmdBufType {
 // Default to D3D12, Metal, Vulkan, OpenGL in that order as D3D12 and Metal are the preferred on
 // their respective platforms, and Vulkan is preferred to OpenGL
 #if defined(DAWN_ENABLE_BACKEND_D3D12)
-    static dawn_native::BackendType backendType = dawn_native::BackendType::D3D12;
+static wgpu::BackendType backendType = wgpu::BackendType::D3D12;
 #elif defined(DAWN_ENABLE_BACKEND_METAL)
-    static dawn_native::BackendType backendType = dawn_native::BackendType::Metal;
-#elif defined(DAWN_ENABLE_BACKEND_OPENGL)
-    static dawn_native::BackendType backendType = dawn_native::BackendType::OpenGL;
+static wgpu::BackendType backendType = wgpu::BackendType::Metal;
 #elif defined(DAWN_ENABLE_BACKEND_VULKAN)
-    static dawn_native::BackendType backendType = dawn_native::BackendType::Vulkan;
+static wgpu::BackendType backendType = wgpu::BackendType::Vulkan;
+#elif defined(DAWN_ENABLE_BACKEND_OPENGL)
+static wgpu::BackendType backendType = wgpu::BackendType::OpenGL;
 #else
     #error
 #endif
@@ -109,8 +110,10 @@ wgpu::Device CreateCppDawnDevice() {
         std::vector<dawn_native::Adapter> adapters = instance->GetAdapters();
         auto adapterIt = std::find_if(adapters.begin(), adapters.end(),
                                       [](const dawn_native::Adapter adapter) -> bool {
-            return adapter.GetBackendType() == backendType;
-        });
+                                          wgpu::AdapterProperties properties;
+                                          adapter.GetProperties(&properties);
+                                          return properties.backendType == backendType;
+                                      });
         ASSERT(adapterIt != adapters.end());
         backendAdapter = *adapterIt;
     }
@@ -151,7 +154,7 @@ wgpu::Device CreateCppDawnDevice() {
 
                 wireClient = new dawn_wire::WireClient(clientDesc);
                 WGPUDevice clientDevice = wireClient->GetDevice();
-                DawnProcTable clientProcs = wireClient->GetProcs();
+                DawnProcTable clientProcs = dawn_wire::WireClient::GetProcs();
                 s2cBuf->SetHandler(wireClient);
 
                 procs = clientProcs;
@@ -200,23 +203,23 @@ bool InitSample(int argc, const char** argv) {
         if (std::string("-b") == argv[i] || std::string("--backend") == argv[i]) {
             i++;
             if (i < argc && std::string("d3d12") == argv[i]) {
-                backendType = dawn_native::BackendType::D3D12;
+                backendType = wgpu::BackendType::D3D12;
                 continue;
             }
             if (i < argc && std::string("metal") == argv[i]) {
-                backendType = dawn_native::BackendType::Metal;
+                backendType = wgpu::BackendType::Metal;
                 continue;
             }
             if (i < argc && std::string("null") == argv[i]) {
-                backendType = dawn_native::BackendType::Null;
+                backendType = wgpu::BackendType::Null;
                 continue;
             }
             if (i < argc && std::string("opengl") == argv[i]) {
-                backendType = dawn_native::BackendType::OpenGL;
+                backendType = wgpu::BackendType::OpenGL;
                 continue;
             }
             if (i < argc && std::string("vulkan") == argv[i]) {
-                backendType = dawn_native::BackendType::Vulkan;
+                backendType = wgpu::BackendType::Vulkan;
                 continue;
             }
             fprintf(stderr, "--backend expects a backend name (opengl, metal, d3d12, null, vulkan)\n");

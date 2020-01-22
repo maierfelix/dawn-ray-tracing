@@ -44,12 +44,44 @@ namespace dawn_native {
         mImpl = nullptr;
     }
 
+    void Adapter::GetProperties(wgpu::AdapterProperties* properties) const {
+        properties->backendType = mImpl->GetBackendType();
+        properties->adapterType = mImpl->GetAdapterType();
+        properties->deviceID = mImpl->GetPCIInfo().deviceId;
+        properties->vendorID = mImpl->GetPCIInfo().vendorId;
+        properties->name = mImpl->GetPCIInfo().name.c_str();
+    }
+
     BackendType Adapter::GetBackendType() const {
-        return mImpl->GetBackendType();
+        switch (mImpl->GetBackendType()) {
+            case wgpu::BackendType::D3D12:
+                return BackendType::D3D12;
+            case wgpu::BackendType::Metal:
+                return BackendType::Metal;
+            case wgpu::BackendType::Null:
+                return BackendType::Null;
+            case wgpu::BackendType::OpenGL:
+                return BackendType::OpenGL;
+            case wgpu::BackendType::Vulkan:
+                return BackendType::Vulkan;
+
+            default:
+                UNREACHABLE();
+                return BackendType::Null;
+        }
     }
 
     DeviceType Adapter::GetDeviceType() const {
-        return mImpl->GetDeviceType();
+        switch (mImpl->GetAdapterType()) {
+            case wgpu::AdapterType::DiscreteGPU:
+                return DeviceType::DiscreteGPU;
+            case wgpu::AdapterType::IntegratedGPU:
+                return DeviceType::IntegratedGPU;
+            case wgpu::AdapterType::CPU:
+                return DeviceType::CPU;
+            case wgpu::AdapterType::Unknown:
+                return DeviceType::Unknown;
+        }
     }
 
     const PCIInfo& Adapter::GetPCIInfo() const {
@@ -75,17 +107,20 @@ namespace dawn_native {
 
     // AdapterDiscoverOptionsBase
 
-    AdapterDiscoveryOptionsBase::AdapterDiscoveryOptionsBase(BackendType type) : backendType(type) {
+    AdapterDiscoveryOptionsBase::AdapterDiscoveryOptionsBase(WGPUBackendType type)
+        : backendType(type) {
     }
 
     // Instance
 
-    Instance::Instance() : mImpl(new InstanceBase()) {
+    Instance::Instance() : mImpl(InstanceBase::Create()) {
     }
 
     Instance::~Instance() {
-        delete mImpl;
-        mImpl = nullptr;
+        if (mImpl != nullptr) {
+            mImpl->Release();
+            mImpl = nullptr;
+        }
     }
 
     void Instance::DiscoverDefaultAdapters() {
@@ -119,6 +154,10 @@ namespace dawn_native {
 
     void Instance::SetPlatform(dawn_platform::Platform* platform) {
         mImpl->SetPlatform(platform);
+    }
+
+    WGPUInstance Instance::Get() const {
+        return reinterpret_cast<WGPUInstance>(mImpl);
     }
 
     size_t GetLazyClearCountForTesting(WGPUDevice device) {

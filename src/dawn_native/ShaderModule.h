@@ -46,7 +46,7 @@ namespace dawn_native {
 
         static ShaderModuleBase* MakeError(DeviceBase* device);
 
-        void ExtractSpirvInfo(const spirv_cross::Compiler& compiler);
+        MaybeError ExtractSpirvInfo(const spirv_cross::Compiler& compiler);
 
         struct BindingInfo {
             // The SPIRV ID of the resource.
@@ -82,12 +82,19 @@ namespace dawn_native {
         };
 
       protected:
+        static MaybeError CheckSpvcSuccess(shaderc_spvc_status status, const char* error_msg);
+
         shaderc_spvc::Context mSpvcContext;
 
       private:
         ShaderModuleBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
         bool IsCompatibleWithBindGroupLayout(size_t group, const BindGroupLayoutBase* layout) const;
+
+        // Different implementations reflection into the shader depending on
+        // whether using spvc, or directly accessing spirv-cross.
+        MaybeError ExtractSpirvInfoWithSpvc();
+        MaybeError ExtractSpirvInfoWithSpirvCross(const spirv_cross::Compiler& compiler);
 
         // TODO(cwallez@chromium.org): The code is only stored for deduplication. We could maybe
         // store a cryptographic hash of the code instead?

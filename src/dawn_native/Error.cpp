@@ -15,21 +15,13 @@
 #include "dawn_native/Error.h"
 
 #include "dawn_native/ErrorData.h"
+#include "dawn_native/dawn_platform.h"
 
 namespace dawn_native {
-
-    ErrorData* MakeError(InternalErrorType type,
-                         std::string message,
-                         const char* file,
-                         const char* function,
-                         int line) {
-        ErrorData* error = new ErrorData(type, message);
-        error->AppendBacktrace(file, function, line);
-        return error;
+    void AssertAndIgnoreDeviceLossError(MaybeError maybeError) {
+        if (maybeError.IsError()) {
+            std::unique_ptr<ErrorData> errorData = maybeError.AcquireError();
+            ASSERT(errorData->GetType() == wgpu::ErrorType::DeviceLost);
+        }
     }
-
-    void AppendBacktrace(ErrorData* error, const char* file, const char* function, int line) {
-        error->AppendBacktrace(file, function, line);
-    }
-
 }  // namespace dawn_native

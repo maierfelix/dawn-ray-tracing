@@ -42,6 +42,15 @@ namespace wgpu {
 
     {% endfor %}
 
+    static_assert(sizeof(ChainedStruct) == sizeof(WGPUChainedStruct),
+            "sizeof mismatch for ChainedStruct");
+    static_assert(alignof(ChainedStruct) == alignof(WGPUChainedStruct),
+            "alignof mismatch for ChainedStruct");
+    static_assert(offsetof(ChainedStruct, nextInChain) == offsetof(WGPUChainedStruct, nextInChain),
+            "offsetof mismatch for ChainedStruct::nextInChain");
+    static_assert(offsetof(ChainedStruct, sType) == offsetof(WGPUChainedStruct, sType),
+            "offsetof mismatch for ChainedStruct::sType");
+
     {% for type in by_category["structure"] %}
         {% set CppType = as_cppType(type.name) %}
         {% set CType = as_cType(type.name) %}
@@ -124,6 +133,12 @@ namespace wgpu {
         }
 
     {% endfor %}
+
+    Instance CreateInstance(const InstanceDescriptor* descriptor) {
+        const WGPUInstanceDescriptor* cDescriptor =
+            reinterpret_cast<const WGPUInstanceDescriptor*>(descriptor);
+        return Instance::Acquire(wgpuCreateInstance(cDescriptor));
+    }
 
     Proc GetProcAddress(Device const& device, const char* procName) {
         return reinterpret_cast<Proc>(wgpuGetProcAddress(device.Get(), procName));
