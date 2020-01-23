@@ -150,6 +150,25 @@ namespace dawn_native { namespace vulkan {
 
     }  // anonymous namespace
 
+    // validate geometry instance flag bits to match with wgpu
+    // we have to do this since we allow insance buffer to be created from outside
+    static_assert((VkGeometryInstanceFlagBitsNV)
+                          wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable ==
+                      VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV,
+                  "");
+    static_assert((VkGeometryInstanceFlagBitsNV)
+                          wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise ==
+                      VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV,
+                  "");
+    static_assert((VkGeometryInstanceFlagBitsNV)
+                          wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque ==
+                      VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV,
+                  "");
+    static_assert((VkGeometryInstanceFlagBitsNV)
+                          wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque ==
+                      VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV,
+                  "");
+
     // static
     ResultOrError<RayTracingAccelerationContainer*> RayTracingAccelerationContainer::Create(
         Device* device,
@@ -201,7 +220,8 @@ namespace dawn_native { namespace vulkan {
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
-                const RayTracingAccelerationGeometryDescriptor& geometry = descriptor->geometries[ii];
+                const RayTracingAccelerationGeometryDescriptor& geometry =
+                    descriptor->geometries[ii];
 
                 VkGeometryNV geometryInfo{};
                 geometryInfo.pNext = nullptr;
@@ -274,14 +294,23 @@ namespace dawn_native { namespace vulkan {
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             // create data for instance buffer
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
-                const RayTracingAccelerationInstanceDescriptor& instance = descriptor->instances[ii];
+                const RayTracingAccelerationInstanceDescriptor& instance =
+                    descriptor->instances[ii];
                 RayTracingAccelerationContainer* geometryContainer =
                     ToBackend(instance.geometryContainer);
                 VkAccelerationInstance instanceData{};
-                float transform[16] = {};
-                Fill4x3TransformMatrix(transform, instance.transform->translation,
-                                       instance.transform->rotation, instance.transform->scale);
-                memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
+                // process transform object
+                if (instance.transform != nullptr) {
+                    float transform[16] = {};
+                    Fill4x3TransformMatrix(transform, instance.transform->translation,
+                                           instance.transform->rotation, instance.transform->scale);
+                    memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
+                }
+                // process transform matrix
+                else if (instance.transformMatrix != nullptr) {
+                    memcpy(&instanceData.transform, instance.transformMatrix,
+                           sizeof(instanceData.transform));
+                }
                 // validate ranges
                 if (instance.mask >= (2 << 7)) {
                     return DAWN_VALIDATION_ERROR("Instance Mask out of range");
@@ -294,7 +323,7 @@ namespace dawn_native { namespace vulkan {
                 instanceData.instanceOffset = instance.instanceOffset;
                 instanceData.flags = ToVulkanAccelerationContainerInstanceFlags(instance.flags);
                 instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
-                if (geometryContainer->GetHandle() == 0) {
+                if (instanceData.accelerationStructureHandle == 0) {
                     return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
                 }
                 mInstances.push_back(instanceData);
@@ -336,7 +365,7 @@ namespace dawn_native { namespace vulkan {
 
         return {};
     }
-    
+
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {
         DestroyInternal();
     }

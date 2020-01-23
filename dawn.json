@@ -208,6 +208,10 @@
             {"name": "instance id", "type": "uint32_t", "default": "0"},
             {"name": "instance offset", "type": "uint32_t", "default": "0"},
             {"name": "transform", "type": "ray tracing acceleration instance transform descriptor", "annotation": "const*", "optional": true},
+
+            {"name": "transform matrix size", "type": "uint32_t", "default": "12"},
+            {"name": "transform matrix", "type": "float", "annotation": "const*", "length": "transform matrix size", "optional": true},
+
             {"name": "geometry container", "type": "ray tracing acceleration container"}
         ]
     },
