@@ -473,14 +473,13 @@ namespace dawn_native { namespace vulkan {
                     }
                     // top-level AS
                     else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
-                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-                        asInfo.instanceCount = instances.size();
+                        asInfo.instanceCount = container->GetInstanceCount();
                         asInfo.geometryCount = 0;
                         asInfo.pGeometries = nullptr;
 
@@ -569,14 +568,13 @@ namespace dawn_native { namespace vulkan {
                     }
                     // top-level AS
                     else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
-                        std::vector<VkAccelerationInstance>& instances = container->GetInstances();
 
                         VkAccelerationStructureInfoNV asInfo{};
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
                         asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-                        asInfo.instanceCount = instances.size();
+                        asInfo.instanceCount = container->GetInstanceCount();
                         asInfo.geometryCount = 0;
                         asInfo.pGeometries = nullptr;
 

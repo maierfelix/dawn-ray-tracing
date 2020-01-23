@@ -151,7 +151,7 @@ namespace dawn_native { namespace vulkan {
     }  // anonymous namespace
 
     // validate geometry instance flag bits to match with wgpu
-    // we have to do this since we allow insance buffer to be created from outside
+    // we have to do this since we allow instance buffer to be created from outside
     static_assert((VkGeometryInstanceFlagBitsNV)
                           wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable ==
                       VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV,
@@ -194,7 +194,9 @@ namespace dawn_native { namespace vulkan {
         }
         if (mInstanceMemory.buffer != VK_NULL_HANDLE) {
             Buffer* buffer = mInstanceMemory.allocation.Get();
-            buffer->Destroy();
+            if (buffer != nullptr) {
+                buffer->Destroy();
+            }
             mInstanceMemory.buffer = VK_NULL_HANDLE;
         }
         if (mAccelerationStructure != VK_NULL_HANDLE) {
@@ -283,68 +285,85 @@ namespace dawn_native { namespace vulkan {
             };
         }
 
+        // acceleration container holds instances
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            // only use instances array when no instance buffer was provided
+            if (descriptor->instanceBuffer == nullptr) {
+                // create data for instance buffer
+                for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
+                    const RayTracingAccelerationInstanceDescriptor& instance =
+                        descriptor->instances[ii];
+                    RayTracingAccelerationContainer* geometryContainer =
+                        ToBackend(instance.geometryContainer);
+                    VkAccelerationInstance instanceData{};
+                    // process transform object
+                    if (instance.transform != nullptr) {
+                        float transform[16] = {};
+                        Fill4x3TransformMatrix(transform, instance.transform->translation,
+                                               instance.transform->rotation,
+                                               instance.transform->scale);
+                        memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
+                    }
+                    // process transform matrix
+                    else if (instance.transformMatrix != nullptr) {
+                        memcpy(&instanceData.transform, instance.transformMatrix,
+                               sizeof(instanceData.transform));
+                    }
+                    // validate ranges
+                    if (instance.mask >= (2 << 7)) {
+                        return DAWN_VALIDATION_ERROR("Instance Mask out of range");
+                    }
+                    if (instance.instanceId >= (2 << 23)) {
+                        return DAWN_VALIDATION_ERROR("Instance Id out of range");
+                    }
+                    instanceData.instanceId = instance.instanceId;
+                    instanceData.mask = instance.mask;
+                    instanceData.instanceOffset = instance.instanceOffset;
+                    instanceData.flags = ToVulkanAccelerationContainerInstanceFlags(instance.flags);
+                    instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
+                    if (instanceData.accelerationStructureHandle == 0) {
+                        return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
+                    }
+                    mInstances.push_back(instanceData);
+                };
+            }
+        }
+
+        // container requires instance buffer
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            // only create internal instance buffer when no external one was provided
+            if (descriptor->instanceBuffer == nullptr) {
+                uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
+
+                BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                               bufferSize};
+                Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+                mInstanceMemory.allocation = AcquireRef(buffer);
+                mInstanceMemory.buffer = buffer->GetHandle();
+                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
+                mInstanceMemory.memory =
+                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+
+                // copy instance data into instance buffer
+                buffer->SetSubData(0, bufferSize, mInstances.data());
+                mInstanceCount = mInstances.size();
+            }
+            // external instance buffer
+            else {
+                Buffer* buffer = ToBackend(descriptor->instanceBuffer);
+                mInstanceMemory.buffer = buffer->GetHandle();
+                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
+                mInstanceMemory.memory =
+                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+                mInstanceCount = buffer->GetSize() / sizeof(VkAccelerationInstance);
+            }
+        }
+
         // create the acceleration container
         {
             MaybeError result = CreateAccelerationStructure(descriptor);
             if (result.IsError())
                 return result.AcquireError();
-        }
-
-        // acceleration container holds instances
-        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            // create data for instance buffer
-            for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
-                const RayTracingAccelerationInstanceDescriptor& instance =
-                    descriptor->instances[ii];
-                RayTracingAccelerationContainer* geometryContainer =
-                    ToBackend(instance.geometryContainer);
-                VkAccelerationInstance instanceData{};
-                // process transform object
-                if (instance.transform != nullptr) {
-                    float transform[16] = {};
-                    Fill4x3TransformMatrix(transform, instance.transform->translation,
-                                           instance.transform->rotation, instance.transform->scale);
-                    memcpy(&instanceData.transform, transform, sizeof(instanceData.transform));
-                }
-                // process transform matrix
-                else if (instance.transformMatrix != nullptr) {
-                    memcpy(&instanceData.transform, instance.transformMatrix,
-                           sizeof(instanceData.transform));
-                }
-                // validate ranges
-                if (instance.mask >= (2 << 7)) {
-                    return DAWN_VALIDATION_ERROR("Instance Mask out of range");
-                }
-                if (instance.instanceId >= (2 << 23)) {
-                    return DAWN_VALIDATION_ERROR("Instance Id out of range");
-                }
-                instanceData.instanceId = instance.instanceId;
-                instanceData.mask = instance.mask;
-                instanceData.instanceOffset = instance.instanceOffset;
-                instanceData.flags = ToVulkanAccelerationContainerInstanceFlags(instance.flags);
-                instanceData.accelerationStructureHandle = geometryContainer->GetHandle();
-                if (instanceData.accelerationStructureHandle == 0) {
-                    return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Handle");
-                }
-                mInstances.push_back(instanceData);
-            };
-        }
-
-        // container requires instance buffer
-        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
-
-            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
-                                           bufferSize};
-            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-            mInstanceMemory.allocation = AcquireRef(buffer);
-            mInstanceMemory.buffer = buffer->GetHandle();
-            mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
-            mInstanceMemory.memory =
-                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
-
-            // copy instance data into instance buffer
-            buffer->SetSubData(0, bufferSize, mInstances.data());
         }
 
         // reserve scratch memory
@@ -506,7 +525,7 @@ namespace dawn_native { namespace vulkan {
             ToVulkanBuildAccelerationContainerFlags(descriptor->flags);
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             accelerationStructureCI.info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-            accelerationStructureCI.info.instanceCount = descriptor->instanceCount;
+            accelerationStructureCI.info.instanceCount = mInstanceCount;
             accelerationStructureCI.info.geometryCount = 0;
             accelerationStructureCI.info.pGeometries = nullptr;
         } else if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
@@ -555,8 +574,8 @@ namespace dawn_native { namespace vulkan {
         return mGeometries;
     }
 
-    std::vector<VkAccelerationInstance>& RayTracingAccelerationContainer::GetInstances() {
-        return mInstances;
+    uint32_t RayTracingAccelerationContainer::GetInstanceCount() const {
+        return mInstanceCount;
     }
 
     ScratchMemoryPool& RayTracingAccelerationContainer::GetScratchMemory() {

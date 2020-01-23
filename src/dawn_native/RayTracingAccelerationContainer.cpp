@@ -66,9 +66,14 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR(
                     "Geometry Count for Top-Level Acceleration Container must be zero");
             }
-            if (descriptor->instanceCount == 0) {
+            if (descriptor->instanceCount == 0 && descriptor->instanceBuffer == nullptr) {
                 return DAWN_VALIDATION_ERROR(
                     "No data provided for Top-Level Acceleration Container");
+            }
+            if (descriptor->instanceCount != 0 && descriptor->instanceBuffer != nullptr) {
+                return DAWN_VALIDATION_ERROR(
+                    "Only instances or instanceBuffer is valid to use in Top-Level Acceleration "
+                    "Container");
             }
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 const RayTracingAccelerationInstanceDescriptor& instance =
@@ -98,8 +103,7 @@ namespace dawn_native {
                     if (geometry.vertex == nullptr) {
                         return DAWN_VALIDATION_ERROR("No Vertex data provided");
                     }
-                }
-                else if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Aabbs) {
+                } else if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Aabbs) {
                     if (geometry.aabb == nullptr) {
                         return DAWN_VALIDATION_ERROR("No AABB data provided");
                     }
@@ -187,6 +191,10 @@ namespace dawn_native {
             };
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            // save reference to instance buffer if provided
+            if (descriptor->instanceBuffer != nullptr) {
+                mInstanceBuffer = descriptor->instanceBuffer;
+            }
             // save unique references to used geometry containers
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 const RayTracingAccelerationInstanceDescriptor& instance =
@@ -200,12 +208,15 @@ namespace dawn_native {
         }
     }
 
-    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag)
+    RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase(
+        DeviceBase* device,
+        ObjectBase::ErrorTag tag)
         : ObjectBase(device, tag) {
     }
 
     // static
-    RayTracingAccelerationContainerBase* RayTracingAccelerationContainerBase::MakeError(DeviceBase* device) {
+    RayTracingAccelerationContainerBase* RayTracingAccelerationContainerBase::MakeError(
+        DeviceBase* device) {
         return new ErrorRayTracingAccelerationContainer(device);
     }
 

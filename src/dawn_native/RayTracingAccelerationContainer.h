@@ -40,6 +40,7 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         void Destroy();
+
         uint64_t GetHandle();
 
         bool IsBuilt() const;
@@ -67,6 +68,7 @@ namespace dawn_native {
         std::vector<Ref<BufferBase>> mAABBBuffers;
 
         // top-level references
+        Ref<BufferBase> mInstanceBuffer;
         std::vector<Ref<RayTracingAccelerationContainerBase>> mGeometryContainers;
 
         bool mIsBuilt = false;

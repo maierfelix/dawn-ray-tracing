@@ -54,8 +54,9 @@ namespace dawn_native { namespace vulkan {
         uint64_t GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
+        uint32_t GetInstanceCount() const;
+
         std::vector<VkGeometryNV>& GetGeometries();
-        std::vector<VkAccelerationInstance>& GetInstances();
 
         MemoryEntry& GetInstanceMemory();
 
@@ -79,6 +80,7 @@ namespace dawn_native { namespace vulkan {
 
         // instance buffer
         MemoryEntry mInstanceMemory;
+        uint32_t mInstanceCount;
 
         MaybeError CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);
