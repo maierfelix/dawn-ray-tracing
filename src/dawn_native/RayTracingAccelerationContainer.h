@@ -40,6 +40,7 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         void Destroy();
+        uint64_t GetHandle();
 
         bool IsBuilt() const;
         bool IsUpdated() const;
@@ -57,7 +58,7 @@ namespace dawn_native {
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
         void DestroyInternal();
-
+        uint64_t GetHandleInternal();
       private:
 
         // bottom-level references
@@ -76,6 +77,7 @@ namespace dawn_native {
         wgpu::RayTracingAccelerationContainerLevel mLevel;
 
         virtual void DestroyImpl() = 0;
+        virtual uint64_t GetHandleImpl() = 0;
     };
 
 }  // namespace dawn_native

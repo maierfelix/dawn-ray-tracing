@@ -185,6 +185,10 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
+    uint64_t RayTracingAccelerationContainer::GetHandleImpl() {
+        return mHandle;
+    }
+
     MaybeError RayTracingAccelerationContainer::Initialize(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());

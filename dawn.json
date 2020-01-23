@@ -62,6 +62,10 @@
         "methods": [
             {
                 "name": "destroy"
+            },
+            {
+                "name": "get handle",
+                "returns": "uint64_t"
             }
         ]
     },

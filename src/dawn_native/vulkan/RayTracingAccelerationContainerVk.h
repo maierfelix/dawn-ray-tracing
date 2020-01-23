@@ -66,6 +66,7 @@ namespace dawn_native { namespace vulkan {
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
         void DestroyImpl() override;
+        uint64_t GetHandleImpl() override;
 
         std::vector<VkGeometryNV> mGeometries;
         std::vector<VkAccelerationInstance> mInstances;

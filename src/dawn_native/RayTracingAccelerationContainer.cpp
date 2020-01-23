@@ -46,6 +46,9 @@ namespace dawn_native {
             void DestroyImpl() override {
                 UNREACHABLE();
             }
+            uint64_t GetHandleImpl() override {
+                UNREACHABLE();
+            }
         };
 
     }  // anonymous namespace
@@ -215,6 +218,14 @@ namespace dawn_native {
             DestroyImpl();
         }
         SetDestroyState(true);
+    }
+
+    uint64_t RayTracingAccelerationContainerBase::GetHandle() {
+        return GetHandleInternal();
+    }
+
+    uint64_t RayTracingAccelerationContainerBase::GetHandleInternal() {
+        return GetHandleImpl();
     }
 
     bool RayTracingAccelerationContainerBase::IsBuilt() const {
