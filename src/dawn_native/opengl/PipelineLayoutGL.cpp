@@ -56,6 +56,7 @@ namespace dawn_native { namespace opengl {
                         break;
 
                     case wgpu::BindingType::StorageTexture:
+                    case wgpu::BindingType::AccelerationContainer:
                         UNREACHABLE();
                         break;
 

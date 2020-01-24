@@ -35,6 +35,8 @@ namespace dawn_native { namespace opengl {
     class PersistentPipelineState;
     class PipelineLayout;
     class Queue;
+    class RayTracingAccelerationContainer;
+    class RayTracingShaderBindingTable;
     class RenderPipeline;
     class Sampler;
     class ShaderModule;
@@ -52,6 +54,8 @@ namespace dawn_native { namespace opengl {
         using DeviceType = Device;
         using PipelineLayoutType = PipelineLayout;
         using QueueType = Queue;
+        using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
+        using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using RenderPipelineType = RenderPipeline;
         using SamplerType = Sampler;
         using ShaderModuleType = ShaderModule;

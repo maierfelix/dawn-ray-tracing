@@ -38,6 +38,8 @@ namespace dawn_native { namespace opengl {
 
         GLenum IndexFormatType(wgpu::IndexFormat format) {
             switch (format) {
+                case wgpu::IndexFormat::None:
+                    return GL_UNSIGNED_SHORT;
                 case wgpu::IndexFormat::Uint16:
                     return GL_UNSIGNED_SHORT;
                 case wgpu::IndexFormat::Uint32:
@@ -305,6 +307,7 @@ namespace dawn_native { namespace opengl {
                         } break;
 
                         case wgpu::BindingType::StorageTexture:
+                        case wgpu::BindingType::AccelerationContainer:
                             UNREACHABLE();
                             break;
 
