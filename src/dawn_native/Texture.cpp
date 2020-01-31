@@ -290,7 +290,7 @@ namespace dawn_native {
 
         // The default value for the view dimension depends on the texture's dimension with a
         // special case for 2DArray being chosen automatically if arrayLayerCount is unspecified.
-        if (desc.dimension == wgpu::TextureViewDimension::Undefined) {
+        //if (desc.dimension == wgpu::TextureViewDimension::Undefined) {
             switch (texture->GetDimension()) {
                 case wgpu::TextureDimension::e1D:
                     desc.dimension = wgpu::TextureViewDimension::e1D;
@@ -311,7 +311,7 @@ namespace dawn_native {
                 default:
                     UNREACHABLE();
             }
-        }
+        //}
 
         if (desc.format == wgpu::TextureFormat::Undefined) {
             desc.format = texture->GetFormat().format;
