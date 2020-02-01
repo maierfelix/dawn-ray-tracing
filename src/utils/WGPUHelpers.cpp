@@ -44,6 +44,8 @@ namespace utils {
                     return shaderc_glsl_closesthit_shader;
                 case SingleShaderStage::RayMiss:
                     return shaderc_glsl_miss_shader;
+                case SingleShaderStage::RayIntersection:
+                    return shaderc_glsl_intersection_shader;
                 default:
                     UNREACHABLE();
             }

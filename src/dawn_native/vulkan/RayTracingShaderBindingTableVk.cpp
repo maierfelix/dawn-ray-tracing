@@ -182,7 +182,7 @@ namespace dawn_native { namespace vulkan {
         }
         VkShaderStageFlagBits stage = mStages[index].stage;
         if (stage != validStage) {
-            std::string msg = "Invalid stage for group index'" + std::to_string(index) + "'";
+            std::string msg = "Invalid stage for group index '" + std::to_string(index) + "'";
             return DAWN_VALIDATION_ERROR(msg);
         }
         return {};

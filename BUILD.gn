@@ -1271,6 +1271,15 @@ if (dawn_standalone) {
     ]
   }
 
+  dawn_sample("RayTracing") {
+    sources = [
+      "examples/RayTracing.cpp",
+    ]
+    deps = [
+      "third_party:glm",
+    ]
+  }
+
   group("dawn_samples") {
     deps = [
       ":Animometer",
@@ -1278,6 +1287,7 @@ if (dawn_standalone) {
       ":ComputeBoids",
       ":CppHelloTriangle",
       ":CubeReflection",
+      ":RayTracing"
     ]
   }
 }

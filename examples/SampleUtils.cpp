@@ -88,8 +88,13 @@ static dawn_wire::WireClient* wireClient = nullptr;
 static utils::TerribleCommandBuffer* c2sBuf = nullptr;
 static utils::TerribleCommandBuffer* s2cBuf = nullptr;
 
-wgpu::Device CreateCppDawnDevice() {
+wgpu::Device CreateCppDawnDevice(wgpu::BackendType manualBackendType) {
     glfwSetErrorCallback(PrintGLFWError);
+
+    if (manualBackendType != wgpu::BackendType::Null) {
+        backendType = manualBackendType;
+    }
+
     if (!glfwInit()) {
         return wgpu::Device();
     }
@@ -109,7 +114,7 @@ wgpu::Device CreateCppDawnDevice() {
     {
         std::vector<dawn_native::Adapter> adapters = instance->GetAdapters();
         auto adapterIt = std::find_if(adapters.begin(), adapters.end(),
-                                      [](const dawn_native::Adapter adapter) -> bool {
+                         [](const dawn_native::Adapter adapter) -> bool {
                                           wgpu::AdapterProperties properties;
                                           adapter.GetProperties(&properties);
                                           return properties.backendType == backendType;

@@ -33,7 +33,8 @@ namespace utils {
         RayGeneration,
         RayAnyHit,
         RayClosestHit,
-        RayMiss
+        RayMiss,
+        RayIntersection
     };
 
     wgpu::ShaderModule CreateShaderModule(const wgpu::Device& device,
