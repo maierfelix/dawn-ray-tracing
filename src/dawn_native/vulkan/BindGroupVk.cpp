@@ -87,7 +87,7 @@ namespace dawn_native { namespace vulkan {
                     writeAccelerationInfo[numWrites].sType =
                         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
                     writeAccelerationInfo[numWrites].accelerationStructureCount = 1;
-                    writeAccelerationInfo[numWrites].pAccelerationStructures = &instance;
+                    writeAccelerationInfo[numWrites].pAccelerationStructures = &*instance;
 
                     write.pNext = &writeAccelerationInfo[numWrites];
                 } break;

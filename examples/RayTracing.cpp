@@ -70,7 +70,7 @@ void init() {
         descriptor.nextInChain = nullptr;
         descriptor.label = nullptr;
         descriptor.implementation = GetSwapChainImplementation();
-        swapchain = wgpuDeviceCreateSwapChain(device, &descriptor);
+        swapchain = wgpuDeviceCreateSwapChain(device, nullptr, &descriptor);
     }
     swapChainFormat = static_cast<WGPUTextureFormat>(GetPreferredSwapChainTextureFormat());
     wgpuSwapChainConfigure(swapchain, swapChainFormat, WGPUTextureUsage_OutputAttachment, width,

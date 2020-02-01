@@ -292,7 +292,7 @@ namespace dawn_native { namespace vulkan {
     MaybeError Backend::RegisterDebugUtils() {
         return CheckVkSuccess(
             mFunctions.CreateDebugUtilsMessengerEXT(mInstance, &mDebugUtilsMessengerEXTInfo,
-                                                    nullptr, &mDebugUtilsCallback),
+                                                    nullptr, &*mDebugUtilsCallback),
             "vkCreateDebugUtilsMessengerEXT");
     }
 

@@ -240,38 +240,4 @@ namespace dawn_native { namespace vulkan {
         return region;
     }
 
-    MaybeError CreateBufferFromResourceMemoryAllocation(Device* device,
-                                                        VkBuffer* buffer,
-                                                        uint32_t size,
-                                                        VkBufferUsageFlags usage,
-                                                        ResourceMemoryAllocation resource) {
-        if (size == 0) {
-            return DAWN_VALIDATION_ERROR("Invalid Allocation Size: 0 is not a valid size");
-        }
-
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.pNext = nullptr;
-        bufferInfo.flags = 0;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        bufferInfo.queueFamilyIndexCount = 0;
-        bufferInfo.pQueueFamilyIndices = nullptr;
-
-        MaybeError result = CheckVkSuccess(
-            device->fn.CreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, buffer),
-            "CreateBuffer");
-        if (result.IsError())
-            return result;
-
-        DAWN_TRY(CheckVkSuccess(
-            device->fn.BindBufferMemory(device->GetVkDevice(), *buffer,
-                                        ToBackend(resource.GetResourceHeap())->GetMemory(),
-                                        resource.GetOffset()),
-            "BindBufferMemory"));
-
-        return {};
-    }
-
 }}  // namespace dawn_native::vulkan

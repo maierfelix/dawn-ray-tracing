@@ -60,7 +60,7 @@ namespace dawn_native { namespace vulkan {
 
             MaybeError result = CheckVkSuccess(
                 device->fn.CreateRayTracingPipelinesNV(device->GetVkDevice(), VK_NULL_HANDLE, 1,
-                                                       &createInfo, nullptr, &mHandle),
+                                                       &createInfo, nullptr, &*mHandle),
                 "vkCreateRayTracingPipelinesNV");
             if (result.IsError())
                 return result.AcquireError();

@@ -279,7 +279,7 @@
             {"name": "type", "type": "binding type"},
             {"name": "has dynamic offset", "type": "bool", "default": "false"},
             {"name": "multisampled", "type": "bool", "default": "false"},
-            {"name": "texture dimension", "type": "texture view dimension", "default": "2D"},
+            {"name": "texture dimension", "type": "texture view dimension", "default": "undefined"},
             {"name": "texture component type", "type": "texture component type", "default": "float"}
         ]
     },

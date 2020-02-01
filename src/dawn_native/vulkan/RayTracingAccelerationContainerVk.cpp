@@ -539,7 +539,7 @@ namespace dawn_native { namespace vulkan {
 
         MaybeError result = CheckVkSuccess(
             device->fn.CreateAccelerationStructureNV(
-                device->GetVkDevice(), &accelerationStructureCI, nullptr, &mAccelerationStructure),
+                device->GetVkDevice(), &accelerationStructureCI, nullptr, &*mAccelerationStructure),
             "vkCreateAccelerationStructureNV");
         if (result.IsError())
             return result;
