@@ -53,6 +53,9 @@ namespace dawn_native { namespace vulkan {
         if (descriptor != nullptr) {
             ApplyToggleOverrides(descriptor);
         }
+
+        // Set the device as lost until successfully created.
+        mLossStatus = LossStatus::AlreadyLost;
     }
 
     MaybeError Device::Initialize() {
@@ -94,14 +97,22 @@ namespace dawn_native { namespace vulkan {
 
         mDescriptorSetService = nullptr;
 
+        // The frontend asserts DynamicUploader is destructed by the backend.
+        // It is usually destructed in Destroy(), but Destroy isn't always called if device
+        // initialization failed.
+        mDynamicUploader = nullptr;
+
         // We still need to properly handle Vulkan object deletion even if the device has been lost,
         // so the Deleter and vkDevice cannot be destroyed in Device::Destroy().
         // We need handle deleting all child objects by calling Tick() again with a large serial to
         // force all operations to look as if they were completed, and delete all objects before
         // destroying the Deleter and vkDevice.
-        mCompletedSerial = std::numeric_limits<Serial>::max();
-        mDeleter->Tick(mCompletedSerial);
-        mDeleter = nullptr;
+        // The Deleter may be null if initialization failed.
+        if (mDeleter != nullptr) {
+            mCompletedSerial = std::numeric_limits<Serial>::max();
+            mDeleter->Tick(mCompletedSerial);
+            mDeleter = nullptr;
+        }
 
         // VkQueues are destroyed when the VkDevice is destroyed
         // The VkDevice is needed to destroy child objects, so it must be destroyed last after all
@@ -164,6 +175,12 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<SwapChainBase*> Device::CreateSwapChainImpl(
         const SwapChainDescriptor* descriptor) {
         return SwapChain::Create(this, descriptor);
+    }
+    ResultOrError<NewSwapChainBase*> Device::CreateSwapChainImpl(
+        Surface* surface,
+        NewSwapChainBase* previousSwapChain,
+        const SwapChainDescriptor* descriptor) {
+        return DAWN_VALIDATION_ERROR("New swapchains not implemented.");
     }
     ResultOrError<TextureBase*> Device::CreateTextureImpl(const TextureDescriptor* descriptor) {
         return Texture::Create(this, descriptor);
@@ -270,13 +287,13 @@ namespace dawn_native { namespace vulkan {
         submitInfo.pNext = nullptr;
         submitInfo.waitSemaphoreCount =
             static_cast<uint32_t>(mRecordingContext.waitSemaphores.size());
-        submitInfo.pWaitSemaphores = mRecordingContext.waitSemaphores.data();
+        submitInfo.pWaitSemaphores = AsVkArray(mRecordingContext.waitSemaphores.data());
         submitInfo.pWaitDstStageMask = dstStageMasks.data();
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &mRecordingContext.commandBuffer;
         submitInfo.signalSemaphoreCount =
             static_cast<uint32_t>(mRecordingContext.signalSemaphores.size());
-        submitInfo.pSignalSemaphores = mRecordingContext.signalSemaphores.data();
+        submitInfo.pSignalSemaphores = AsVkArray(mRecordingContext.signalSemaphores.data());
 
         VkFence fence = VK_NULL_HANDLE;
         DAWN_TRY_ASSIGN(fence, GetUnusedFence());
@@ -424,6 +441,8 @@ namespace dawn_native { namespace vulkan {
         DAWN_TRY(CheckVkSuccess(fn.CreateDevice(physicalDevice, &createInfo, nullptr, &mVkDevice),
                                 "vkCreateDevice"));
 
+        // Device created. Mark it as alive.
+        mLossStatus = LossStatus::Alive;
         return usedKnobs;
     }
 
@@ -478,7 +497,7 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<VkFence> Device::GetUnusedFence() {
         if (!mUnusedFences.empty()) {
             VkFence fence = mUnusedFences.back();
-            DAWN_TRY(CheckVkSuccess(fn.ResetFences(mVkDevice, 1, &fence), "vkResetFences"));
+            DAWN_TRY(CheckVkSuccess(fn.ResetFences(mVkDevice, 1, &*fence), "vkResetFences"));
 
             mUnusedFences.pop_back();
             return fence;
@@ -490,7 +509,7 @@ namespace dawn_native { namespace vulkan {
         createInfo.flags = 0;
 
         VkFence fence = VK_NULL_HANDLE;
-        DAWN_TRY(CheckVkSuccess(fn.CreateFence(mVkDevice, &createInfo, nullptr, &fence),
+        DAWN_TRY(CheckVkSuccess(fn.CreateFence(mVkDevice, &createInfo, nullptr, &*fence),
                                 "vkCreateFence"));
 
         return fence;
@@ -543,7 +562,7 @@ namespace dawn_native { namespace vulkan {
             createInfo.queueFamilyIndex = mQueueFamily;
 
             DAWN_TRY(CheckVkSuccess(fn.CreateCommandPool(mVkDevice, &createInfo, nullptr,
-                                                         &mRecordingContext.commandPool),
+                                                         &*mRecordingContext.commandPool),
                                     "vkCreateCommandPool"));
 
             VkCommandBufferAllocateInfo allocateInfo;
@@ -760,7 +779,7 @@ namespace dawn_native { namespace vulkan {
             VkResult result = VkResult::WrapUnsafe(VK_TIMEOUT);
             do {
                 result = VkResult::WrapUnsafe(
-                    INJECT_ERROR_OR_RUN(fn.WaitForFences(mVkDevice, 1, &fence, true, UINT64_MAX),
+                    INJECT_ERROR_OR_RUN(fn.WaitForFences(mVkDevice, 1, &*fence, true, UINT64_MAX),
                                         VK_ERROR_DEVICE_LOST));
             } while (result == VK_TIMEOUT);
 

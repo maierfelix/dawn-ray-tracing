@@ -42,11 +42,12 @@ namespace dawn_native { namespace vulkan {
         if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
             shaderc_spvc::CompileOptions options;
             DAWN_TRY(CheckSpvcSuccess(
-                mSpvcContext.InitializeForGlsl(descriptor->code, descriptor->codeSize, options),
+                mSpvcContext.InitializeForVulkan(descriptor->code, descriptor->codeSize, options),
                 "Unable to initialize instance of spvc"));
 
-            spirv_cross::Compiler* compiler =
-                reinterpret_cast<spirv_cross::Compiler*>(mSpvcContext.GetCompiler());
+            spirv_cross::Compiler* compiler;
+            DAWN_TRY(CheckSpvcSuccess(mSpvcContext.GetCompiler(reinterpret_cast<void**>(&compiler)),
+                                      "Unable to get cross compiler"));
             DAWN_TRY(ExtractSpirvInfo(*compiler));
         } else {
             spirv_cross::Compiler compiler(descriptor->code, descriptor->codeSize);
@@ -57,12 +58,23 @@ namespace dawn_native { namespace vulkan {
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.codeSize = descriptor->codeSize * sizeof(uint32_t);
-        createInfo.pCode = descriptor->code;
+        std::vector<uint32_t> vulkanSource;
+        if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
+            shaderc_spvc::CompilationResult result;
+            DAWN_TRY(CheckSpvcSuccess(mSpvcContext.CompileShader(&result),
+                                      "Unable to generate Vulkan shader"));
+            DAWN_TRY(CheckSpvcSuccess(result.GetBinaryOutput(&vulkanSource),
+                                      "Unable to get binary output of Vulkan shader"));
+            createInfo.codeSize = vulkanSource.size() * sizeof(uint32_t);
+            createInfo.pCode = vulkanSource.data();
+        } else {
+            createInfo.codeSize = descriptor->codeSize * sizeof(uint32_t);
+            createInfo.pCode = descriptor->code;
+        }
 
         Device* device = ToBackend(GetDevice());
         return CheckVkSuccess(
-            device->fn.CreateShaderModule(device->GetVkDevice(), &createInfo, nullptr, &mHandle),
+            device->fn.CreateShaderModule(device->GetVkDevice(), &createInfo, nullptr, &*mHandle),
             "CreateShaderModule");
     }
 

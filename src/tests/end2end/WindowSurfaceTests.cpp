@@ -39,6 +39,8 @@
 
 #include "GLFW/glfw3native.h"
 
+// Test for wgpu::Surface creation that only need an instance (no devices) and don't need all the
+// complexity of DawnTest.
 class WindowSurfaceInstanceTests : public testing::Test {
   public:
     void SetUp() override {
@@ -103,6 +105,17 @@ TEST_F(WindowSurfaceInstanceTests, NoChainedDescriptors) {
 TEST_F(WindowSurfaceInstanceTests, BadChainedDescriptors) {
     wgpu::ChainedStruct chainedDescriptor;
     chainedDescriptor.sType = wgpu::SType::Invalid;  // The default but we set it for clarity.
+
+    wgpu::SurfaceDescriptor descriptor;
+    descriptor.nextInChain = &chainedDescriptor;
+
+    AssertSurfaceCreation(&descriptor, false);
+}
+
+// Test that a chained descriptor with HTMLCanvas produces an error.
+TEST_F(WindowSurfaceInstanceTests, HTMLCanvasDescriptor) {
+    wgpu::SurfaceDescriptorFromHTMLCanvasId chainedDescriptor;
+    chainedDescriptor.id = "myCanvas";
 
     wgpu::SurfaceDescriptor descriptor;
     descriptor.nextInChain = &chainedDescriptor;

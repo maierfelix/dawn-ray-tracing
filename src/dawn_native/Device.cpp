@@ -38,6 +38,7 @@
 #include "dawn_native/RenderPipeline.h"
 #include "dawn_native/Sampler.h"
 #include "dawn_native/ShaderModule.h"
+#include "dawn_native/Surface.h"
 #include "dawn_native/SwapChain.h"
 #include "dawn_native/Texture.h"
 #include "dawn_native/ValidationUtils_autogen.h"
@@ -198,6 +199,10 @@ namespace dawn_native {
         // Assert that errors are device loss so that we can continue with destruction
         AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
         HandleError(wgpu::ErrorType::DeviceLost, "Device lost for testing");
+    }
+
+    bool DeviceBase::IsLost() const {
+        return mLossStatus != LossStatus::Alive;
     }
 
     AdapterBase* DeviceBase::GetAdapter() const {
@@ -510,7 +515,9 @@ namespace dawn_native {
         WGPUCreateBufferMappedResult result = CreateBufferMapped(descriptor);
 
         WGPUBufferMapAsyncStatus status = WGPUBufferMapAsyncStatus_Success;
-        if (result.data == nullptr || result.dataLength != descriptor->size) {
+        if (IsLost()) {
+            status = WGPUBufferMapAsyncStatus_DeviceLost;
+        } else if (result.data == nullptr || result.dataLength != descriptor->size) {
             status = WGPUBufferMapAsyncStatus_Error;
         }
 
@@ -593,10 +600,11 @@ namespace dawn_native {
 
         return result;
     }
-    SwapChainBase* DeviceBase::CreateSwapChain(const SwapChainDescriptor* descriptor) {
+    SwapChainBase* DeviceBase::CreateSwapChain(Surface* surface,
+                                               const SwapChainDescriptor* descriptor) {
         SwapChainBase* result = nullptr;
 
-        if (ConsumedError(CreateSwapChainInternal(&result, descriptor))) {
+        if (ConsumedError(CreateSwapChainInternal(&result, surface, descriptor))) {
             return SwapChainBase::MakeError(this);
         }
 
@@ -625,6 +633,14 @@ namespace dawn_native {
     // Other Device API methods
 
     void DeviceBase::Tick() {
+        // We need to do the deferred callback even if Device is lost since Buffer Map Async will
+        // send callback with device lost status when device is lost.
+        {
+            auto deferredResults = std::move(mDeferredCreateBufferMappedAsyncResults);
+            for (const auto& deferred : deferredResults) {
+                deferred.callback(deferred.status, deferred.result, deferred.userdata);
+            }
+        }
         if (ConsumedError(ValidateIsAlive())) {
             return;
         }
@@ -632,12 +648,6 @@ namespace dawn_native {
             return;
         }
 
-        {
-            auto deferredResults = std::move(mDeferredCreateBufferMappedAsyncResults);
-            for (const auto& deferred : deferredResults) {
-                deferred.callback(deferred.status, deferred.result, deferred.userdata);
-            }
-        }
         mErrorScopeTracker->Tick(GetCompletedCommandSerial());
         mFenceSignalTracker->Tick(GetCompletedCommandSerial());
     }
@@ -883,12 +893,31 @@ namespace dawn_native {
     }
 
     MaybeError DeviceBase::CreateSwapChainInternal(SwapChainBase** result,
+                                                   Surface* surface,
                                                    const SwapChainDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
         if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateSwapChainDescriptor(this, descriptor));
+            DAWN_TRY(ValidateSwapChainDescriptor(this, surface, descriptor));
         }
-        DAWN_TRY_ASSIGN(*result, CreateSwapChainImpl(descriptor));
+
+        if (surface == nullptr) {
+            DAWN_TRY_ASSIGN(*result, CreateSwapChainImpl(descriptor));
+        } else {
+            ASSERT(descriptor->implementation == 0);
+
+            NewSwapChainBase* previousSwapChain = surface->GetAttachedSwapChain();
+            NewSwapChainBase* newSwapChain;
+            DAWN_TRY_ASSIGN(newSwapChain,
+                            CreateSwapChainImpl(surface, previousSwapChain, descriptor));
+
+            if (previousSwapChain != nullptr) {
+                ASSERT(!previousSwapChain->IsAttached());
+            }
+            ASSERT(newSwapChain->IsAttached());
+
+            surface->SetAttachedSwapChain(newSwapChain);
+            *result = newSwapChain;
+        }
         return {};
     }
 

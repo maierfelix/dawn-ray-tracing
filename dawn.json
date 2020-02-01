@@ -27,6 +27,7 @@
     },
     "adapter type": {
         "category": "enum",
+        "javascript": false,
         "values": [
             {"value": 0, "name": "discrete GPU"},
             {"value": 1, "name": "integrated GPU"},
@@ -44,6 +45,7 @@
     },
     "backend type": {
         "category": "enum",
+        "javascript": false,
         "values": [
             {"value": 0, "name": "null"},
             {"value": 1, "name": "D3D11"},
@@ -914,6 +916,7 @@
                 "name": "create swap chain",
                 "returns": "swap chain",
                 "args": [
+                    {"name": "surface", "type": "surface"},
                     {"name": "descriptor", "type": "swap chain descriptor", "annotation": "const*"}
                 ]
             },
@@ -970,7 +973,7 @@
     },
     "device lost callback": {
         "category": "callback",
-        "args" : [
+        "args": [
             {"name": "message", "type": "char", "annotation": "const*"},
             {"name": "userdata", "type": "void", "annotation": "*"}
         ]
@@ -1179,6 +1182,13 @@
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "bind group layout count", "type": "uint32_t"},
             {"name": "bind group layouts", "type": "bind group layout", "annotation": "const*", "length": "bind group layout count"}
+        ]
+    },
+    "present mode": {
+        "category": "enum",
+        "values": [
+            {"value": 0, "name": "no v sync"},
+            {"value": 1, "name": "v sync"}
         ]
     },
     "programmable stage descriptor": {
@@ -1623,9 +1633,17 @@
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true}
         ]
     },
+    "surface descriptor from HTML canvas id": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "id", "type": "char", "annotation": "const*", "length": "strlen"}
+        ]
+    },
     "surface descriptor from metal layer": {
         "category": "structure",
         "chained": true,
+        "javascript": false,
         "members": [
             {"name": "layer", "type": "void", "annotation": "*"}
         ]
@@ -1633,6 +1651,7 @@
     "surface descriptor from windows HWND": {
         "category": "structure",
         "chained": true,
+        "javascript": false,
         "members": [
             {"name": "hinstance", "type": "void", "annotation": "*"},
             {"name": "hwnd", "type": "void", "annotation": "*"}
@@ -1641,6 +1660,7 @@
     "surface descriptor from xlib": {
         "category": "structure",
         "chained": true,
+        "javascript": false,
         "members": [
             {"name": "display", "type": "void", "annotation": "*"},
             {"name": "window", "type": "uint32_t"}
@@ -1667,16 +1687,23 @@
         "extensible": true,
         "members": [
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
-            {"name": "implementation", "type": "uint64_t"}
+            {"name": "usage", "type": "texture usage"},
+            {"name": "format", "type": "texture format"},
+            {"name": "width", "type": "uint32_t"},
+            {"name": "height", "type": "uint32_t"},
+            {"name": "present mode", "type": "present mode"},
+            {"name": "implementation", "type": "uint64_t", "default": 0}
         ]
     },
     "s type": {
         "category": "enum",
+        "javascript": false,
         "values": [
             {"value": 0, "name": "invalid"},
             {"value": 1, "name": "surface descriptor from metal layer"},
             {"value": 2, "name": "surface descriptor from windows HWND"},
-            {"value": 3, "name": "surface descriptor from xlib"}
+            {"value": 3, "name": "surface descriptor from xlib"},
+            {"value": 4, "name": "surface descriptor from HTML canvas id"}
         ]
     },
     "texture": {
@@ -1745,7 +1772,7 @@
     "texture format": {
         "category": "enum",
         "values": [
-            {"value": 0, "name": "undefined", "valid": false},
+            {"value": 0, "name": "undefined", "valid": false, "jsrepr": "undefined"},
             {"value": 1, "name": "R8 unorm"},
             {"value": 2, "name": "R8 snorm"},
             {"value": 3, "name": "R8 uint"},
@@ -1841,7 +1868,7 @@
     "texture view dimension": {
         "category": "enum",
         "values": [
-            {"value": 0, "name": "undefined", "valid": false},
+            {"value": 0, "name": "undefined", "valid": false, "jsrepr": "undefined"},
             {"value": 1, "name": "1D"},
             {"value": 2, "name": "2D"},
             {"value": 3, "name": "2D array"},

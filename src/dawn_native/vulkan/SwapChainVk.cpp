@@ -25,7 +25,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     SwapChain::SwapChain(Device* device, const SwapChainDescriptor* descriptor)
-        : SwapChainBase(device, descriptor) {
+        : OldSwapChainBase(device, descriptor) {
         const auto& im = GetImplementation();
         DawnWSIContextVulkan wsiContext = {};
         im.Init(im.userData, &wsiContext);
@@ -47,7 +47,8 @@ namespace dawn_native { namespace vulkan {
             return nullptr;
         }
 
-        VkImage nativeTexture = VkImage::CreateFromU64(next.texture.u64);
+        VkImage nativeTexture =
+            VkImage::CreateFromHandle(reinterpret_cast<::VkImage>(next.texture.u64));
         return new Texture(ToBackend(GetDevice()), descriptor, nativeTexture);
     }
 

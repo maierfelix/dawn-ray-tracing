@@ -157,7 +157,7 @@ namespace dawn_native {
         RenderPipelineBase* CreateRenderPipeline(const RenderPipelineDescriptor* descriptor);
         SamplerBase* CreateSampler(const SamplerDescriptor* descriptor);
         ShaderModuleBase* CreateShaderModule(const ShaderModuleDescriptor* descriptor);
-        SwapChainBase* CreateSwapChain(const SwapChainDescriptor* descriptor);
+        SwapChainBase* CreateSwapChain(Surface* surface, const SwapChainDescriptor* descriptor);
         TextureBase* CreateTexture(const TextureDescriptor* descriptor);
         TextureViewBase* CreateTextureView(TextureBase* texture,
                                            const TextureViewDescriptor* descriptor);
@@ -196,6 +196,7 @@ namespace dawn_native {
         size_t GetLazyClearCountForTesting();
         void IncrementLazyClearCountForTesting();
         void LoseForTesting();
+        bool IsLost() const;
 
       protected:
         void SetToggle(Toggle toggle, bool isEnabled);
@@ -236,6 +237,11 @@ namespace dawn_native {
             const ShaderModuleDescriptor* descriptor) = 0;
         virtual ResultOrError<SwapChainBase*> CreateSwapChainImpl(
             const SwapChainDescriptor* descriptor) = 0;
+        // Note that previousSwapChain may be nullptr, or come from a different backend.
+        virtual ResultOrError<NewSwapChainBase*> CreateSwapChainImpl(
+            Surface* surface,
+            NewSwapChainBase* previousSwapChain,
+            const SwapChainDescriptor* descriptor) = 0;
         virtual ResultOrError<TextureBase*> CreateTextureImpl(
             const TextureDescriptor* descriptor) = 0;
         virtual ResultOrError<TextureViewBase*> CreateTextureViewImpl(
@@ -267,6 +273,7 @@ namespace dawn_native {
         MaybeError CreateShaderModuleInternal(ShaderModuleBase** result,
                                               const ShaderModuleDescriptor* descriptor);
         MaybeError CreateSwapChainInternal(SwapChainBase** result,
+                                           Surface* surface,
                                            const SwapChainDescriptor* descriptor);
         MaybeError CreateTextureInternal(TextureBase** result, const TextureDescriptor* descriptor);
         MaybeError CreateTextureViewInternal(TextureViewBase** result,

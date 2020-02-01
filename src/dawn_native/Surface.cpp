@@ -16,6 +16,7 @@
 
 #include "common/Platform.h"
 #include "dawn_native/Instance.h"
+#include "dawn_native/SwapChain.h"
 
 #if defined(DAWN_PLATFORM_WINDOWS)
 #    include "common/windows_with_undefs.h"
@@ -95,6 +96,7 @@ namespace dawn_native {
             } break;
 #endif  // defined(DAWN_USE_X11)
 
+            case wgpu::SType::SurfaceDescriptorFromHTMLCanvasId:
             default:
                 return DAWN_VALIDATION_ERROR("Unsupported sType");
         }
@@ -136,7 +138,20 @@ namespace dawn_native {
         }
     }
 
-    Surface::~Surface() = default;
+    Surface::~Surface() {
+        if (mSwapChain != nullptr) {
+            mSwapChain->DetachFromSurface();
+            mSwapChain = nullptr;
+        }
+    }
+
+    NewSwapChainBase* Surface::GetAttachedSwapChain() const {
+        return mSwapChain;
+    }
+
+    void Surface::SetAttachedSwapChain(NewSwapChainBase* swapChain) {
+        mSwapChain = swapChain;
+    }
 
     InstanceBase* Surface::GetInstance() {
         return mInstance.Get();

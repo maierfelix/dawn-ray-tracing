@@ -146,6 +146,10 @@ namespace dawn_native { namespace null {
             const ShaderModuleDescriptor* descriptor) override;
         ResultOrError<SwapChainBase*> CreateSwapChainImpl(
             const SwapChainDescriptor* descriptor) override;
+        ResultOrError<NewSwapChainBase*> CreateSwapChainImpl(
+            Surface* surface,
+            NewSwapChainBase* previousSwapChain,
+            const SwapChainDescriptor* descriptor) override;
         ResultOrError<TextureBase*> CreateTextureImpl(const TextureDescriptor* descriptor) override;
         ResultOrError<TextureViewBase*> CreateTextureViewImpl(
             TextureBase* texture,
@@ -218,10 +222,26 @@ namespace dawn_native { namespace null {
         MaybeError SubmitImpl(uint32_t commandCount, CommandBufferBase* const* commands) override;
     };
 
-    class SwapChain : public SwapChainBase {
+    class SwapChain : public NewSwapChainBase {
       public:
-        SwapChain(Device* device, const SwapChainDescriptor* descriptor);
-        ~SwapChain();
+        SwapChain(Device* device,
+                  Surface* surface,
+                  NewSwapChainBase* previousSwapChain,
+                  const SwapChainDescriptor* descriptor);
+        ~SwapChain() override;
+
+      private:
+        Ref<Texture> mTexture;
+
+        MaybeError PresentImpl() override;
+        ResultOrError<TextureViewBase*> GetCurrentTextureViewImpl() override;
+        void DetachFromSurfaceImpl() override;
+    };
+
+    class OldSwapChain : public OldSwapChainBase {
+      public:
+        OldSwapChain(Device* device, const SwapChainDescriptor* descriptor);
+        ~OldSwapChain();
 
       protected:
         TextureBase* GetNextTextureImpl(const TextureDescriptor* descriptor) override;

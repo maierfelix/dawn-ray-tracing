@@ -42,9 +42,11 @@ namespace dawn_native {
     class RenderPipelineBase;
     class ResourceHeapBase;
     class SamplerBase;
+    class Surface;
     class ShaderModuleBase;
     class StagingBufferBase;
     class SwapChainBase;
+    class NewSwapChainBase;
     class TextureBase;
     class TextureViewBase;
 
