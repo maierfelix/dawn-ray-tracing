@@ -177,7 +177,7 @@ namespace dawn_native { namespace vulkan {
     MaybeError RayTracingShaderBindingTable::ValidateGroupStageIndex(
         int32_t index,
         VkShaderStageFlagBits validStage) const {
-        if (index < 0 || index >= mStages.size()) {
+        if (index < 0 || index >= (int32_t)mStages.size()) {
             return DAWN_VALIDATION_ERROR("Group index out of range");
         }
         VkShaderStageFlagBits stage = mStages[index].stage;
