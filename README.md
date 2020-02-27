@@ -5,6 +5,8 @@
 This is a fork of Dawn which gets extended with an unofficial Ray-Tracing extension. The extension is currently targeted at the Vulkan backend, but might be extended for the D3D12 backend as well.
 This project is expected to be used along [node-webgpu](https://github.com/maierfelix/webgpu).
 
+The specification of the Ray-Tracing extension can be found [here](https://github.com/maierfelix/dawn-ray-tracing/blob/master/RT_SPEC.md).
+
 ## ‌‌ 
 
 Dawn is an open-source and cross-platform implementation of the work-in-progress [WebGPU](https://webgpu.dev) standard.
