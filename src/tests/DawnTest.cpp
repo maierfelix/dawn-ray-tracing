@@ -90,18 +90,36 @@ const RGBA8 RGBA8::kBlue = RGBA8(0, 0, 255, 255);
 const RGBA8 RGBA8::kYellow = RGBA8(255, 255, 0, 255);
 const RGBA8 RGBA8::kWhite = RGBA8(255, 255, 255, 255);
 
-const DawnTestParam D3D12Backend(wgpu::BackendType::D3D12);
-const DawnTestParam MetalBackend(wgpu::BackendType::Metal);
-const DawnTestParam OpenGLBackend(wgpu::BackendType::OpenGL);
-const DawnTestParam VulkanBackend(wgpu::BackendType::Vulkan);
+DawnTestParam::DawnTestParam(wgpu::BackendType backendType,
+                             std::initializer_list<const char*> forceEnabledWorkarounds,
+                             std::initializer_list<const char*> forceDisabledWorkarounds)
+    : backendType(backendType),
+      forceEnabledWorkarounds(forceEnabledWorkarounds),
+      forceDisabledWorkarounds(forceDisabledWorkarounds) {
+}
 
-DawnTestParam ForceToggles(const DawnTestParam& originParam,
-                           std::initializer_list<const char*> forceEnabledWorkarounds,
+DawnTestParam D3D12Backend(std::initializer_list<const char*> forceEnabledWorkarounds,
                            std::initializer_list<const char*> forceDisabledWorkarounds) {
-    DawnTestParam newTestParam = originParam;
-    newTestParam.forceEnabledWorkarounds = forceEnabledWorkarounds;
-    newTestParam.forceDisabledWorkarounds = forceDisabledWorkarounds;
-    return newTestParam;
+    return DawnTestParam(wgpu::BackendType::D3D12, forceEnabledWorkarounds,
+                         forceDisabledWorkarounds);
+}
+
+DawnTestParam MetalBackend(std::initializer_list<const char*> forceEnabledWorkarounds,
+                           std::initializer_list<const char*> forceDisabledWorkarounds) {
+    return DawnTestParam(wgpu::BackendType::Metal, forceEnabledWorkarounds,
+                         forceDisabledWorkarounds);
+}
+
+DawnTestParam OpenGLBackend(std::initializer_list<const char*> forceEnabledWorkarounds,
+                            std::initializer_list<const char*> forceDisabledWorkarounds) {
+    return DawnTestParam(wgpu::BackendType::OpenGL, forceEnabledWorkarounds,
+                         forceDisabledWorkarounds);
+}
+
+DawnTestParam VulkanBackend(std::initializer_list<const char*> forceEnabledWorkarounds,
+                            std::initializer_list<const char*> forceDisabledWorkarounds) {
+    return DawnTestParam(wgpu::BackendType::Vulkan, forceEnabledWorkarounds,
+                         forceDisabledWorkarounds);
 }
 
 std::ostream& operator<<(std::ostream& os, const DawnTestParam& param) {
@@ -145,14 +163,68 @@ DawnTestEnvironment::DawnTestEnvironment(int argc, char** argv) {
         }
 
         if (strcmp("--use-spvc", argv[i]) == 0) {
+            if (mSpvcFlagSeen) {
+                dawn::WarningLog() << "Multiple flags passed in that force whether or not to use "
+                                      "the spvc. This may lead to unexpected behaviour.";
+            }
+            ASSERT(!mSpvcFlagSeen);
+
             mUseSpvc = true;
+            mSpvcFlagSeen = true;
+            continue;
+        }
+
+        if (strcmp("--no-use-spvc", argv[i]) == 0) {
+            if (mSpvcFlagSeen) {
+                dawn::WarningLog() << "Multiple flags passed in that force whether or not to use "
+                                      "the spvc. This may lead to unexpected behaviour.";
+            }
+            ASSERT(!mSpvcFlagSeen);
+
+            mUseSpvc = false;
+            mSpvcFlagSeen = true;
             continue;
         }
 
         if (strcmp("--use-spvc-parser", argv[i]) == 0) {
+            if (mSpvcParserFlagSeen) {
+                dawn::WarningLog() << "Multiple flags passed in that force whether or not to use "
+                                      "the spvc parser. This may cause unexpected behaviour.";
+            }
+            ASSERT(!mSpvcParserFlagSeen);
+
+            if (!mUseSpvc) {
+                if (mSpvcFlagSeen) {
+                    dawn::ErrorLog()
+                        << "Overriding force disabling of spvc since it is required for using the "
+                           "spvc parser. This indicates a likely misconfiguration.";
+                } else {
+                    dawn::InfoLog()
+                        << "Enabling spvc since it is required for using the spvc parser.";
+                }
+                ASSERT(!mSpvcFlagSeen);
+            }
+
             mUseSpvc = true;  // It's impossible to use the spvc parser without using spvc, so
                               // turning on mUseSpvc implicitly.
             mUseSpvcParser = true;
+            mSpvcParserFlagSeen = true;
+            continue;
+        }
+
+        if (strcmp("--no-use-spvc-parser", argv[i]) == 0) {
+            if (mSpvcParserFlagSeen) {
+                dawn::WarningLog() << "Multiple flags passed in that force whether or not to use "
+                                      "the spvc parser. This may cause unexpected behaviour.";
+            }
+            ASSERT(!mSpvcParserFlagSeen);
+
+            // Intentionally not changing mUseSpvc, since the dependency is one-way. This will
+            // not correctly handle the case where spvc is off by default, then there is a spvc
+            // parser on flag followed by a off flag, but that is already being indicated as a
+            // misuse.
+            mUseSpvcParser = false;
+            mSpvcParserFlagSeen = true;
             continue;
         }
 
@@ -191,6 +263,11 @@ DawnTestEnvironment::DawnTestEnvironment(int argc, char** argv) {
                    "(defaults to no capture)\n"
                    "  --skip-validation: Skip Dawn validation\n"
                    "  --use-spvc: Use spvc for accessing spirv-cross\n"
+                   "  --no-use-spvc: Do not use spvc for accessing spirv-cross\n"
+                   "  --use-spvc-parser: Use spvc's spir-v parsing insteads of spirv-cross's, "
+                   "implies --use-spvc\n"
+                   "  --no-use-spvc-parser: Do no use spvc's spir-v parsing insteads of "
+                   "spirv-cross's\n"
                    "  --adapter-vendor-id: Select adapter by vendor id to run end2end tests"
                    "on multi-GPU systems \n";
             continue;
@@ -483,36 +560,61 @@ void DawnTestBase::SetUp() {
         dawn_native::Instance* instance = gTestEnv->GetInstance();
         std::vector<dawn_native::Adapter> adapters = instance->GetAdapters();
 
-        for (const dawn_native::Adapter& adapter : adapters) {
+        static constexpr size_t kInvalidIndex = std::numeric_limits<size_t>::max();
+        size_t discreteAdapterIndex = kInvalidIndex;
+        size_t integratedAdapterIndex = kInvalidIndex;
+        size_t cpuAdapterIndex = kInvalidIndex;
+        size_t unknownAdapterIndex = kInvalidIndex;
+
+        for (size_t i = 0; i < adapters.size(); ++i) {
+            const dawn_native::Adapter& adapter = adapters[i];
+
             wgpu::AdapterProperties properties;
             adapter.GetProperties(&properties);
 
             if (properties.backendType == backendType) {
-                if (properties.adapterType == wgpu::AdapterType::CPU) {
+                // If the vendor id doesn't match, skip this adapter.
+                if (HasVendorIdFilter() && properties.vendorID != GetVendorIdFilter()) {
                     continue;
                 }
 
-                // Filter adapter by vendor id
-                if (HasVendorIdFilter()) {
-                    if (properties.vendorID == GetVendorIdFilter()) {
-                        mBackendAdapter = adapter;
+                // Find the index of each type of adapter.
+                switch (adapter.GetDeviceType()) {
+                    case dawn_native::DeviceType::DiscreteGPU:
+                        discreteAdapterIndex = i;
                         break;
-                    }
-                    continue;
-                }
-
-                // Prefer discrete GPU on multi-GPU systems, otherwise get integrated GPU.
-                mBackendAdapter = adapter;
-                mAdapterProperties = properties;
-                if (properties.adapterType == wgpu::AdapterType::DiscreteGPU) {
-                    break;
+                    case dawn_native::DeviceType::IntegratedGPU:
+                        integratedAdapterIndex = i;
+                        break;
+                    case dawn_native::DeviceType::CPU:
+                        cpuAdapterIndex = i;
+                        break;
+                    case dawn_native::DeviceType::Unknown:
+                        unknownAdapterIndex = i;
+                        break;
+                    default:
+                        UNREACHABLE();
+                        break;
                 }
             }
+        }
+
+        // Prefer, discrete, then integrated, then CPU, then unknown adapters.
+        if (discreteAdapterIndex != kInvalidIndex) {
+            mBackendAdapter = adapters[discreteAdapterIndex];
+        } else if (integratedAdapterIndex != kInvalidIndex) {
+            mBackendAdapter = adapters[integratedAdapterIndex];
+        } else if (cpuAdapterIndex != kInvalidIndex) {
+            mBackendAdapter = adapters[cpuAdapterIndex];
+        } else if (unknownAdapterIndex != kInvalidIndex) {
+            mBackendAdapter = adapters[unknownAdapterIndex];
         }
 
         if (!mBackendAdapter) {
             return;
         }
+
+        mBackendAdapter.GetProperties(&mAdapterProperties);
     }
 
     for (const char* forceEnabledWorkaround : mParam.forceEnabledWorkarounds) {

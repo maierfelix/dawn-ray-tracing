@@ -102,6 +102,7 @@ namespace dawn_native { namespace opengl {
             TextureBase* texture,
             const TextureViewDescriptor* descriptor) override;
 
+        void InitTogglesFromDriver();
         void CheckPassedFences();
         void Destroy() override;
         MaybeError WaitForIdleForDestruction() override;

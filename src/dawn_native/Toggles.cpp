@@ -102,6 +102,17 @@ namespace dawn_native {
               "backend will use D32S8 (toggle to on) but setting the toggle to off will make it"
               "use the D24S8 format when possible.",
               "https://crbug.com/dawn/286"}},
+            {Toggle::MetalDisableSamplerCompare,
+             {"metal_disable_sampler_compare",
+              "Disables the use of sampler compare on Metal. This is unsupported before A9 "
+              "processors."}},
+            {Toggle::DisableBaseVertex,
+             {"disable_base_vertex",
+              "Disables the use of non-zero base vertex which is unsupported on some platforms."}},
+            {Toggle::DisableBaseInstance,
+             {"disable_base_instance",
+              "Disables the use of non-zero base instance which is unsupported on some "
+              "platforms."}},
         }};
 
     }  // anonymous namespace

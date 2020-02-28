@@ -69,6 +69,22 @@ namespace dawn_native { namespace metal {
 #endif
             // On tvOS, we would need MTLFeatureSet_tvOS_GPUFamily2_v1.
             SetToggle(Toggle::EmulateStoreAndMSAAResolve, !haveStoreAndMSAAResolve);
+
+            bool haveSamplerCompare = true;
+#if defined(DAWN_PLATFORM_IOS)
+            haveSamplerCompare = [mMtlDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
+#endif
+            // TODO(crbug.com/dawn/342): Investigate emulation -- possibly expensive.
+            SetToggle(Toggle::MetalDisableSamplerCompare, !haveSamplerCompare);
+
+            bool haveBaseVertexBaseInstance = true;
+#if defined(DAWN_PLATFORM_IOS)
+            haveBaseVertexBaseInstance =
+                [mMtlDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
+#endif
+            // TODO(crbug.com/dawn/343): Investigate emulation.
+            SetToggle(Toggle::DisableBaseVertex, !haveBaseVertexBaseInstance);
+            SetToggle(Toggle::DisableBaseInstance, !haveBaseVertexBaseInstance);
         }
 
         // TODO(jiawei.shao@intel.com): tighten this workaround when the driver bug is fixed.
@@ -105,7 +121,7 @@ namespace dawn_native { namespace metal {
         return RenderPipeline::Create(this, descriptor);
     }
     ResultOrError<SamplerBase*> Device::CreateSamplerImpl(const SamplerDescriptor* descriptor) {
-        return new Sampler(this, descriptor);
+        return Sampler::Create(this, descriptor);
     }
     ResultOrError<ShaderModuleBase*> Device::CreateShaderModuleImpl(
         const ShaderModuleDescriptor* descriptor) {

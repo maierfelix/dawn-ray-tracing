@@ -48,6 +48,12 @@ else()
     set(SHADERC_SKIP_INSTALL ON)
     set(SHADERC_ENABLE_SPVC ON)
 
+    # Change the default value of SHADERC_ENABLE_SHARED_CRT to ON as that's what matches the
+    # CMake defaults better.
+    if(MSVC)
+        option(SHADERC_ENABLE_SHARED_CRT "Use the shared CRT instead of the static CRT" ON)
+    endif()
+
     # Let SPVC's CMakeLists.txt deal with configuring SPIRV-Cross
     set(SPIRV_CROSS_ENABLE_TESTS OFF)
     set(SHADERC_SPIRV_CROSS_DIR "${DAWN_SPIRV_CROSS_DIR}")
@@ -72,3 +78,20 @@ if (DAWN_BUILD_EXAMPLES)
         add_subdirectory(${DAWN_GLM_DIR})
     endif()
 endif()
+
+# Header-only library for khrplatform.h
+add_library(dawn_khronos_platform INTERFACE)
+target_sources(dawn_khronos_platform INTERFACE "${DAWN_THIRD_PARTY_DIR}/khronos/KHR/khrplatform.h")
+target_include_directories(dawn_khronos_platform INTERFACE "${DAWN_THIRD_PARTY_DIR}/khronos")
+
+# Header-only library for Vulkan headers
+add_library(dawn_vulkan_headers INTERFACE)
+target_sources(dawn_vulkan_headers INTERFACE
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vk_icd.h"
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vk_layer.h"
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vk_platform.h"
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vk_sdk_platform.h"
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vulkan.h"
+    "${DAWN_THIRD_PARTY_DIR}/khronos/vulkan/vulkan_core.h"
+)
+target_include_directories(dawn_vulkan_headers INTERFACE "${DAWN_THIRD_PARTY_DIR}/khronos")
