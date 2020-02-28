@@ -407,7 +407,7 @@ namespace dawn_native { namespace vulkan {
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         deviceProperties2.pNext = &rayTracingProperties;
 
-        vkFunctions.GetPhysicalDeviceProperties2KHR(physicalDevice, &deviceProperties2);
+        vkFunctions.GetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
 
         return rayTracingProperties;
     }
