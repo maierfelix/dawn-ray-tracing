@@ -11,6 +11,7 @@ The specification of the Ray-Tracing extension can be found [here](https://githu
 
 <img src="https://i.imgur.com/BliBL3i.png" height="288">
 <img src="https://i.imgur.com/9yVCtCs.png" height="382">
+<img src="https://i.imgur.com/RUhiJLN.gif" height="382">
 
 ## ‌‌ 
 
