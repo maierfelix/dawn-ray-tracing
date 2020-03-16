@@ -32,7 +32,8 @@ namespace dawn_native {
         RayGeneration,
         RayAnyHit,
         RayClosestHit,
-        RayMiss
+        RayMiss,
+        RayIntersection
     };
 
     static_assert(static_cast<uint32_t>(SingleShaderStage::Vertex) < kNumStages, "");
@@ -43,6 +44,7 @@ namespace dawn_native {
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayAnyHit) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayClosestHit) < kNumStages, "");
     static_assert(static_cast<uint32_t>(SingleShaderStage::RayMiss) < kNumStages, "");
+    static_assert(static_cast<uint32_t>(SingleShaderStage::RayIntersection) < kNumStages, "");
 
     static_assert(static_cast<uint32_t>(wgpu::ShaderStage::Vertex) ==
                       (1 << static_cast<uint32_t>(SingleShaderStage::Vertex)),
@@ -62,6 +64,9 @@ namespace dawn_native {
                   "");
     static_assert(static_cast<uint32_t>(wgpu::ShaderStage::RayMiss) ==
                       (1 << static_cast<uint32_t>(SingleShaderStage::RayMiss)),
+                  "");
+    static_assert(static_cast<uint32_t>(wgpu::ShaderStage::RayIntersection) ==
+                      (1 << static_cast<uint32_t>(SingleShaderStage::RayIntersection)),
                   "");
 
     BitSetIterator<kNumStages, SingleShaderStage> IterateStages(wgpu::ShaderStage stages);
