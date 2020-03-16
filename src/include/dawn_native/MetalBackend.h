@@ -33,10 +33,16 @@ typedef __IOSurface* IOSurfaceRef;
 #endif  //__OBJC__
 
 namespace dawn_native { namespace metal {
-    DAWN_NATIVE_EXPORT WGPUTexture WrapIOSurface(WGPUDevice device,
-                                                 const WGPUTextureDescriptor* descriptor,
-                                                 IOSurfaceRef ioSurface,
-                                                 uint32_t plane);
+    struct DAWN_NATIVE_EXPORT ExternalImageDescriptorIOSurface : ExternalImageDescriptor {
+      public:
+        ExternalImageDescriptorIOSurface();
+
+        IOSurfaceRef ioSurface;
+        uint32_t plane;
+    };
+
+    DAWN_NATIVE_EXPORT WGPUTexture
+    WrapIOSurface(WGPUDevice device, const ExternalImageDescriptorIOSurface* descriptor);
 
     // When making Metal interop with other APIs, we need to be careful that QueueSubmit doesn't
     // mean that the operations will be visible to other APIs/Metal devices right away. macOS

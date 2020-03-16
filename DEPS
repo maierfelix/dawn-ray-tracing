@@ -51,25 +51,25 @@ deps = {
 
   # SPIRV-Cross
   'third_party/spirv-cross': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Cross@c5f7b55756886a2e78cbc2e7a40e8091e17f6310',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Cross@7d42fd7f7b8bd92a57a6a7745f9841a1128f58f7',
     'condition': 'dawn_standalone',
   },
 
   # SPIRV compiler dependencies: SPIRV-Tools, SPIRV-headers, glslang and shaderc
   'third_party/SPIRV-Tools': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@8910ea5f1c7bc38f79a8b70b265cd9d1571f4b56',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@4c027048d88bcdd047ddace38081b6d6f896aba4',
     'condition': 'dawn_standalone',
   },
   'third_party/spirv-headers': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@5dbc1c32182e17b8ab8e8158a802ecabaf35aad3',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@d9ce9ca52ffea72d45b313d06867d5312f222aaa',
     'condition': 'dawn_standalone',
   },
   'third_party/glslang': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@07e1a0a67aee5b21561bd6b93d73c8d87e010d98',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@f333272eb504735a78f91c76acd814c38ed0c142',
     'condition': 'dawn_standalone',
   },
   'third_party/shaderc': {
-    'url': '{chromium_git}/external/github.com/google/shaderc@1059f43a379ff9f1b5d00b8afcc2ec2435f592c4',
+    'url': '{chromium_git}/external/github.com/google/shaderc@14f128e8dc29b40b1853a9c89481b72fec1044bb',
     'condition': 'dawn_standalone',
   },
 
@@ -104,7 +104,7 @@ deps = {
   },
 
   'third_party/swiftshader': {
-    'url': '{swiftshader_git}/SwiftShader@bdfcfe9cfd2acb22219dd5a79fd7f83c8f320a11',
+    'url': '{swiftshader_git}/SwiftShader@51b2800bb317d9ab6026e6123c62f013dd5cf5e4',
     'condition': 'dawn_standalone',
   },
 

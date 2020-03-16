@@ -14,11 +14,11 @@
 
 #include "dawn_native/metal/CommandBufferMTL.h"
 
-#include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupTracker.h"
 #include "dawn_native/CommandEncoder.h"
 #include "dawn_native/Commands.h"
 #include "dawn_native/RenderBundle.h"
+#include "dawn_native/metal/BindGroupMTL.h"
 #include "dawn_native/metal/BufferMTL.h"
 #include "dawn_native/metal/ComputePipelineMTL.h"
 #include "dawn_native/metal/DeviceMTL.h"
@@ -603,6 +603,8 @@ namespace dawn_native { namespace metal {
                             break;
 
                         case wgpu::BindingType::StorageTexture:
+                        case wgpu::BindingType::ReadonlyStorageTexture:
+                        case wgpu::BindingType::WriteonlyStorageTexture:
                             UNREACHABLE();
                             break;
                     }

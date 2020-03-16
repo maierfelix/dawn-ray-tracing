@@ -33,6 +33,31 @@ namespace dawn_native {
                    lhs.textureComponentType == rhs.textureComponentType;
         }
 
+        wgpu::ShaderStage GetShaderStageVisibilityWithBindingType(wgpu::BindingType bindingType) {
+            // TODO(jiawei.shao@intel.com): support read-only and read-write storage textures.
+            switch (bindingType) {
+                case wgpu::BindingType::StorageBuffer:
+                    return wgpu::ShaderStage::Fragment | wgpu::ShaderStage::Compute;
+
+                case wgpu::BindingType::WriteonlyStorageTexture:
+                    return wgpu::ShaderStage::Compute;
+
+                case wgpu::BindingType::StorageTexture:
+                    UNREACHABLE();
+                    return wgpu::ShaderStage::None;
+
+                case wgpu::BindingType::UniformBuffer:
+                case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::Sampler:
+                case wgpu::BindingType::SampledTexture:
+                case wgpu::BindingType::ReadonlyStorageTexture:
+                    return wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment |
+                           wgpu::ShaderStage::Compute;
+            }
+
+            return {};
+        }
+
     }  // anonymous namespace
 
     MaybeError ValidatePipelineLayoutDescriptor(DeviceBase* device,
@@ -118,38 +143,27 @@ namespace dawn_native {
         for (uint32_t moduleIndex = 0; moduleIndex < count; ++moduleIndex) {
             const ShaderModuleBase* module = modules[moduleIndex];
             const ShaderModuleBase::ModuleBindingInfo& info = module->GetBindingInfo();
-
             for (uint32_t group = 0; group < info.size(); ++group) {
                 for (uint32_t binding = 0; binding < info[group].size(); ++binding) {
                     const ShaderModuleBase::BindingInfo& bindingInfo = info[group][binding];
                     if (!bindingInfo.used) {
                         continue;
                     }
-
                     if (bindingInfo.multisampled) {
                         return DAWN_VALIDATION_ERROR("Multisampled textures not supported (yet)");
                     }
-
                     BindGroupLayoutBinding bindingSlot;
                     bindingSlot.binding = binding;
-                    if (bindingInfo.type == wgpu::BindingType::StorageBuffer) {
-                        bindingSlot.visibility =
-                            wgpu::ShaderStage::Fragment | wgpu::ShaderStage::Compute;
-                    } else {
-                        bindingSlot.visibility = wgpu::ShaderStage::Vertex |
-                                                 wgpu::ShaderStage::Fragment |
-                                                 wgpu::ShaderStage::Compute;
-                    }
-                    bindingSlot.visibility |= wgpu::ShaderStage::RayGeneration |
-                         wgpu::ShaderStage::RayAnyHit | wgpu::ShaderStage::RayClosestHit |
-                         wgpu::ShaderStage::RayMiss | wgpu::ShaderStage::RayIntersection;
+                    DAWN_TRY(ValidateBindingTypeWithShaderStageVisibility(
+                        bindingInfo.type, StageBit(module->GetExecutionModel())));
+                    bindingSlot.visibility =
+                        GetShaderStageVisibilityWithBindingType(bindingInfo.type);
                     bindingSlot.type = bindingInfo.type;
                     bindingSlot.hasDynamicOffset = false;
                     bindingSlot.multisampled = bindingInfo.multisampled;
                     bindingSlot.textureDimension = bindingInfo.textureDimension;
                     bindingSlot.textureComponentType =
                         Format::FormatTypeToTextureComponentType(bindingInfo.textureComponentType);
-
                     if (usedBindings[group][binding]) {
                         if (bindingSlot == bindingData[group][usedBindingsMap[group][binding]]) {
                             // Already used and the data is the same. Continue.
@@ -160,15 +174,11 @@ namespace dawn_native {
                                 "compatible with previous declaration");
                         }
                     }
-
                     uint32_t currentBindingCount = bindingCounts[group];
                     bindingData[group][currentBindingCount] = bindingSlot;
-
                     usedBindingsMap[group][binding] = currentBindingCount;
                     usedBindings[group].set(binding);
-
                     bindingCounts[group]++;
-
                     bindGroupLayoutCount = std::max(bindGroupLayoutCount, group + 1);
                 }
             }

@@ -175,6 +175,13 @@ namespace dawn_native {
     // Backdoor to get the number of lazy clears for testing
     DAWN_NATIVE_EXPORT size_t GetLazyClearCountForTesting(WGPUDevice device);
 
+    //  Query if texture has been initialized
+    DAWN_NATIVE_EXPORT bool IsTextureSubresourceInitialized(WGPUTexture texture,
+                                                            uint32_t baseMipLevel,
+                                                            uint32_t levelCount,
+                                                            uint32_t baseArrayLayer,
+                                                            uint32_t layerCount);
+
     // Backdoor to get the order of the ProcMap for testing
     DAWN_NATIVE_EXPORT std::vector<const char*> GetProcMapNamesForTesting();
 
@@ -185,6 +192,24 @@ namespace dawn_native {
     DAWN_NATIVE_EXPORT uint64_t AcquireErrorInjectorCallCount();
     DAWN_NATIVE_EXPORT void InjectErrorAt(uint64_t index);
 
+    // The different types of ExternalImageDescriptors
+    enum ExternalImageDescriptorType {
+        OpaqueFD,
+        DmaBuf,
+        IOSurface,
+        DXGISharedHandle,
+    };
+
+    // Common properties of external images
+    struct DAWN_NATIVE_EXPORT ExternalImageDescriptor {
+      public:
+        const ExternalImageDescriptorType type;
+        const WGPUTextureDescriptor* cTextureDescriptor;  // Must match image creation params
+        bool isCleared;  // Sets whether the texture will be cleared before use
+
+      protected:
+        ExternalImageDescriptor(ExternalImageDescriptorType type);
+    };
 }  // namespace dawn_native
 
 #endif  // DAWNNATIVE_DAWNNATIVE_H_

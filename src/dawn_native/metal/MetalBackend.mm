@@ -27,14 +27,15 @@ namespace dawn_native { namespace metal {
         return device->GetMTLDevice();
     }
 
+    ExternalImageDescriptorIOSurface::ExternalImageDescriptorIOSurface()
+        : ExternalImageDescriptor(ExternalImageDescriptorType::IOSurface) {
+    }
+
     WGPUTexture WrapIOSurface(WGPUDevice cDevice,
-                              const WGPUTextureDescriptor* cDescriptor,
-                              IOSurfaceRef ioSurface,
-                              uint32_t plane) {
+                              const ExternalImageDescriptorIOSurface* cDescriptor) {
         Device* device = reinterpret_cast<Device*>(cDevice);
-        const TextureDescriptor* descriptor =
-            reinterpret_cast<const TextureDescriptor*>(cDescriptor);
-        TextureBase* texture = device->CreateTextureWrappingIOSurface(descriptor, ioSurface, plane);
+        TextureBase* texture = device->CreateTextureWrappingIOSurface(
+            cDescriptor, cDescriptor->ioSurface, cDescriptor->plane);
         return reinterpret_cast<WGPUTexture>(texture);
     }
 

@@ -26,6 +26,7 @@ namespace dawn_native { namespace d3d12 {
     class CommandBuffer;
     class ComputePipeline;
     class Device;
+    class Heap;
     class PipelineLayout;
     class Queue;
     class RayTracingAccelerationContainer;
@@ -51,6 +52,7 @@ namespace dawn_native { namespace d3d12 {
         using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
         using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using RenderPipelineType = RenderPipeline;
+        using ResourceHeapType = Heap;
         using SamplerType = Sampler;
         using ShaderModuleType = ShaderModule;
         using StagingBufferType = StagingBuffer;

@@ -358,6 +358,9 @@ namespace dawn_native {
             case spv::ExecutionModelMissNV:
                 mExecutionModel = SingleShaderStage::RayMiss;
                 break;
+            case spv::ExecutionModelIntersectionNV:
+                mExecutionModel = SingleShaderStage::RayIntersection;
+                break;
             default:
                 UNREACHABLE();
                 return DAWN_VALIDATION_ERROR("Unexpected shader execution model");
@@ -418,6 +421,16 @@ namespace dawn_native {
                             info->type = wgpu::BindingType::StorageBuffer;
                         }
                     } break;
+                    case wgpu::BindingType::StorageTexture: {
+                        spirv_cross::Bitset flags = compiler.get_decoration_bitset(resource.id);
+                        if (flags.get(spv::DecorationNonReadable)) {
+                            info->type = wgpu::BindingType::WriteonlyStorageTexture;
+                        } else if (flags.get(spv::DecorationNonWritable)) {
+                            info->type = wgpu::BindingType::ReadonlyStorageTexture;
+                        } else {
+                            info->type = wgpu::BindingType::StorageTexture;
+                        }
+                    } break;
                     case wgpu::BindingType::AccelerationContainer: {
                         info->type = wgpu::BindingType::AccelerationContainer;
                     } break;
@@ -436,6 +449,8 @@ namespace dawn_native {
                                          wgpu::BindingType::Sampler));
         DAWN_TRY(ExtractResourcesBinding(resources.storage_buffers, compiler,
                                          wgpu::BindingType::StorageBuffer));
+        DAWN_TRY(ExtractResourcesBinding(resources.storage_images, compiler,
+                                         wgpu::BindingType::StorageTexture));
         DAWN_TRY(ExtractResourcesBinding(resources.acceleration_structures, compiler,
                                          wgpu::BindingType::AccelerationContainer));
 

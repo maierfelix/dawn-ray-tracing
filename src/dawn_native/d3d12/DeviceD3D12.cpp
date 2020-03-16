@@ -219,7 +219,7 @@ namespace dawn_native { namespace d3d12 {
 
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
-        return new BindGroup(this, descriptor);
+        return BindGroup::Create(this, descriptor);
     }
     ResultOrError<BindGroupLayoutBase*> Device::CreateBindGroupLayoutImpl(
         const BindGroupLayoutDescriptor* descriptor) {
@@ -290,12 +290,14 @@ namespace dawn_native { namespace d3d12 {
         CommandRecordingContext* commandRecordingContext;
         DAWN_TRY_ASSIGN(commandRecordingContext, GetPendingCommandContext());
 
-        ToBackend(destination)
-            ->TransitionUsageNow(commandRecordingContext, wgpu::BufferUsage::CopyDst);
+        Buffer* dstBuffer = ToBackend(destination);
+        StagingBuffer* srcBuffer = ToBackend(source);
+        dstBuffer->TrackUsageAndTransitionNow(commandRecordingContext, wgpu::BufferUsage::CopyDst);
+        srcBuffer->TrackUsage(commandRecordingContext);
 
         commandRecordingContext->GetCommandList()->CopyBufferRegion(
-            ToBackend(destination)->GetD3D12Resource().Get(), destinationOffset,
-            ToBackend(source)->GetResource(), sourceOffset, size);
+            dstBuffer->GetD3D12Resource().Get(), destinationOffset, srcBuffer->GetResource(),
+            sourceOffset, size);
 
         return {};
     }
@@ -312,7 +314,7 @@ namespace dawn_native { namespace d3d12 {
                                                          initialUsage);
     }
 
-    TextureBase* Device::WrapSharedHandle(const TextureDescriptor* descriptor,
+    TextureBase* Device::WrapSharedHandle(const ExternalImageDescriptor* descriptor,
                                           HANDLE sharedHandle,
                                           uint64_t acquireMutexKey) {
         TextureBase* dawnTexture;

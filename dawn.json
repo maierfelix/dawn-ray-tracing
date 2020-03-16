@@ -301,7 +301,9 @@
             {"value": 3, "name": "sampler"},
             {"value": 4, "name": "sampled texture"},
             {"value": 5, "name": "storage texture"},
-            {"value": 6, "name": "acceleration container"}
+            {"value": 6, "name": "readonly storage texture"},
+            {"value": 7, "name": "writeonly storage texture"},
+            {"value": 8, "name": "acceleration container"}
         ]
     },
     "blend descriptor": {

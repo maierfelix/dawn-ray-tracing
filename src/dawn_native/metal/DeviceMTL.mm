@@ -15,10 +15,11 @@
 #include "dawn_native/metal/DeviceMTL.h"
 
 #include "dawn_native/BackendConnection.h"
-#include "dawn_native/BindGroup.h"
 #include "dawn_native/BindGroupLayout.h"
 #include "dawn_native/DynamicUploader.h"
 #include "dawn_native/ErrorData.h"
+#include "dawn_native/metal/BindGroupLayoutMTL.h"
+#include "dawn_native/metal/BindGroupMTL.h"
 #include "dawn_native/metal/BufferMTL.h"
 #include "dawn_native/metal/CommandBufferMTL.h"
 #include "dawn_native/metal/ComputePipelineMTL.h"
@@ -92,7 +93,7 @@ namespace dawn_native { namespace metal {
     }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
-        return new BindGroup(this, descriptor);
+        return BindGroup::Create(this, descriptor);
     }
     ResultOrError<BindGroupLayoutBase*> Device::CreateBindGroupLayoutImpl(
         const BindGroupLayoutDescriptor* descriptor) {
@@ -268,13 +269,16 @@ namespace dawn_native { namespace metal {
         return {};
     }
 
-    TextureBase* Device::CreateTextureWrappingIOSurface(const TextureDescriptor* descriptor,
+    TextureBase* Device::CreateTextureWrappingIOSurface(const ExternalImageDescriptor* descriptor,
                                                         IOSurfaceRef ioSurface,
                                                         uint32_t plane) {
-        if (ConsumedError(ValidateTextureDescriptor(this, descriptor))) {
+        const TextureDescriptor* textureDescriptor =
+            reinterpret_cast<const TextureDescriptor*>(descriptor->cTextureDescriptor);
+        if (ConsumedError(ValidateTextureDescriptor(this, textureDescriptor))) {
             return nullptr;
         }
-        if (ConsumedError(ValidateIOSurfaceCanBeWrapped(this, descriptor, ioSurface, plane))) {
+        if (ConsumedError(
+                ValidateIOSurfaceCanBeWrapped(this, textureDescriptor, ioSurface, plane))) {
             return nullptr;
         }
 

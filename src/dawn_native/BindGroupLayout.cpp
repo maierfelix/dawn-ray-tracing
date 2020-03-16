@@ -14,14 +14,59 @@
 
 #include "dawn_native/BindGroupLayout.h"
 
+#include <functional>
+
 #include "common/BitSetIterator.h"
 #include "common/HashUtils.h"
 #include "dawn_native/Device.h"
 #include "dawn_native/ValidationUtils_autogen.h"
 
-#include <functional>
-
 namespace dawn_native {
+
+    MaybeError ValidateBindingTypeWithShaderStageVisibility(
+        wgpu::BindingType bindingType,
+        wgpu::ShaderStage shaderStageVisibility) {
+        // TODO(jiawei.shao@intel.com): support read-write storage textures.
+        switch (bindingType) {
+            case wgpu::BindingType::StorageBuffer: {
+                if ((shaderStageVisibility & wgpu::ShaderStage::Vertex) != 0) {
+                    return DAWN_VALIDATION_ERROR(
+                        "storage buffer binding is not supported in vertex shader");
+                }
+            } break;
+
+            case wgpu::BindingType::WriteonlyStorageTexture: {
+                if ((shaderStageVisibility &
+                     (wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment)) != 0) {
+                    return DAWN_VALIDATION_ERROR(
+                        "write-only storage texture binding is only supported in compute shader");
+                }
+            } break;
+
+            case wgpu::BindingType::StorageTexture: {
+                return DAWN_VALIDATION_ERROR("Read-write storage texture binding is not supported");
+            } break;
+
+            case wgpu::BindingType::UniformBuffer:
+            case wgpu::BindingType::ReadonlyStorageBuffer:
+            case wgpu::BindingType::Sampler:
+            case wgpu::BindingType::SampledTexture:
+            case wgpu::BindingType::ReadonlyStorageTexture:
+                break;
+            case wgpu::BindingType::AccelerationContainer:
+                // TODO: spec says acceleration container is NOT available in any-hit shader?
+                if ((shaderStageVisibility & wgpu::ShaderStage::Vertex) != 0 ||
+                    (shaderStageVisibility & wgpu::ShaderStage::Fragment) != 0 ||
+                    (shaderStageVisibility & wgpu::ShaderStage::Compute) != 0 ||
+                    (shaderStageVisibility & wgpu::ShaderStage::RayIntersection) != 0) {
+                    return DAWN_VALIDATION_ERROR(
+                        "acceleration container binding is not supported in this shader");
+                }
+                break;
+        }
+
+        return {};
+    }
 
     MaybeError ValidateBindGroupLayoutDescriptor(DeviceBase*,
                                                  const BindGroupLayoutDescriptor* descriptor) {
@@ -49,11 +94,8 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR("some binding index was specified more than once");
             }
 
-            if (binding.type == wgpu::BindingType::StorageBuffer &&
-                (binding.visibility & wgpu::ShaderStage::Vertex) != 0) {
-                return DAWN_VALIDATION_ERROR(
-                    "storage buffer binding is not supported in vertex shader");
-            }
+            DAWN_TRY(
+                ValidateBindingTypeWithShaderStageVisibility(binding.type, binding.visibility));
 
             switch (binding.type) {
                 case wgpu::BindingType::UniformBuffer:
@@ -69,6 +111,8 @@ namespace dawn_native {
                     break;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::Sampler:
+                case wgpu::BindingType::ReadonlyStorageTexture:
+                case wgpu::BindingType::WriteonlyStorageTexture:
                     if (binding.hasDynamicOffset) {
                         return DAWN_VALIDATION_ERROR("Samplers and textures cannot be dynamic");
                     }
@@ -101,7 +145,7 @@ namespace dawn_native {
         }
 
         return {};
-    }
+    }  // namespace dawn_native
 
     namespace {
         size_t HashBindingInfo(const BindGroupLayoutBase::LayoutBindingInfo& info) {
@@ -149,6 +193,19 @@ namespace dawn_native {
             mBindingInfo.types[index] = binding.type;
             mBindingInfo.textureComponentTypes[index] = binding.textureComponentType;
 
+            // TODO(enga): This is a greedy computation because there may be holes in bindings.
+            // Fix this when we pack bindings.
+            mBindingCount = std::max(mBindingCount, index + 1);
+            switch (binding.type) {
+                case wgpu::BindingType::UniformBuffer:
+                case wgpu::BindingType::StorageBuffer:
+                case wgpu::BindingType::ReadonlyStorageBuffer:
+                    mBufferCount = std::max(mBufferCount, index + 1);
+                    break;
+                default:
+                    break;
+            }
+
             if (binding.textureDimension == wgpu::TextureViewDimension::Undefined) {
                 mBindingInfo.textureDimensions[index] = wgpu::TextureViewDimension::e2D;
             } else {
@@ -167,6 +224,8 @@ namespace dawn_native {
                     case wgpu::BindingType::SampledTexture:
                     case wgpu::BindingType::Sampler:
                     case wgpu::BindingType::StorageTexture:
+                    case wgpu::BindingType::ReadonlyStorageTexture:
+                    case wgpu::BindingType::WriteonlyStorageTexture:
                     case wgpu::BindingType::AccelerationContainer:
                         UNREACHABLE();
                         break;
@@ -210,6 +269,10 @@ namespace dawn_native {
         return a->mBindingInfo == b->mBindingInfo;
     }
 
+    uint32_t BindGroupLayoutBase::GetBindingCount() const {
+        return mBindingCount;
+    }
+
     uint32_t BindGroupLayoutBase::GetDynamicBufferCount() const {
         return mDynamicStorageBufferCount + mDynamicUniformBufferCount;
     }
@@ -220,6 +283,25 @@ namespace dawn_native {
 
     uint32_t BindGroupLayoutBase::GetDynamicStorageBufferCount() const {
         return mDynamicStorageBufferCount;
+    }
+
+    size_t BindGroupLayoutBase::GetBindingDataSize() const {
+        // | ------ buffer-specific ----------| ------------ object pointers -------------|
+        // | --- offsets + sizes -------------| --------------- Ref<ObjectBase> ----------|
+        size_t objectPointerStart = mBufferCount * sizeof(BufferBindingData);
+        ASSERT(IsAligned(objectPointerStart, alignof(Ref<ObjectBase>)));
+        return objectPointerStart + mBindingCount * sizeof(Ref<ObjectBase>);
+    }
+
+    BindGroupLayoutBase::BindingDataPointers BindGroupLayoutBase::ComputeBindingDataPointers(
+        void* dataStart) const {
+        BufferBindingData* bufferData = reinterpret_cast<BufferBindingData*>(dataStart);
+        auto bindings = reinterpret_cast<Ref<ObjectBase>*>(bufferData + mBufferCount);
+
+        ASSERT(IsPtrAligned(bufferData, alignof(BufferBindingData)));
+        ASSERT(IsPtrAligned(bindings, alignof(Ref<ObjectBase>)));
+
+        return {bufferData, bindings};
     }
 
 }  // namespace dawn_native

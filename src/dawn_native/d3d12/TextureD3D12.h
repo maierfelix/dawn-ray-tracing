@@ -18,6 +18,7 @@
 #include "common/Serial.h"
 #include "dawn_native/Texture.h"
 
+#include "dawn_native/DawnNative.h"
 #include "dawn_native/d3d12/ResourceHeapAllocationD3D12.h"
 #include "dawn_native/d3d12/d3d12_platform.h"
 
@@ -36,7 +37,7 @@ namespace dawn_native { namespace d3d12 {
         static ResultOrError<TextureBase*> Create(Device* device,
                                                   const TextureDescriptor* descriptor);
         static ResultOrError<TextureBase*> Create(Device* device,
-                                                  const TextureDescriptor* descriptor,
+                                                  const ExternalImageDescriptor* descriptor,
                                                   HANDLE sharedHandle,
                                                   uint64_t acquireMutexKey);
         Texture(Device* device,
@@ -47,12 +48,6 @@ namespace dawn_native { namespace d3d12 {
 
         DXGI_FORMAT GetD3D12Format() const;
         ID3D12Resource* GetD3D12Resource() const;
-        bool TransitionUsageAndGetResourceBarrier(CommandRecordingContext* commandContext,
-                                                  D3D12_RESOURCE_BARRIER* barrier,
-                                                  wgpu::TextureUsage newUsage);
-        void TransitionUsageNow(CommandRecordingContext* commandContext, wgpu::TextureUsage usage);
-        void TransitionUsageNow(CommandRecordingContext* commandContext,
-                                D3D12_RESOURCE_STATES newState);
 
         D3D12_RENDER_TARGET_VIEW_DESC GetRTVDescriptor(uint32_t baseMipLevel,
                                                        uint32_t baseArrayLayer,
@@ -63,6 +58,14 @@ namespace dawn_native { namespace d3d12 {
                                                  uint32_t levelCount,
                                                  uint32_t baseArrayLayer,
                                                  uint32_t layerCount);
+
+        bool TrackUsageAndGetResourceBarrier(CommandRecordingContext* commandContext,
+                                             D3D12_RESOURCE_BARRIER* barrier,
+                                             wgpu::TextureUsage newUsage);
+        void TrackUsageAndTransitionNow(CommandRecordingContext* commandContext,
+                                        wgpu::TextureUsage usage);
+        void TrackUsageAndTransitionNow(CommandRecordingContext* commandContext,
+                                        D3D12_RESOURCE_STATES newState);
 
       private:
         using TextureBase::TextureBase;
@@ -83,6 +86,9 @@ namespace dawn_native { namespace d3d12 {
 
         UINT16 GetDepthOrArraySize();
 
+        bool TrackUsageAndGetResourceBarrier(CommandRecordingContext* commandContext,
+                                             D3D12_RESOURCE_BARRIER* barrier,
+                                             D3D12_RESOURCE_STATES newState);
         bool TransitionUsageAndGetResourceBarrier(CommandRecordingContext* commandContext,
                                                   D3D12_RESOURCE_BARRIER* barrier,
                                                   D3D12_RESOURCE_STATES newState);
