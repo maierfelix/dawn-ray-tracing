@@ -250,8 +250,8 @@ namespace dawn_native {
             }
 
             if (binding.accelerationContainer != nullptr) {
-                ASSERT(mBindings[bindingIndex].Get() == nullptr);
-                mBindings[bindingIndex] = binding.accelerationContainer;
+                ASSERT(mBindingData.bindings[bindingIndex].Get() == nullptr);
+                mBindingData.bindings[bindingIndex] = binding.accelerationContainer;
                 continue;
             }
         }
@@ -307,7 +307,8 @@ namespace dawn_native {
         ASSERT(binding < kMaxBindingsPerGroup);
         ASSERT(mLayout->GetBindingInfo().mask[binding]);
         ASSERT(mLayout->GetBindingInfo().types[binding] == wgpu::BindingType::AccelerationContainer);
-        return static_cast<RayTracingAccelerationContainerBase*>(mBindings[binding].Get());
+        return static_cast<RayTracingAccelerationContainerBase*>(
+            mBindingData.bindings[binding].Get());
     }
 
     TextureViewBase* BindGroupBase::GetBindingAsTextureView(size_t binding) {
