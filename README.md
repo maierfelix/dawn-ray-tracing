@@ -7,6 +7,12 @@ This project is expected to be used along [node-webgpu](https://github.com/maier
 
 The specification of the Ray-Tracing extension can be found [here](https://github.com/maierfelix/dawn-ray-tracing/blob/master/RT_SPEC.md).
 
+## Example
+
+<img src="https://i.imgur.com/BliBL3i.png" height="288">
+<img src="https://i.imgur.com/9yVCtCs.png" height="382">
+<img src="https://i.imgur.com/RUhiJLN.gif" height="382">
+
 ## ‌‌ 
 
 Dawn is an open-source and cross-platform implementation of the work-in-progress [WebGPU](https://webgpu.dev) standard.

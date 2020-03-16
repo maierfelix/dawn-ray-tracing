@@ -92,7 +92,7 @@ Used to record a Ray-Tracing pass.
 | Type | Description |
 | :--- | :--- |
 | Number | The bind group index
-| [GPUBindGroup](#GPUBindGroup) | The bind group to use in this pass
+| [GPUBindGroup](https://gpuweb.github.io/gpuweb/#bind-groups) | The bind group to use in this pass
 | [Number] | Array of dynamic offsets
 
 ##### traceRays
@@ -249,8 +249,8 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| buffer | [GPUBuffer](#GPUBuffer) | a `GPUBuffer` containing the vertices to be used
-| format | [GPUVertexFormat](#GPUVertexFormat) | The format of the vertices
+| buffer | [GPUBuffer](https://gpuweb.github.io/gpuweb/#GPUBuffer) | a `GPUBuffer` containing the vertices to be used
+| format | [GPUVertexFormat](https://gpuweb.github.io/gpuweb/#enumdef-gpuvertexformat) | The format of the vertices
 | stride | Number | Byte stride between each vertex
 | *offset* | Number | Starting byte offset in the buffer
 | count | Number | Amount of vertices
@@ -259,8 +259,8 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| buffer | [GPUBuffer](#GPUBuffer) | a `GPUBuffer` containing the indices to be used
-| format | [GPUIndexFormat](#GPUIndexFormat) | The format of the indices
+| buffer | [GPUBuffer](https://gpuweb.github.io/gpuweb/#GPUBuffer) | a `GPUBuffer` containing the indices to be used
+| format | [GPUIndexFormat](https://gpuweb.github.io/gpuweb/#enumdef-gpuindexformat) | The format of the indices
 | *offset* | Number| Starting byte offset in the buffer
 | count | Number| Amount of indices
 
@@ -268,7 +268,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| buffer | [GPUBuffer](#GPUBuffer) | a `GPUBuffer` containing the AABBs to be used
+| buffer | [GPUBuffer](https://gpuweb.github.io/gpuweb/#GPUBuffer) | a `GPUBuffer` containing the AABBs to be used
 | stride | Number | The stride between each AABB
 | *offset* | Number| Starting byte offset in the buffer
 | count | Number| Amount of AABBs
@@ -309,8 +309,8 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| stage | [GPUShaderStage](#GPUShaderStage) | Ray-Tracing shader stage
-| module | [GPUShaderModule](#) | Shader module containing the shader
+| stage | [GPUShaderStage](https://gpuweb.github.io/gpuweb/#gpushaderstage) | Ray-Tracing shader stage
+| module | [GPUShaderModule](https://gpuweb.github.io/gpuweb/#shader-module) | Shader module containing the shader
 
 ### GPURayTracingShaderBindingTableGroupsDescriptor
 
