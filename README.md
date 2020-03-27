@@ -1,17 +1,21 @@
-# Dawn, a WebGPU implementation
+# Dawn RT
 
-**Unofficial Notes**:
-
-This is a fork of Dawn which gets extended with an unofficial Ray-Tracing extension. The extension is currently targeted at the Vulkan backend, but might be extended for the D3D12 backend as well.
+This is a fork of Dawn which gets extended with a Ray-Tracing extension. The extension is currently targeted at the Vulkan backend, but might be extended for the D3D12 backend as well.
 This project is expected to be used along [node-webgpu](https://github.com/maierfelix/webgpu).
 
 The specification of the Ray-Tracing extension can be found [here](https://github.com/maierfelix/dawn-ray-tracing/blob/master/RT_SPEC.md).
 
-## Example
+## TODO
 
-<img src="https://i.imgur.com/BliBL3i.png" height="288">
-<img src="https://i.imgur.com/9yVCtCs.png" height="382">
-<img src="https://i.imgur.com/RUhiJLN.gif" height="382">
+ - RT for D3D12 backend
+ - Port current VK_NV_ray_tracing implementation to VK_KHR_ray_tracing
+
+## Preview
+
+<img src="https://i.imgur.com/Z99uKSL.png" width="488"><br/>
+*Path Tracing*<br/>
+<img src="https://i.imgur.com/BliBL3i.png" width="488"><br/>
+*Procedural Geometry*
 
 ## ‌‌ 
 
