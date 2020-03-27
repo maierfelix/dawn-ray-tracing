@@ -110,9 +110,6 @@ namespace dawn_native {
                 }
                 // validate vertex input
                 if (geometry.vertex != nullptr) {
-                    if ((geometry.vertex->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
-                        return DAWN_VALIDATION_ERROR("Vertex data must be staged");
-                    }
                     if (geometry.vertex->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for Vertex data");
                     }
@@ -127,9 +124,6 @@ namespace dawn_native {
                     }
                     if (geometry.index->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for Index data");
-                    }
-                    if ((geometry.index->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
-                        return DAWN_VALIDATION_ERROR("Index data must be staged");
                     }
                     if (geometry.index->count == 0) {
                         return DAWN_VALIDATION_ERROR("Index count must not be zero");
@@ -147,9 +141,6 @@ namespace dawn_native {
                     }
                     if (geometry.aabb->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for AABB data");
-                    }
-                    if ((geometry.aabb->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
-                        return DAWN_VALIDATION_ERROR("AABB data must be staged");
                     }
                     if (geometry.aabb->count == 0) {
                         return DAWN_VALIDATION_ERROR("AABB count must not be zero");

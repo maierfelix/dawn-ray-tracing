@@ -380,6 +380,10 @@ namespace dawn_native { namespace vulkan {
             extensionsToRequest.push_back(kExtensionNameKhrGetMemoryRequirements2);
             usedKnobs.memoryRequirements2 = true;
         }
+        if (mDeviceInfo.descriptorIndexing) {
+            extensionsToRequest.push_back(kExtensionNameExtDescriptorIndexing);
+            usedKnobs.descriptorIndexing = true;
+        }
 
         // Always require independentBlend because it is a core Dawn feature
         usedKnobs.features.independentBlend = VK_TRUE;

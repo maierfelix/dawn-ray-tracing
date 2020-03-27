@@ -82,6 +82,7 @@ namespace dawn_native { namespace vulkan {
     const char kExtensionNameKhrMaintenance1[] = "VK_KHR_maintenance1";
     const char kExtensionNameNvRayTracing[] = "VK_NV_ray_tracing";
     const char kExtensionNameKhrGetMemoryRequirements2[] = "VK_KHR_get_memory_requirements2";
+    const char kExtensionNameExtDescriptorIndexing[] = "VK_EXT_descriptor_indexing";
 
     ResultOrError<VulkanGlobalInfo> GatherGlobalInfo(const Backend& backend) {
         VulkanGlobalInfo info = {};
@@ -322,6 +323,9 @@ namespace dawn_native { namespace vulkan {
                 }
                 if (IsExtensionName(extension, kExtensionNameKhrGetMemoryRequirements2)) {
                     info.memoryRequirements2 = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameExtDescriptorIndexing)) {
+                    info.descriptorIndexing = true;
                 }
             }
         }

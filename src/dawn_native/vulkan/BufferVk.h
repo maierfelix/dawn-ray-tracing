@@ -85,6 +85,8 @@ namespace dawn_native { namespace vulkan {
         uint64_t offset = 0;
         VkBuffer buffer = VK_NULL_HANDLE;
         VkDeviceMemory memory = VK_NULL_HANDLE;
+        // can either be a resource or a webgpu buffer
+        ResourceMemoryAllocation resource;
         Ref<Buffer> allocation;
     };
 

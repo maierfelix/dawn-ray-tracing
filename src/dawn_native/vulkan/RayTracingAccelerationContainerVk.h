@@ -49,7 +49,7 @@ namespace dawn_native { namespace vulkan {
 
         uint64_t GetHandle() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
-        VkMemoryRequirements2 GetMemoryRequirements(
+        VkMemoryRequirements GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
         uint64_t GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
@@ -86,6 +86,8 @@ namespace dawn_native { namespace vulkan {
             const RayTracingAccelerationContainerDescriptor* descriptor);
         MaybeError ReserveScratchMemory(
             const RayTracingAccelerationContainerDescriptor* descriptor);
+        MaybeError CreateScratchMemory(MemoryEntry& memoryEntry,
+                                       VkAccelerationStructureMemoryRequirementsTypeNV type);
 
         uint64_t mHandle;
         MaybeError FetchHandle(uint64_t* handle);
