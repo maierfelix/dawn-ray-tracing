@@ -16,9 +16,8 @@
 
 #include "common/Assert.h"
 #include "common/Math.h"
-#include "dawn_native/Device.h"
-
 #include "dawn_native/Buffer.h"
+#include "dawn_native/Device.h"
 
 namespace dawn_native {
 
@@ -45,6 +44,12 @@ namespace dawn_native {
           private:
             void DestroyImpl() override {
                 UNREACHABLE();
+            }
+            MaybeError UpdateInstanceImpl(
+                uint32_t instanceIndex,
+                const RayTracingAccelerationInstanceDescriptor* descriptor) override {
+                UNREACHABLE();
+                return {};
             }
             uint64_t GetHandleImpl() override {
                 UNREACHABLE();
@@ -110,6 +115,9 @@ namespace dawn_native {
                 }
                 // validate vertex input
                 if (geometry.vertex != nullptr) {
+                    if ((geometry.vertex->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("Vertex data must be staged");
+                    }
                     if (geometry.vertex->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for Vertex data");
                     }
@@ -124,6 +132,9 @@ namespace dawn_native {
                     }
                     if (geometry.index->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for Index data");
+                    }
+                    if ((geometry.index->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("Index data must be staged");
                     }
                     if (geometry.index->count == 0) {
                         return DAWN_VALIDATION_ERROR("Index count must not be zero");
@@ -141,6 +152,9 @@ namespace dawn_native {
                     }
                     if (geometry.aabb->buffer->GetSize() == 0) {
                         return DAWN_VALIDATION_ERROR("Invalid Buffer for AABB data");
+                    }
+                    if ((geometry.aabb->buffer->GetUsage() & wgpu::BufferUsage::CopyDst) == 0) {
+                        return DAWN_VALIDATION_ERROR("AABB data must be staged");
                     }
                     if (geometry.aabb->count == 0) {
                         return DAWN_VALIDATION_ERROR("AABB count must not be zero");
@@ -228,6 +242,44 @@ namespace dawn_native {
 
     uint64_t RayTracingAccelerationContainerBase::GetHandleInternal() {
         return GetHandleImpl();
+    }
+
+    void RayTracingAccelerationContainerBase::UpdateInstance(
+        uint32_t instanceIndex,
+        const RayTracingAccelerationInstanceDescriptor* descriptor) {
+        if (GetDevice()->ConsumedError(ValidateUpdateInstance(instanceIndex, descriptor))) {
+            return;
+        }
+        ASSERT(!IsError());
+
+        if (GetDevice()->ConsumedError(UpdateInstanceImpl(instanceIndex, descriptor))) {
+            return;
+        }
+    }
+
+    MaybeError RayTracingAccelerationContainerBase::ValidateUpdateInstance(
+        uint32_t instanceIndex,
+        const RayTracingAccelerationInstanceDescriptor* descriptor) const {
+        DAWN_TRY(GetDevice()->ValidateIsAlive());
+        DAWN_TRY(GetDevice()->ValidateObject(this));
+
+        if (GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Top) {
+            return DAWN_VALIDATION_ERROR("Only Top-Level Containers support instance updates");
+        }
+
+        RayTracingAccelerationContainerBase* geometryContainer = descriptor->geometryContainer;
+        if (geometryContainer == nullptr) {
+            return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be empty");
+        }
+        if (geometryContainer->GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            return DAWN_VALIDATION_ERROR(
+                "Linked Geometry Container must be a Bottom-Level container");
+        }
+        if (geometryContainer->IsDestroyed()) {
+            return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be destroyed");
+        }
+
+        return {};
     }
 
     bool RayTracingAccelerationContainerBase::IsBuilt() const {

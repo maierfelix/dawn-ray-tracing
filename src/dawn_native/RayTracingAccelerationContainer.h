@@ -15,14 +15,13 @@
 #ifndef DAWNNATIVE_RAY_TRACING_ACCELERATION_CONTAINER_H_
 #define DAWNNATIVE_RAY_TRACING_ACCELERATION_CONTAINER_H_
 
+#include <memory>
+#include <vector>
+
 #include "dawn_native/Error.h"
 #include "dawn_native/Forward.h"
 #include "dawn_native/ObjectBase.h"
-
 #include "dawn_native/dawn_platform.h"
-
-#include <vector>
-#include <memory>
 
 namespace dawn_native {
 
@@ -31,7 +30,6 @@ namespace dawn_native {
         const RayTracingAccelerationContainerDescriptor* descriptor);
 
     class RayTracingAccelerationContainerBase : public ObjectBase {
-
       public:
         RayTracingAccelerationContainerBase(
             DeviceBase* device,
@@ -40,8 +38,9 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         void Destroy();
-
         uint64_t GetHandle();
+        void UpdateInstance(uint32_t instanceIndex,
+                            const RayTracingAccelerationInstanceDescriptor* descriptor);
 
         bool IsBuilt() const;
         bool IsUpdated() const;
@@ -60,8 +59,8 @@ namespace dawn_native {
 
         void DestroyInternal();
         uint64_t GetHandleInternal();
-      private:
 
+      private:
         // bottom-level references
         std::vector<Ref<BufferBase>> mVertexBuffers;
         std::vector<Ref<BufferBase>> mIndexBuffers;
@@ -78,8 +77,15 @@ namespace dawn_native {
         wgpu::RayTracingAccelerationContainerFlag mFlags;
         wgpu::RayTracingAccelerationContainerLevel mLevel;
 
+        MaybeError ValidateUpdateInstance(
+            uint32_t instanceIndex,
+            const RayTracingAccelerationInstanceDescriptor* descriptor) const;
+
         virtual void DestroyImpl() = 0;
         virtual uint64_t GetHandleImpl() = 0;
+        virtual MaybeError UpdateInstanceImpl(
+            uint32_t instanceIndex,
+            const RayTracingAccelerationInstanceDescriptor* descriptor) = 0;
     };
 
 }  // namespace dawn_native

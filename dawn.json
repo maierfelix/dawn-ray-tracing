@@ -66,6 +66,13 @@
                 "name": "destroy"
             },
             {
+                "name": "update instance",
+                "args": [
+                    {"name": "instance index", "type": "uint32_t"},
+                    {"name": "descriptor", "type": "ray tracing acceleration instance descriptor", "annotation": "const*"}
+                ]
+            },
+            {
                 "name": "get handle",
                 "returns": "uint64_t"
             }

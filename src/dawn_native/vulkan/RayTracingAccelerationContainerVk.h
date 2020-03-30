@@ -15,11 +15,11 @@
 #ifndef DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 #define DAWNNATIVE_VULKAN_RAY_TRACING_ACCELERATION_CONTAINER_H_
 
+#include <vector>
+
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/vulkan/BufferVk.h"
-
-#include <vector>
 
 namespace dawn_native { namespace vulkan {
 
@@ -49,7 +49,7 @@ namespace dawn_native { namespace vulkan {
 
         uint64_t GetHandle() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
-        VkMemoryRequirements GetMemoryRequirements(
+        VkMemoryRequirements2 GetMemoryRequirements(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
         uint64_t GetMemoryRequirementSize(
             VkAccelerationStructureMemoryRequirementsTypeNV type) const;
@@ -68,6 +68,9 @@ namespace dawn_native { namespace vulkan {
 
         void DestroyImpl() override;
         uint64_t GetHandleImpl() override;
+        MaybeError UpdateInstanceImpl(
+            uint32_t instanceIndex,
+            const RayTracingAccelerationInstanceDescriptor* descriptor) override;
 
         std::vector<VkGeometryNV> mGeometries;
         std::vector<VkAccelerationInstance> mInstances;
@@ -86,8 +89,6 @@ namespace dawn_native { namespace vulkan {
             const RayTracingAccelerationContainerDescriptor* descriptor);
         MaybeError ReserveScratchMemory(
             const RayTracingAccelerationContainerDescriptor* descriptor);
-        MaybeError CreateScratchMemory(MemoryEntry& memoryEntry,
-                                       VkAccelerationStructureMemoryRequirementsTypeNV type);
 
         uint64_t mHandle;
         MaybeError FetchHandle(uint64_t* handle);
