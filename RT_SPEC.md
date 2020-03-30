@@ -15,6 +15,15 @@ Destroys the acceleration container.
 
 Returns a BigInt representing the memory handle to the internal acceleration container.
 
+##### updateInstance
+
+Updates the state of an instance inside a Top-Level container.
+
+| Type | Description |
+| :--- | :--- |
+| Number | The instance id
+| [GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor) | The Bottom-Level container with the geometry
+
 ### GPURayTracingShaderBindingTable
 
 Used to group shaders together which later can be dynamically invoked.
@@ -139,7 +148,7 @@ Copies a `GPURayTracingAccelerationContainer` into another `GPURayTracingAcceler
 | [GPURayTracingAccelerationContainer](#GPURayTracingAccelerationContainer) | The **destination** acceleration container to copy into
 
 ##### updateRayTracingAccelerationContainer:
-Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerFlag](GPURayTracingAccelerationContainerFlag) `ALLOW_UPDATE` flag.
+Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerFlag](#GPURayTracingAccelerationContainerFlag) `ALLOW_UPDATE` flag.
 
 | Type | Description |
 | :--- | :--- |
