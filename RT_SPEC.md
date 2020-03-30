@@ -139,7 +139,7 @@ Copies a `GPURayTracingAccelerationContainer` into another `GPURayTracingAcceler
 | [GPURayTracingAccelerationContainer](#GPURayTracingAccelerationContainer) | The **destination** acceleration container to copy into
 
 ##### updateRayTracingAccelerationContainer:
-Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerFlag](GPURayTracingAccelerationContainerFlag) `ALLOW_UPDATE` flag.
+Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerFlag](#GPURayTracingAccelerationContainerFlag) `ALLOW_UPDATE` flag.
 
 | Type | Description |
 | :--- | :--- |
