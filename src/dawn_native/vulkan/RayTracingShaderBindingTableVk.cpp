@@ -39,11 +39,12 @@ namespace dawn_native { namespace vulkan {
     }
 
     void RayTracingShaderBindingTable::DestroyImpl() {
-        Device* device = ToBackend(GetDevice());
-        if (mGroupBuffer != VK_NULL_HANDLE) {
-            device->DeallocateMemory(&mGroupBufferResource);
-            device->GetFencedDeleter()->DeleteWhenUnused(mGroupBuffer);
-            mGroupBuffer = VK_NULL_HANDLE;
+        if (mGroupMemory.buffer != VK_NULL_HANDLE) {
+            Buffer* buffer = mGroupMemory.allocation.Get();
+            if (buffer != nullptr) {
+                buffer->Destroy();
+            }
+            mGroupMemory.buffer = VK_NULL_HANDLE;
         }
     }
 
@@ -59,93 +60,68 @@ namespace dawn_native { namespace vulkan {
 
         mRayTracingProperties = GetRayTracingProperties(*adapter);
 
+        mStages.reserve(descriptor->stagesCount);
         for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
             RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
             VkPipelineShaderStageCreateInfo stageInfo{};
             stageInfo.pNext = nullptr;
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            stageInfo.stage =
-                static_cast<VkShaderStageFlagBits>(ToVulkanShaderStageFlags(stage.stage));
+            stageInfo.stage = static_cast<VkShaderStageFlagBits>(ToVulkanShaderStageFlags(stage.stage));
             stageInfo.module = ToBackend(stage.module)->GetHandle();
             stageInfo.pName = "main";
             mStages.push_back(stageInfo);
         };
 
+        mGroups.reserve(descriptor->groupsCount);
         for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
             RayTracingShaderBindingTableGroupsDescriptor group = descriptor->groups[ii];
             VkRayTracingShaderGroupCreateInfoNV groupInfo{};
             groupInfo.pNext = nullptr;
             groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
             groupInfo.type = ToVulkanShaderBindingTableGroupType(group.type);
-            groupInfo.generalShader = group.generalIndex;
-            groupInfo.closestHitShader = group.closestHitIndex;
-            groupInfo.anyHitShader = group.anyHitIndex;
-            groupInfo.intersectionShader = group.intersectionIndex;
-
+            groupInfo.generalShader = VK_SHADER_UNUSED_NV;
+            groupInfo.closestHitShader = VK_SHADER_UNUSED_NV;
+            groupInfo.anyHitShader = VK_SHADER_UNUSED_NV;
+            groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
             if (group.generalIndex != -1) {
-                // generalIndex can be ray gen and miss
-                MaybeError rayGenErr =
-                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_RAYGEN_BIT_NV);
-                MaybeError rayMissErr =
-                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_MISS_BIT_NV);
-                if (rayGenErr.IsError() && rayMissErr.IsError()) {
-                    return rayGenErr;
+                if (!IsValidGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_RAYGEN_BIT_NV) &&
+                    !IsValidGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_MISS_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid General group index");
                 }
                 groupInfo.generalShader = group.generalIndex;
-            } else {
-                groupInfo.generalShader = VK_SHADER_UNUSED_NV;
             }
             if (group.closestHitIndex != -1) {
-                DAWN_TRY(ValidateGroupStageIndex(group.closestHitIndex,
-                                                 VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV));
+                if (!IsValidGroupStageIndex(group.closestHitIndex, VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid Closest-Hit group index");
+                }
                 groupInfo.closestHitShader = group.closestHitIndex;
-            } else {
-                groupInfo.closestHitShader = VK_SHADER_UNUSED_NV;
             }
             if (group.anyHitIndex != -1) {
-                DAWN_TRY(
-                    ValidateGroupStageIndex(group.anyHitIndex, VK_SHADER_STAGE_ANY_HIT_BIT_NV));
+                if (!IsValidGroupStageIndex(group.anyHitIndex, VK_SHADER_STAGE_ANY_HIT_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid Any-Hit group index");
+                }
                 groupInfo.anyHitShader = group.anyHitIndex;
-            } else {
-                groupInfo.anyHitShader = VK_SHADER_UNUSED_NV;
             }
             if (group.intersectionIndex != -1) {
-                DAWN_TRY(ValidateGroupStageIndex(group.intersectionIndex,
-                                                 VK_SHADER_STAGE_INTERSECTION_BIT_NV));
+                if (!IsValidGroupStageIndex(group.intersectionIndex, VK_SHADER_STAGE_INTERSECTION_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid Intersection group index");
+                }
                 groupInfo.intersectionShader = group.intersectionIndex;
-            } else {
-                groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
             }
-
             mGroups.push_back(groupInfo);
         };
 
         uint64_t bufferSize = mGroups.size() * GetShaderGroupHandleSize();
 
-        VkBufferCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        createInfo.size = bufferSize;
-        createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = 0;
-
-        DAWN_TRY(CheckVkSuccess(
-            device->fn.CreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &*mGroupBuffer),
-            "vkCreateBuffer"));
-
-        VkMemoryRequirements requirements;
-        device->fn.GetBufferMemoryRequirements(device->GetVkDevice(), mGroupBuffer, &requirements);
-
-        DAWN_TRY_ASSIGN(mGroupBufferResource, device->AllocateMemory(requirements, true));
-
-        DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
-                                    device->GetVkDevice(), mGroupBuffer,
-                                    ToBackend(mGroupBufferResource.GetResourceHeap())->GetMemory(),
-                                    mGroupBufferResource.GetOffset()),
-                                "vkBindBufferMemory"));
+        BufferDescriptor bufferDescriptor = {nullptr, nullptr, wgpu::BufferUsage::MapWrite,
+                                        bufferSize};
+        Buffer* buffer = ToBackend(device->CreateBuffer(&bufferDescriptor));
+        mGroupMemory.allocation = AcquireRef(buffer);
+        mGroupMemory.buffer = buffer->GetHandle();
+        mGroupMemory.offset = buffer->GetMemoryResource().GetOffset();
+        mGroupMemory.memory =
+            ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+        mGroupMemory.resource = buffer->GetMemoryResource();
 
         return {};
     }
@@ -163,29 +139,29 @@ namespace dawn_native { namespace vulkan {
     }
 
     VkBuffer RayTracingShaderBindingTable::GetGroupBufferHandle() const {
-        return mGroupBuffer;
+        return mGroupMemory.buffer;
     }
 
     ResourceMemoryAllocation RayTracingShaderBindingTable::GetGroupBufferResource() const {
-        return mGroupBufferResource;
+        return mGroupMemory.resource;
     }
 
     uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {
         return mRayTracingProperties.shaderGroupHandleSize;
     }
 
-    MaybeError RayTracingShaderBindingTable::ValidateGroupStageIndex(
+    bool RayTracingShaderBindingTable::IsValidGroupStageIndex(
         int32_t index,
         VkShaderStageFlagBits validStage) const {
         if (index < 0 || index >= (int32_t)mStages.size()) {
-            return DAWN_VALIDATION_ERROR("Group index out of range");
+            return false;
         }
         VkShaderStageFlagBits stage = mStages[index].stage;
         if (stage != validStage) {
             std::string msg = "Invalid stage for group index '" + std::to_string(index) + "'";
-            return DAWN_VALIDATION_ERROR(msg);
+            return false;
         }
-        return {};
+        return true;
     }
 
 }}  // namespace dawn_native::vulkan

@@ -53,6 +53,9 @@ namespace dawn_native {
                 case wgpu::BindingType::ReadonlyStorageTexture:
                     return wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment |
                            wgpu::ShaderStage::Compute;
+                case wgpu::BindingType::AccelerationContainer:
+                    return wgpu::ShaderStage::RayGeneration | wgpu::ShaderStage::RayAnyHit |
+                           wgpu::ShaderStage::RayClosestHit | wgpu::ShaderStage::RayMiss;
             }
 
             return {};

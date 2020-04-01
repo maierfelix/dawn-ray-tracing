@@ -245,6 +245,7 @@ namespace dawn_native { namespace vulkan {
 
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            mGeometries.reserve(descriptor->geometryCount);
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 const RayTracingAccelerationGeometryDescriptor& geometry =
                     descriptor->geometries[ii];
@@ -314,6 +315,7 @@ namespace dawn_native { namespace vulkan {
             // only use instances array when no instance buffer was provided
             if (descriptor->instanceBuffer == nullptr) {
                 // create data for instance buffer
+                mInstances.reserve(descriptor->instanceCount);
                 for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                     const RayTracingAccelerationInstanceDescriptor& instance =
                         descriptor->instances[ii];
@@ -488,12 +490,10 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureMemoryRequirementsInfoNV memoryRequirementsInfo{};
         memoryRequirementsInfo.sType =
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+        memoryRequirementsInfo.pNext = nullptr;
         memoryRequirementsInfo.accelerationStructure = mAccelerationStructure;
 
         VkMemoryRequirements2 memoryRequirements2{};
-        memoryRequirements2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
-        memoryRequirementsInfo.type = type;
-
         device->fn.GetAccelerationStructureMemoryRequirementsNV(
             device->GetVkDevice(), &memoryRequirementsInfo, &memoryRequirements2);
 
