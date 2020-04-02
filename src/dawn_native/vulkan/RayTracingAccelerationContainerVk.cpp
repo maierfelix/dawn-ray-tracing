@@ -406,27 +406,6 @@ namespace dawn_native { namespace vulkan {
         uint64_t updateSize = GetMemoryRequirementSize(
             VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
 
-        VkMemoryRequirements2 resultRequirements =
-            GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
-        resultRequirements.memoryRequirements.size = resultSize;
-
-        VkMemoryRequirements2 buildRequirements = GetMemoryRequirements(
-            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
-        buildRequirements.memoryRequirements.size = buildSize;
-
-        VkMemoryRequirements2 updateRequirements = GetMemoryRequirements(
-            VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
-        updateRequirements.memoryRequirements.size = updateSize;
-
-        VkBufferCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        createInfo.usage = VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
-        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = 0;
-
         // allocate scratch result memory
         {
             BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,

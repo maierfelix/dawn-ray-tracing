@@ -404,10 +404,10 @@ namespace dawn_native { namespace vulkan {
         VkPhysicalDevice physicalDevice = adapter.GetPhysicalDevice();
         const VulkanFunctions& vkFunctions = adapter.GetBackend()->GetFunctions();
 
-        VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties = {};
+        VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties{};
         rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 
-        VkPhysicalDeviceProperties2 deviceProperties2 = {};
+        VkPhysicalDeviceProperties2 deviceProperties2{};
         deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         deviceProperties2.pNext = &rayTracingProperties;
 
