@@ -455,7 +455,7 @@ namespace dawn_native { namespace vulkan {
                     if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
                         std::vector<VkGeometryNV>& geometries = container->GetGeometries();
 
-                        VkAccelerationStructureInfoNV asInfo{};
+                        VkAccelerationStructureInfoNV asInfo;
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
@@ -476,7 +476,7 @@ namespace dawn_native { namespace vulkan {
                     // top-level AS
                     else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
 
-                        VkAccelerationStructureInfoNV asInfo{};
+                        VkAccelerationStructureInfoNV asInfo;
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
@@ -550,7 +550,7 @@ namespace dawn_native { namespace vulkan {
                     if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
                         std::vector<VkGeometryNV>& geometries = container->GetGeometries();
 
-                        VkAccelerationStructureInfoNV asInfo{};
+                        VkAccelerationStructureInfoNV asInfo;
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
@@ -571,7 +571,7 @@ namespace dawn_native { namespace vulkan {
                     // top-level AS
                     else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
 
-                        VkAccelerationStructureInfoNV asInfo{};
+                        VkAccelerationStructureInfoNV asInfo;
                         asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
                         asInfo.pNext = nullptr;
                         asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());

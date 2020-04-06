@@ -81,6 +81,8 @@ namespace dawn_native { namespace vulkan {
             GET_INSTANCE_PROC(DestroyDebugReportCallbackEXT);
         }
 
+        GET_INSTANCE_PROC(GetBufferMemoryRequirements2);
+
         // Vulkan 1.1 is not required to report promoted extensions from 1.0 and is not required to
         // support the vendor entrypoint in GetProcAddress.
         if (globalInfo.apiVersion >= VK_MAKE_VERSION(1, 1, 0)) {

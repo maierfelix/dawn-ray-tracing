@@ -66,6 +66,7 @@ namespace dawn_native { namespace vulkan {
             nullptr;
         PFN_vkGetPhysicalDeviceSparseImageFormatProperties
             GetPhysicalDeviceSparseImageFormatProperties = nullptr;
+        PFN_vkGetBufferMemoryRequirements2 GetBufferMemoryRequirements2 = nullptr;
         // Not technically an instance proc but we want to be able to use it as soon as the
         // device is created.
         PFN_vkDestroyDevice DestroyDevice = nullptr;

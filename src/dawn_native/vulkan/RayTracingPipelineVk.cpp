@@ -45,7 +45,7 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkRayTracingShaderGroupCreateInfoNV> groups = shaderBindingTable->GetGroups();
 
         {
-            VkRayTracingPipelineCreateInfoNV createInfo{};
+            VkRayTracingPipelineCreateInfoNV createInfo;
             createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
             createInfo.pNext = nullptr;
             createInfo.flags = 0;

@@ -45,6 +45,7 @@ namespace dawn_native { namespace vulkan {
         std::array<VkDescriptorImageInfo, kMaxBindingsPerGroup> writeImageInfo;
         std::array<VkWriteDescriptorSetAccelerationStructureNV, kMaxBindingsPerGroup>
             writeAccelerationInfo;
+        std::array<VkAccelerationStructureNV, kMaxBindingsPerGroup> accelerationStructures;
 
         const auto& layoutInfo = GetLayout()->GetBindingInfo();
         for (uint32_t bindingIndex : IterateBitSet(layoutInfo.mask)) {
@@ -76,20 +77,6 @@ namespace dawn_native { namespace vulkan {
                     write.pImageInfo = &writeImageInfo[numWrites];
                 } break;
 
-                case wgpu::BindingType::AccelerationContainer: {
-                    RayTracingAccelerationContainer* container =
-                        ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
-                    VkAccelerationStructureNV instance = container->GetAccelerationStructure();
-
-                    writeAccelerationInfo[numWrites].pNext = nullptr;
-                    writeAccelerationInfo[numWrites].sType =
-                        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
-                    writeAccelerationInfo[numWrites].accelerationStructureCount = 1;
-                    writeAccelerationInfo[numWrites].pAccelerationStructures = &*instance;
-
-                    write.pNext = &writeAccelerationInfo[numWrites];
-                } break;
-
                 case wgpu::BindingType::SampledTexture: {
                     TextureView* view = ToBackend(GetBindingAsTextureView(bindingIndex));
 
@@ -100,6 +87,22 @@ namespace dawn_native { namespace vulkan {
                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
                     write.pImageInfo = &writeImageInfo[numWrites];
+                } break;
+
+                case wgpu::BindingType::AccelerationContainer: {
+                    RayTracingAccelerationContainer* container =
+                        ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
+
+                    accelerationStructures[numWrites] = container->GetAccelerationStructure();
+
+                    writeAccelerationInfo[numWrites].pNext = nullptr;
+                    writeAccelerationInfo[numWrites].sType =
+                        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+                    writeAccelerationInfo[numWrites].accelerationStructureCount = 1;
+                    writeAccelerationInfo[numWrites].pAccelerationStructures =
+                        AsVkArray(&accelerationStructures.data()[numWrites]);
+
+                    write.pNext = &writeAccelerationInfo[numWrites];
                 } break;
 
                 default:
