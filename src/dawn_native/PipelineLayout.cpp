@@ -55,8 +55,8 @@ namespace dawn_native {
                            wgpu::ShaderStage::Compute;
 
                 case wgpu::BindingType::AccelerationContainer:
-                    return wgpu::ShaderStage::RayGeneration | wgpu::ShaderStage::RayClosestHit |
-                           wgpu::ShaderStage::RayAnyHit | wgpu::ShaderStage::RayMiss;
+                    return wgpu::ShaderStage::RayGeneration | wgpu::ShaderStage::RayAnyHit |
+                           wgpu::ShaderStage::RayClosestHit | wgpu::ShaderStage::RayMiss;
             }
 
             return {};

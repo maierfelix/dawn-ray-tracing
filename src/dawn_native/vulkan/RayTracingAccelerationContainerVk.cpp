@@ -469,8 +469,7 @@ namespace dawn_native { namespace vulkan {
                                                 &bufferSizeRequirements);
 
         requirements.size = bufferSizeRequirements.memoryRequirements.size;
-        DAWN_TRY_ASSIGN(memoryEntry.resource,
-                        device->AllocateMemory(requirements, false));
+        DAWN_TRY_ASSIGN(memoryEntry.resource, device->AllocateMemory(requirements, false));
 
         DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
                                     device->GetVkDevice(), memoryEntry.buffer,

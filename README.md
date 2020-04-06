@@ -5,6 +5,10 @@ This project is expected to be used along [node-webgpu](https://github.com/maier
 
 The specification of the Ray-Tracing extension can be found [here](https://github.com/maierfelix/dawn-ray-tracing/blob/master/RT_SPEC.md).
 
+The relative WebGPU issue can be found [here](https://github.com/gpuweb/gpuweb/issues/535).
+
+An article covering the basic usage of the API can be found [here](http://maierfelix.github.io/2020-01-13-webgpu-ray-tracing/).
+
 ## TODO
 
  - RT for D3D12 backend

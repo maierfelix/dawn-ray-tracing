@@ -47,37 +47,6 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages) {
-        VkShaderStageFlags flags = 0;
-
-        if (stages & wgpu::ShaderStage::Vertex) {
-            flags |= VK_SHADER_STAGE_VERTEX_BIT;
-        }
-        if (stages & wgpu::ShaderStage::Fragment) {
-            flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-        if (stages & wgpu::ShaderStage::Compute) {
-            flags |= VK_SHADER_STAGE_COMPUTE_BIT;
-        }
-        if (stages & wgpu::ShaderStage::RayGeneration) {
-            flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
-        }
-        if (stages & wgpu::ShaderStage::RayClosestHit) {
-            flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
-        }
-        if (stages & wgpu::ShaderStage::RayAnyHit) {
-            flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
-        }
-        if (stages & wgpu::ShaderStage::RayMiss) {
-            flags |= VK_SHADER_STAGE_MISS_BIT_NV;
-        }
-        if (stages & wgpu::ShaderStage::RayIntersection) {
-            flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
-        }
-
-        return flags;
-    }
-
     VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType) {
         switch (geometryType) {
             case wgpu::RayTracingAccelerationGeometryType::Triangles:
@@ -139,7 +108,36 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkBuildAccelerationStructureFlagBitsNV ToVulkanBuildAccelerationContainerFlags(
+    VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages) {
+        uint32_t flags = 0;
+        if (stages & wgpu::ShaderStage::Vertex) {
+            flags |= VK_SHADER_STAGE_VERTEX_BIT;
+        }
+        if (stages & wgpu::ShaderStage::Fragment) {
+            flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        if (stages & wgpu::ShaderStage::Compute) {
+            flags |= VK_SHADER_STAGE_COMPUTE_BIT;
+        }
+        if (stages & wgpu::ShaderStage::RayGeneration) {
+            flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
+        }
+        if (stages & wgpu::ShaderStage::RayClosestHit) {
+            flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+        }
+        if (stages & wgpu::ShaderStage::RayAnyHit) {
+            flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+        }
+        if (stages & wgpu::ShaderStage::RayMiss) {
+            flags |= VK_SHADER_STAGE_MISS_BIT_NV;
+        }
+        if (stages & wgpu::ShaderStage::RayIntersection) {
+            flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+        }
+        return static_cast<VkShaderStageFlags>(flags);
+    }
+
+    VkBuildAccelerationStructureFlagsNV ToVulkanBuildAccelerationContainerFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags) {
         uint32_t flags = 0;
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
@@ -154,10 +152,10 @@ namespace dawn_native { namespace vulkan {
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
             flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
         }
-        return static_cast<VkBuildAccelerationStructureFlagBitsNV>(flags);
+        return static_cast<VkBuildAccelerationStructureFlagsNV>(flags);
     }
 
-    VkGeometryInstanceFlagBitsNV ToVulkanAccelerationContainerInstanceFlags(
+    VkGeometryInstanceFlagsNV ToVulkanAccelerationContainerInstanceFlags(
         wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
         uint32_t flags = 0;
         if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
@@ -173,10 +171,10 @@ namespace dawn_native { namespace vulkan {
         if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
             flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
         }
-        return static_cast<VkGeometryInstanceFlagBitsNV>(flags);
+        return static_cast<VkGeometryInstanceFlagsNV>(flags);
     }
 
-    VkGeometryFlagBitsNV ToVulkanAccelerationContainerGeometryFlags(
+    VkGeometryFlagsNV ToVulkanAccelerationContainerGeometryFlags(
         wgpu::RayTracingAccelerationGeometryFlag geometryFlags) {
         uint32_t flags = 0;
         if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::Opaque) {
@@ -185,7 +183,7 @@ namespace dawn_native { namespace vulkan {
         if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::AllowAnyHit) {
             flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;
         }
-        return static_cast<VkGeometryFlagBitsNV>(flags);
+        return static_cast<VkGeometryFlagsNV>(flags);
     }
 
     // Vulkan SPEC requires the source/destination region specified by each element of
