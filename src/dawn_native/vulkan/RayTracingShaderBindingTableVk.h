@@ -17,7 +17,7 @@
 
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingShaderBindingTable.h"
-#include "dawn_native/vulkan/BufferVk.h"
+#include "dawn_native/ResourceMemoryAllocation.h"
 
 #include <vector>
 
@@ -49,9 +49,10 @@ namespace dawn_native { namespace vulkan {
         VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
 
         // group handle buffer
-        MemoryEntry mGroupMemory;
+        VkBuffer mGroupBuffer = VK_NULL_HANDLE;
+        ResourceMemoryAllocation mGroupBufferResource;
 
-        bool IsValidGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
+        MaybeError ValidateGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };
