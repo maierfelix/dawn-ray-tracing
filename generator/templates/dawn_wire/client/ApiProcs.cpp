@@ -59,9 +59,6 @@ namespace dawn_wire { namespace client {
                     char* allocatedBuffer = static_cast<char*>(device->GetClient()->GetCmdSpace(requiredSize));
                     cmd.Serialize(allocatedBuffer, *device->GetClient());
 
-                    {% if Suffix == "RayTracingAccelerationContainerGetHandle" %}
-                        return 0;
-                    {% endif %}
                     {% if method.return_type.category == "object" %}
                         return reinterpret_cast<{{as_cType(method.return_type.name)}}>(allocation->object.get());
                     {% endif %}

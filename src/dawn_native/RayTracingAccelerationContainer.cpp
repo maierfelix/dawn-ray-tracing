@@ -51,9 +51,6 @@ namespace dawn_native {
                 UNREACHABLE();
                 return {};
             }
-            uint64_t GetHandleImpl() override {
-                UNREACHABLE();
-            }
         };
 
     }  // anonymous namespace
@@ -225,14 +222,6 @@ namespace dawn_native {
             DestroyImpl();
         }
         SetDestroyState(true);
-    }
-
-    uint64_t RayTracingAccelerationContainerBase::GetHandle() {
-        return GetHandleInternal();
-    }
-
-    uint64_t RayTracingAccelerationContainerBase::GetHandleInternal() {
-        return GetHandleImpl();
     }
 
     void RayTracingAccelerationContainerBase::UpdateInstance(

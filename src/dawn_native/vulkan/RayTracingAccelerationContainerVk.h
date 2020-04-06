@@ -49,10 +49,6 @@ namespace dawn_native { namespace vulkan {
 
         uint64_t GetHandle() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;
-        VkMemoryRequirements2 GetMemoryRequirements(
-            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
-        uint64_t GetMemoryRequirementSize(
-            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
 
         uint32_t GetInstanceCount() const;
 
@@ -67,7 +63,6 @@ namespace dawn_native { namespace vulkan {
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
         void DestroyImpl() override;
-        uint64_t GetHandleImpl() override;
         MaybeError UpdateInstanceImpl(
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
@@ -85,11 +80,14 @@ namespace dawn_native { namespace vulkan {
         MemoryEntry mInstanceMemory;
         uint32_t mInstanceCount;
 
+        VkMemoryRequirements GetMemoryRequirements(
+            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
+        uint64_t GetMemoryRequirementSize(
+            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
+
         MaybeError CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);
 
-        MaybeError ReserveScratchMemory(
-            const RayTracingAccelerationContainerDescriptor* descriptor);
         MaybeError AllocateScratchMemory(MemoryEntry& memoryEntry,
                                          VkMemoryRequirements& requirements);
 

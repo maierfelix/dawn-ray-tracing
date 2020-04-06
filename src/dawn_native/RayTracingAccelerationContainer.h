@@ -38,7 +38,6 @@ namespace dawn_native {
         static RayTracingAccelerationContainerBase* MakeError(DeviceBase* device);
 
         void Destroy();
-        uint64_t GetHandle();
         void UpdateInstance(uint32_t instanceIndex,
                             const RayTracingAccelerationInstanceDescriptor* descriptor);
 
@@ -58,7 +57,6 @@ namespace dawn_native {
         RayTracingAccelerationContainerBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
         void DestroyInternal();
-        uint64_t GetHandleInternal();
 
       private:
         // bottom-level references
@@ -82,7 +80,6 @@ namespace dawn_native {
             const RayTracingAccelerationInstanceDescriptor* descriptor) const;
 
         virtual void DestroyImpl() = 0;
-        virtual uint64_t GetHandleImpl() = 0;
         virtual MaybeError UpdateInstanceImpl(
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) = 0;

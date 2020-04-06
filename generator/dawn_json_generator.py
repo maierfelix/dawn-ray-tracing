@@ -328,7 +328,7 @@ def compute_wire_params(api_params, wire_json):
             ret_type = method.return_type.name.canonical_case()
 
             # Only object return values or void are supported. Other methods must be handwritten.
-            if method.return_type.category != 'object' and ret_type != 'void' and command_suffix != 'RayTracingAccelerationContainerGetHandle':
+            if method.return_type.category != 'object' and ret_type != 'void':
                 assert(command_suffix in wire_json['special items']['client_handwritten_commands'])
                 continue
 
