@@ -11,12 +11,7 @@ Used to encapsulate geometries or geometry instances, based on the assigned leve
 ##### destroy
 Destroys the acceleration container.
 
-##### getHandle
-
-Returns a BigInt representing the memory handle to the internal acceleration container.
-
 ##### updateInstance
-
 Updates the state of an instance inside a Top-Level container.
 
 | Type | Description |
@@ -312,7 +307,6 @@ This descriptor gets extended with the following properties:
 | *level* | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Level of the container
 | *geometries* | [[GPURayTracingAccelerationGeometryDescriptor](#GPURayTracingAccelerationGeometryDescriptor)] | Geometry to encapsulate by this container
 | *instances* | [[GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor)] | Geometry instances to encapsulate by this container
-| *instanceBuffer* | ArrayBuffer | Low-Level alternative to *instances*. The layout of each instance entry within *instanceBuffer* is defined [here](#GPURayTracingAccelerationContainerInstanceBuffer)
 
 ### GPURayTracingShaderBindingTableStagesDescriptor
 
@@ -359,24 +353,3 @@ Each index defaults to `-1`, indicating that the group is unused. To enable a gr
 | Name | Type | Description |
 | :--- | :--- | :--- |
 | *label* | String | Debug label
-
-## Arbitrary
-
-### GPURayTracingAccelerationContainerInstanceBuffer
-
-The low-level alternative to [GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor).
-
-This should be used when large amounts of data get used, or an instance has to be updated (e.g. it's transform) at some point. Note that there are no checks done for the data inside the buffer.
-
-The instance buffer wraps contiguous instances, where each instance entry is 64 bytes in size.
-
-An instance entry within the instance buffer has the following layout:
-
-| Name | Size | Description
-| :--- | :--- | :--- |
-| transform | 48 Byte | 3x4 row-major transform matrix
-| instanceId | 24 Bit | Can be used to provide arbitrary data to the Hit shaders.
-| mask | 8 Bit | Ignore mask (see `traceNV`)
-| instanceOffset | 24 Bit | Unused yet
-| flags | 8 Bit | Flags for this instance (see [GPURayTracingAccelerationInstanceFlag](#GPURayTracingAccelerationInstanceFlag))
-| accelerationContainerHandle | 8 Byte | Geometry container to be used by this instance. See [GPURayTracingAccelerationContainer.getHandle](#GPURayTracingAccelerationContainer)
