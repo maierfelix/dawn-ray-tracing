@@ -174,33 +174,14 @@ namespace dawn_native { namespace vulkan {
 
     }  // anonymous namespace
 
-    // validate geometry instance flag bits to match with wgpu
-    // we have to do this since we allow instance buffer to be created from outside
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable ==
-                      VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise ==
-                      VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque ==
-                      VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque ==
-                      VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV,
-                  "");
-
     // static
     ResultOrError<RayTracingAccelerationContainer*> RayTracingAccelerationContainer::Create(
         Device* device,
         const RayTracingAccelerationContainerDescriptor* descriptor) {
-        std::unique_ptr<RayTracingAccelerationContainer> geometry =
+        std::unique_ptr<RayTracingAccelerationContainer> container =
             std::make_unique<RayTracingAccelerationContainer>(device, descriptor);
-        DAWN_TRY(geometry->Initialize(descriptor));
-        return geometry.release();
+        DAWN_TRY(container->Initialize(descriptor));
+        return container.release();
     }
 
     void RayTracingAccelerationContainer::DestroyImpl() {

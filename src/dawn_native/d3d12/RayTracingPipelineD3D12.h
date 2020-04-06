@@ -12,19 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DAWNNATIVE_VULKAN_RAY_TRACING_PIPELINE_H_
-#define DAWNNATIVE_VULKAN_RAY_TRACING_PIPELINE_H_
+#ifndef DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_
+#define DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_
 
 #include "dawn_native/RayTracingPipeline.h"
-#include "dawn_native/DynamicUploader.h"
-#include "dawn_native/ResourceMemoryAllocation.h"
 
-#include "common/vulkan_platform.h"
-#include "dawn_native/Error.h"
+#include "dawn_native/d3d12/d3d12_platform.h"
 
-#include "dawn_native/vulkan/BufferVk.h"
-
-namespace dawn_native { namespace vulkan {
+namespace dawn_native { namespace d3d12 {
 
     class Device;
 
@@ -35,15 +30,11 @@ namespace dawn_native { namespace vulkan {
             const RayTracingPipelineDescriptor* descriptor);
         ~RayTracingPipeline();
 
-        VkPipeline GetHandle() const;
-
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
-
-        VkPipeline mHandle = VK_NULL_HANDLE;
     };
 
-}}  // namespace dawn_native::vulkan
+}}  // namespace dawn_native::d3d12
 
-#endif  // DAWNNATIVE_VULKAN_RAY_TRACING_PIPELINE_H_
+#endif  // DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_

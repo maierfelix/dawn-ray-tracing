@@ -110,17 +110,11 @@ namespace dawn_native { namespace d3d12 {
       private:
         ResultOrError<RayTracingAccelerationContainerBase*>
         CreateRayTracingAccelerationContainerImpl(
-            const RayTracingAccelerationContainerDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingAccelerationContainerDescriptor* descriptor) override;
         ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
-            const RayTracingShaderBindingTableDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingShaderBindingTableDescriptor* descriptor) override;
         ResultOrError<RayTracingPipelineBase*> CreateRayTracingPipelineImpl(
-            const RayTracingPipelineDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingPipelineDescriptor* descriptor) override;
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(

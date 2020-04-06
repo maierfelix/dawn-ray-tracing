@@ -31,6 +31,9 @@
 #include "dawn_native/d3d12/PipelineLayoutD3D12.h"
 #include "dawn_native/d3d12/PlatformFunctions.h"
 #include "dawn_native/d3d12/QueueD3D12.h"
+#include "dawn_native/d3d12/RayTracingAccelerationContainerD3D12.h"
+#include "dawn_native/d3d12/RayTracingPipelineD3D12.h"
+#include "dawn_native/d3d12/RayTracingShaderBindingTableD3D12.h"
 #include "dawn_native/d3d12/RenderPipelineD3D12.h"
 #include "dawn_native/d3d12/ResourceAllocatorManagerD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
@@ -217,6 +220,19 @@ namespace dawn_native { namespace d3d12 {
         return mPendingCommands.ExecuteCommandList(mCommandQueue.Get());
     }
 
+    ResultOrError<RayTracingAccelerationContainerBase*>
+    Device::CreateRayTracingAccelerationContainerImpl(
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
+        return RayTracingAccelerationContainer::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingShaderBindingTableBase*> Device::CreateRayTracingShaderBindingTableImpl(
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
+        return RayTracingShaderBindingTable::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingPipelineBase*> Device::CreateRayTracingPipelineImpl(
+        const RayTracingPipelineDescriptor* descriptor) {
+        return RayTracingPipeline::Create(this, descriptor);
+    }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
         return BindGroup::Create(this, descriptor);

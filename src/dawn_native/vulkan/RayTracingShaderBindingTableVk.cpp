@@ -176,11 +176,6 @@ namespace dawn_native { namespace vulkan {
         if (index < 0 || index >= (int32_t)mStages.size()) {
             return DAWN_VALIDATION_ERROR("Group index out of range");
         }
-        VkShaderStageFlagBits stage = mStages[index].stage;
-        if (stage != validStage) {
-            std::string msg = "Invalid stage for group index '" + std::to_string(index) + "'";
-            return DAWN_VALIDATION_ERROR(msg);
-        }
         return {};
     }
 
