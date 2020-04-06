@@ -454,6 +454,9 @@ namespace dawn_native { namespace vulkan {
                                                 &bufferSizeRequirements);
 
         requirements.size = bufferSizeRequirements.memoryRequirements.size;
+        // TODO: validate that this is legal - validation layers seem to accept this?
+        requirements.memoryTypeBits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
         DAWN_TRY_ASSIGN(memoryEntry.resource, device->AllocateMemory(requirements, false));
 
         DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
