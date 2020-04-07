@@ -29,6 +29,8 @@ namespace dawn_native { namespace d3d12 {
         wgpu::RayTracingAccelerationContainerLevel level);
     D3D12_RAYTRACING_GEOMETRY_TYPE ToD3D12RayTracingGeometryType(
         wgpu::RayTracingAccelerationGeometryType geometryType);
+    DXGI_FORMAT ToD3D12RayTracingAccelerationContainerIndexFormat(wgpu::IndexFormat format);
+    DXGI_FORMAT ToD3D12RayTracingAccelerationContainerVertexFormat(wgpu::VertexFormat format);
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
     ToD3D12RayTracingAccelerationStructureBuildFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags);

@@ -281,7 +281,6 @@ void init() {
         descriptor.geometries = &geometry;
         descriptor.instanceCount = 0;
         descriptor.instances = nullptr;
-        descriptor.instanceBuffer = nullptr;
 
         geometryContainer = wgpuDeviceCreateRayTracingAccelerationContainer(device, &descriptor);
     }
@@ -312,7 +311,6 @@ void init() {
         descriptor.geometries = nullptr;
         descriptor.instanceCount = 1;
         descriptor.instances = &instanceDescriptor;
-        descriptor.instanceBuffer = nullptr;
 
         instanceContainer = wgpuDeviceCreateRayTracingAccelerationContainer(device, &descriptor);
     }

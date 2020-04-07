@@ -68,14 +68,9 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR(
                     "Geometry Count for Top-Level Acceleration Container must be zero");
             }
-            if (descriptor->instanceCount == 0 && descriptor->instanceBuffer == nullptr) {
+            if (descriptor->instanceCount == 0) {
                 return DAWN_VALIDATION_ERROR(
                     "No data provided for Top-Level Acceleration Container");
-            }
-            if (descriptor->instanceCount != 0 && descriptor->instanceBuffer != nullptr) {
-                return DAWN_VALIDATION_ERROR(
-                    "Only instances or instanceBuffer is valid to use in Top-Level Acceleration "
-                    "Container");
             }
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 const RayTracingAccelerationInstanceDescriptor& instance =
@@ -184,10 +179,6 @@ namespace dawn_native {
             };
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            // save reference to instance buffer if provided
-            if (descriptor->instanceBuffer != nullptr) {
-                mInstanceBuffer = descriptor->instanceBuffer;
-            }
             // save unique references to used geometry containers
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 const RayTracingAccelerationInstanceDescriptor& instance =

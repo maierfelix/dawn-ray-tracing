@@ -58,7 +58,7 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkIndexType ToVulkanIndexFormat(wgpu::IndexFormat format) {
+    VkIndexType ToVulkanAccelerationContainerIndexFormat(wgpu::IndexFormat format) {
         switch (format) {
             case wgpu::IndexFormat::None:
                 return VK_INDEX_TYPE_NONE_NV;
@@ -71,7 +71,7 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkFormat ToVulkanVertexFormat(wgpu::VertexFormat format) {
+    VkFormat ToVulkanAccelerationContainerVertexFormat(wgpu::VertexFormat format) {
         switch (format) {
             case wgpu::VertexFormat::Float2:
                 return VK_FORMAT_R32G32_SFLOAT;

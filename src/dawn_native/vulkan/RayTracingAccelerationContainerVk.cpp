@@ -215,7 +215,7 @@ namespace dawn_native { namespace vulkan {
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
 
-        // validate ray tracing calls
+        // TODO: make this an extension
         if (device->fn.CreateAccelerationStructureNV == nullptr) {
             return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
         }
@@ -247,7 +247,7 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.vertexCount = geometry.vertex->count;
                     geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
                     geometryInfo.geometry.triangles.vertexFormat =
-                        ToVulkanVertexFormat(geometry.vertex->format);
+                        ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
                 } else {
                     geometryInfo.geometry.triangles.vertexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.vertexOffset = 0;
@@ -262,7 +262,7 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.indexOffset = geometry.index->offset;
                     geometryInfo.geometry.triangles.indexCount = geometry.index->count;
                     geometryInfo.geometry.triangles.indexType =
-                        ToVulkanIndexFormat(geometry.index->format);
+                        ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
                 } else {
                     geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.indexOffset = 0;
@@ -300,32 +300,20 @@ namespace dawn_native { namespace vulkan {
 
         // container requires instance buffer
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            // only create internal instance buffer when no external one was provided
-            if (descriptor->instanceBuffer == nullptr) {
-                uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
+            uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
 
-                BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
-                                               bufferSize};
-                Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-                mInstanceMemory.allocation = AcquireRef(buffer);
-                mInstanceMemory.buffer = buffer->GetHandle();
-                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
-                mInstanceMemory.memory =
-                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                           bufferSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mInstanceMemory.allocation = AcquireRef(buffer);
+            mInstanceMemory.buffer = buffer->GetHandle();
+            mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
+            mInstanceMemory.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
 
-                // copy instance data into instance buffer
-                buffer->SetSubData(0, bufferSize, mInstances.data());
-                mInstanceCount = mInstances.size();
-            }
-            // external instance buffer
-            else {
-                Buffer* buffer = ToBackend(descriptor->instanceBuffer);
-                mInstanceMemory.buffer = buffer->GetHandle();
-                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
-                mInstanceMemory.memory =
-                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
-                mInstanceCount = buffer->GetSize() / sizeof(VkAccelerationInstance);
-            }
+            // copy instance data into instance buffer
+            buffer->SetSubData(0, bufferSize, mInstances.data());
+            mInstanceCount = mInstances.size();
         }
 
         // create the acceleration container

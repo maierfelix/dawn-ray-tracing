@@ -18,7 +18,6 @@
 #include "common/vulkan_platform.h"
 #include "dawn_native/Commands.h"
 #include "dawn_native/dawn_platform.h"
-
 #include "dawn_native/vulkan/BufferVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
 
@@ -27,8 +26,8 @@ namespace dawn_native { namespace vulkan {
     VkCompareOp ToVulkanCompareOp(wgpu::CompareFunction op);
     VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages);
     VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType);
-    VkIndexType ToVulkanIndexFormat(wgpu::IndexFormat format);
-    VkFormat ToVulkanVertexFormat(wgpu::VertexFormat format);
+    VkIndexType ToVulkanAccelerationContainerIndexFormat(wgpu::IndexFormat format);
+    VkFormat ToVulkanAccelerationContainerVertexFormat(wgpu::VertexFormat format);
 
     VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level);

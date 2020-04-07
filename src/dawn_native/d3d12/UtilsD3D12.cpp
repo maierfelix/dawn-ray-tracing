@@ -65,6 +65,30 @@ namespace dawn_native { namespace d3d12 {
         }
     }
 
+    DXGI_FORMAT ToD3D12RayTracingAccelerationContainerVertexFormat(wgpu::VertexFormat format) {
+        switch (format) {
+            case wgpu::VertexFormat::Float2:
+                return DXGI_FORMAT_R32G32_FLOAT;
+            case wgpu::VertexFormat::Float3:
+                return DXGI_FORMAT_R32G32B32_FLOAT;
+            default:
+                UNREACHABLE();
+        }
+    }
+ 
+    DXGI_FORMAT ToD3D12RayTracingAccelerationContainerIndexFormat(wgpu::IndexFormat format) {
+        switch (format) {
+            case wgpu::IndexFormat::None:
+                return DXGI_FORMAT_UNKNOWN;
+            case wgpu::IndexFormat::Uint16:
+                return DXGI_FORMAT_R16_UINT;
+            case wgpu::IndexFormat::Uint32:
+                return DXGI_FORMAT_R32_UINT;
+            default:
+                UNREACHABLE();
+        }
+    }
+
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
     ToD3D12RayTracingAccelerationStructureBuildFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags) {

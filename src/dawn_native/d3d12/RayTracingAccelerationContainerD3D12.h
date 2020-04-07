@@ -17,6 +17,7 @@
 
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/d3d12/d3d12_platform.h"
+#include "dawn_native/d3d12/BufferD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -37,7 +38,11 @@ namespace dawn_native { namespace d3d12 {
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
 
+        MemoryEntry mInstanceMemory;
+        uint32_t mInstanceCount;
+
         std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> mGeometries;
+        std::vector<D3D12_RAYTRACING_INSTANCE_DESC> mInstances;
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };
