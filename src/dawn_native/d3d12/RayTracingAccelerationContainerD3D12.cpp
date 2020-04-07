@@ -40,6 +40,72 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError RayTracingAccelerationContainer::Initialize(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
+
+        // acceleration container holds geometry
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            mGeometries.reserve(descriptor->geometryCount);
+            for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
+                const RayTracingAccelerationGeometryDescriptor& geometry =
+                    descriptor->geometries[ii];
+                D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc;
+                geometryDesc.Type = ToD3D12RayTracingGeometryType(geometry.type);
+                geometryDesc.Flags = ToD3D12RayTracingGeometryFlags(geometry.flags);
+
+                geometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
+                // reset
+                geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+                geometryInfo.geometry.triangles.pNext = nullptr;
+                geometryInfo.geometry.triangles.transformData = nullptr;
+                geometryInfo.geometry.triangles.transformOffset = 0;
+                geometryInfo.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+                geometryInfo.geometry.aabbs.pNext = nullptr;
+                // vertex buffer
+                if (geometry.vertex != nullptr && geometry.vertex->buffer != nullptr) {
+                    Buffer* vertexBuffer = ToBackend(geometry.vertex->buffer);
+                    geometryInfo.geometry.triangles.vertexData = vertexBuffer->GetHandle();
+                    geometryInfo.geometry.triangles.vertexOffset = geometry.vertex->offset;
+                    geometryInfo.geometry.triangles.vertexCount = geometry.vertex->count;
+                    geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
+                    geometryInfo.geometry.triangles.vertexFormat =
+                        ToVulkanVertexFormat(geometry.vertex->format);
+                } else {
+                    geometryInfo.geometry.triangles.vertexData = VK_NULL_HANDLE;
+                    geometryInfo.geometry.triangles.vertexOffset = 0;
+                    geometryInfo.geometry.triangles.vertexCount = 0;
+                    geometryInfo.geometry.triangles.vertexStride = 0;
+                    geometryInfo.geometry.triangles.vertexFormat = VK_FORMAT_UNDEFINED;
+                }
+                // index buffer
+                if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
+                    Buffer* indexBuffer = ToBackend(geometry.index->buffer);
+                    geometryInfo.geometry.triangles.indexData = indexBuffer->GetHandle();
+                    geometryInfo.geometry.triangles.indexOffset = geometry.index->offset;
+                    geometryInfo.geometry.triangles.indexCount = geometry.index->count;
+                    geometryInfo.geometry.triangles.indexType =
+                        ToVulkanIndexFormat(geometry.index->format);
+                } else {
+                    geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
+                    geometryInfo.geometry.triangles.indexOffset = 0;
+                    geometryInfo.geometry.triangles.indexCount = 0;
+                    geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_NONE_NV;
+                }
+                // aabb buffer
+                if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
+                    Buffer* aabbBuffer = ToBackend(geometry.aabb->buffer);
+                    geometryInfo.geometry.aabbs.aabbData = aabbBuffer->GetHandle();
+                    geometryInfo.geometry.aabbs.numAABBs = geometry.aabb->count;
+                    geometryInfo.geometry.aabbs.stride = geometry.aabb->stride;
+                    geometryInfo.geometry.aabbs.offset = geometry.aabb->offset;
+                } else {
+                    geometryInfo.geometry.aabbs.aabbData = VK_NULL_HANDLE;
+                    geometryInfo.geometry.aabbs.numAABBs = 0;
+                    geometryInfo.geometry.aabbs.stride = 0;
+                    geometryInfo.geometry.aabbs.offset = 0;
+                }
+                mGeometries.push_back(geometryInfo);
+            };
+        }
+
         return {};
     }
 

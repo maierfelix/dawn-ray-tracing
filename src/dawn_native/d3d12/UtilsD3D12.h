@@ -25,10 +25,21 @@ namespace dawn_native { namespace d3d12 {
 
     D3D12_COMPARISON_FUNC ToD3D12ComparisonFunc(wgpu::CompareFunction func);
 
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE ToD3D12RayTracingAccelerationContainerLevel(
+        wgpu::RayTracingAccelerationContainerLevel level);
+    D3D12_RAYTRACING_GEOMETRY_TYPE ToD3D12RayTracingGeometryType(
+        wgpu::RayTracingAccelerationGeometryType geometryType);
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
+    ToD3D12RayTracingAccelerationStructureBuildFlags(
+        wgpu::RayTracingAccelerationContainerFlag buildFlags);
+    D3D12_RAYTRACING_GEOMETRY_FLAGS ToD3D12RayTracingGeometryFlags(
+        wgpu::RayTracingAccelerationGeometryFlag flags);
+    D3D12_RAYTRACING_INSTANCE_FLAGS ToD3D12RayTracingInstanceFlags(
+        wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
+
     D3D12_TEXTURE_COPY_LOCATION ComputeTextureCopyLocationForTexture(const Texture* texture,
                                                                      uint32_t level,
                                                                      uint32_t slice);
-
     D3D12_TEXTURE_COPY_LOCATION ComputeBufferLocationForCopyTextureRegion(
         const Texture* texture,
         ID3D12Resource* bufferResource,
@@ -36,6 +47,8 @@ namespace dawn_native { namespace d3d12 {
         const uint64_t offset,
         const uint32_t rowPitch);
     D3D12_BOX ComputeD3D12BoxFromOffsetAndSize(const Origin3D& offset, const Extent3D& copySize);
+
+
 
 }}  // namespace dawn_native::d3d12
 

@@ -37,6 +37,8 @@ namespace dawn_native { namespace d3d12 {
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
 
+        std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> mGeometries;
+
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };
 

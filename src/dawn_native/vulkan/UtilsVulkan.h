@@ -29,6 +29,7 @@ namespace dawn_native { namespace vulkan {
     VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType);
     VkIndexType ToVulkanIndexFormat(wgpu::IndexFormat format);
     VkFormat ToVulkanVertexFormat(wgpu::VertexFormat format);
+
     VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level);
     VkBuildAccelerationStructureFlagsNV ToVulkanBuildAccelerationContainerFlags(
