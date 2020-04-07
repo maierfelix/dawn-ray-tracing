@@ -88,28 +88,30 @@ namespace dawn_native { namespace vulkan {
 
             if (group.generalIndex != -1) {
                 // generalIndex can be ray gen and miss
-                MaybeError rayGenErr =
-                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_RAYGEN_BIT_NV);
-                MaybeError rayMissErr =
-                    ValidateGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_MISS_BIT_NV);
-                if (rayGenErr.IsError() && rayMissErr.IsError()) {
-                    return rayGenErr;
+                if (!IsValidGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_RAYGEN_BIT_NV) &&
+                    !IsValidGroupStageIndex(group.generalIndex, VK_SHADER_STAGE_MISS_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for general shader");
                 }
                 groupInfo.generalShader = group.generalIndex;
             }
             if (group.closestHitIndex != -1) {
-                DAWN_TRY(ValidateGroupStageIndex(group.closestHitIndex,
-                                                 VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV));
+                if (!IsValidGroupStageIndex(group.closestHitIndex,
+                                            VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for closest hit shader");
+                }
                 groupInfo.closestHitShader = group.closestHitIndex;
             }
             if (group.anyHitIndex != -1) {
-                DAWN_TRY(
-                    ValidateGroupStageIndex(group.anyHitIndex, VK_SHADER_STAGE_ANY_HIT_BIT_NV));
+                if (!IsValidGroupStageIndex(group.anyHitIndex, VK_SHADER_STAGE_ANY_HIT_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for any hit shader");
+                }
                 groupInfo.anyHitShader = group.anyHitIndex;
             }
             if (group.intersectionIndex != -1) {
-                DAWN_TRY(ValidateGroupStageIndex(group.intersectionIndex,
-                                                 VK_SHADER_STAGE_INTERSECTION_BIT_NV));
+                if (!IsValidGroupStageIndex(group.intersectionIndex,
+                                            VK_SHADER_STAGE_INTERSECTION_BIT_NV)) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for intersection shader");
+                }
                 groupInfo.intersectionShader = group.intersectionIndex;
             }
 
@@ -170,13 +172,16 @@ namespace dawn_native { namespace vulkan {
         return mRayTracingProperties.shaderGroupHandleSize;
     }
 
-    MaybeError RayTracingShaderBindingTable::ValidateGroupStageIndex(
+    bool RayTracingShaderBindingTable::IsValidGroupStageIndex(
         int32_t index,
         VkShaderStageFlagBits validStage) const {
         if (index < 0 || index >= (int32_t)mStages.size()) {
-            return DAWN_VALIDATION_ERROR("Group index out of range");
+            return false;
         }
-        return {};
+        if (mStages[index].stage != validStage) {
+            return false;
+        }
+        return true;
     }
 
 }}  // namespace dawn_native::vulkan

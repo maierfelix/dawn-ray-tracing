@@ -62,7 +62,7 @@ struct CameraData {
 };
 
 void init() {
-    device = CreateCppDawnDevice(wgpu::BackendType::Vulkan).Release();
+    device = CreateCppDawnDevice(wgpu::BackendType::D3D12).Release();
     queue = wgpuDeviceCreateQueue(device);
 
     {
