@@ -107,6 +107,9 @@ wgpu::Device CreateCppDawnDevice(wgpu::BackendType manualBackendType) {
     }
 
     instance = std::make_unique<dawn_native::Instance>();
+    instance->EnableBackendValidation(true);
+    instance->EnableBeginCaptureOnStartup(true);
+
     utils::DiscoverAdapter(instance.get(), window, backendType);
 
     // Get an adapter for the backend to use, and create the device.

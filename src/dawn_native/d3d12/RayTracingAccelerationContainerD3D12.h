@@ -16,12 +16,18 @@
 #define DAWNNATIVE_D3D12_RAY_TRACING_ACCELERATION_CONTAINER_H_
 
 #include "dawn_native/RayTracingAccelerationContainer.h"
-#include "dawn_native/d3d12/d3d12_platform.h"
 #include "dawn_native/d3d12/BufferD3D12.h"
+#include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
 
     class Device;
+
+    struct ScratchMemoryPool {
+        MemoryEntry result;
+        MemoryEntry update;
+        MemoryEntry build;
+    };
 
     class RayTracingAccelerationContainer : public RayTracingAccelerationContainerBase {
       public:
@@ -37,6 +43,13 @@ namespace dawn_native { namespace d3d12 {
         MaybeError UpdateInstanceImpl(
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
+
+        MaybeError AllocateScratchMemory(MemoryEntry& memoryEntry,
+                                         uint64_t size,
+                                         D3D12_RESOURCE_STATES initialResourceState);
+
+        // scratch memory
+        ScratchMemoryPool mScratchMemory;
 
         MemoryEntry mInstanceMemory;
         uint32_t mInstanceCount;

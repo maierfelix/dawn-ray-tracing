@@ -283,17 +283,71 @@ namespace dawn_native { namespace d3d12 {
         }
 
         // reserve scratch memory
-        /*{
-            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
-            inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-            inputs.Flags = ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->flags);
-            inputs.NumDescs = 1;
-            inputs.pGeometryDescs = mGeometries.data();
-            inputs.Type = ToD3D12RayTracingAccelerationContainerLevel(descriptor->level);
+        {
+            ComPtr<ID3D12Device5> d3d12device5;
+            DAWN_TRY(CheckHRESULT(device->GetD3D12Device().As(&d3d12device5),
+                                  "D3D12 QueryInterface ID3D12Device to ID3D12Device5"));
 
-            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
-            device->GetD3D12Device()->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &info);
-        }*/
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
+            buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+            buildInputs.Flags = ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->flags);
+            buildInputs.Type = ToD3D12RayTracingAccelerationContainerLevel(descriptor->level);
+            buildInputs.NumDescs = 0;
+            // p/pGeometryDescs, InstanceDescs are union
+            if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+                buildInputs.NumDescs = mGeometries.size();
+                buildInputs.pGeometryDescs = mGeometries.data();
+            }
+            if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+                buildInputs.NumDescs = mInstances.size();
+                buildInputs.InstanceDescs = mInstanceMemory.buffer->GetGPUVirtualAddress();
+            }
+            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+            d3d12device5->GetRaytracingAccelerationStructurePrebuildInfo(&buildInputs,
+                                                                         &prebuildInfo);
+
+            // allocate result memory
+            DAWN_TRY(AllocateScratchMemory(mScratchMemory.result,
+                                           prebuildInfo.ResultDataMaxSizeInBytes,
+                                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
+            // allocate build memory
+            DAWN_TRY(AllocateScratchMemory(mScratchMemory.build,
+                                           prebuildInfo.ScratchDataSizeInBytes,
+                                           D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE));
+
+            // allocate update memory
+            if (prebuildInfo.UpdateScratchDataSizeInBytes > 0) {
+                DAWN_TRY(AllocateScratchMemory(mScratchMemory.update,
+                                               prebuildInfo.UpdateScratchDataSizeInBytes,
+                                               D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+            }
+        }
+
+        return {};
+    }
+
+    MaybeError RayTracingAccelerationContainer::AllocateScratchMemory(
+        MemoryEntry& memoryEntry,
+        uint64_t size,
+        D3D12_RESOURCE_STATES initialUsage) {
+        D3D12_RESOURCE_DESC resourceDescriptor;
+        resourceDescriptor.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resourceDescriptor.Alignment = 0;
+        resourceDescriptor.Width = size;
+        resourceDescriptor.Height = 1;
+        resourceDescriptor.DepthOrArraySize = 1;
+        resourceDescriptor.MipLevels = 1;
+        resourceDescriptor.Format = DXGI_FORMAT_UNKNOWN;
+        resourceDescriptor.SampleDesc.Count = 1;
+        resourceDescriptor.SampleDesc.Quality = 0;
+        resourceDescriptor.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        resourceDescriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+        DAWN_TRY_ASSIGN(
+            memoryEntry.resource,
+            ToBackend(GetDevice())
+                ->AllocateMemory(D3D12_HEAP_TYPE_DEFAULT, resourceDescriptor, initialUsage));
 
         return {};
     }
