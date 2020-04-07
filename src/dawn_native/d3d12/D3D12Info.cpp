@@ -47,6 +47,8 @@ namespace dawn_native { namespace d3d12 {
         // CheckFeatureSupport for D3D12_FEATURE_D3D12_OPTIONS5 successfully, then we can use
         // the render pass API.
         info.supportsRenderPass = false;
+        // DXR support
+        info.supportsRayTracing = false;
         D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureOptions5 = {};
         if (SUCCEEDED(adapter.GetDevice()->CheckFeatureSupport(
                 D3D12_FEATURE_D3D12_OPTIONS5, &featureOptions5, sizeof(featureOptions5)))) {
@@ -56,6 +58,9 @@ namespace dawn_native { namespace d3d12 {
             if (featureOptions5.RenderPassesTier < D3D12_RENDER_PASS_TIER_1 ||
                 !gpu_info::IsIntel(adapter.GetPCIInfo().vendorId)) {
                 info.supportsRenderPass = true;
+            }
+            if (featureOptions5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED) {
+                info.supportsRayTracing = true;
             }
         }
 

@@ -190,14 +190,8 @@ namespace dawn_native { namespace d3d12 {
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
 
-        // TODO: make this an extension
-        D3D12_FEATURE_DATA_D3D12_OPTIONS5 rtFeatures;
-        DAWN_TRY(CheckHRESULT(device->GetD3D12Device()->CheckFeatureSupport(
-                                  D3D12_FEATURE_D3D12_OPTIONS5, &rtFeatures,
-                                  sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5)),
-                              "Failed to check device for ray tracing support"));
-        if (rtFeatures.RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED) {
-            return DAWN_VALIDATION_ERROR("Ray tracing is not supported on this device");
+        if (!device->IsToggleEnabled(Toggle::UseD3D12RayTracing)) {
+            return DAWN_VALIDATION_ERROR("Ray Tracing not supported on this device");
         }
 
         // acceleration container holds geometry

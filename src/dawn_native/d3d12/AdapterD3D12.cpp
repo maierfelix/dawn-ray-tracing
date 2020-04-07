@@ -61,7 +61,7 @@ namespace dawn_native { namespace d3d12 {
         // Create the device to populate the adapter properties then reuse it when needed for actual
         // rendering.
         const PlatformFunctions* functions = GetBackend()->GetFunctions();
-        if (FAILED(functions->d3d12CreateDevice(GetHardwareAdapter(), D3D_FEATURE_LEVEL_12_0,
+        if (FAILED(functions->d3d12CreateDevice(GetHardwareAdapter(), D3D_FEATURE_LEVEL_11_0,
                                                 _uuidof(ID3D12Device), &mD3d12Device))) {
             return DAWN_DEVICE_LOST_ERROR("D3D12CreateDevice failed");
         }
