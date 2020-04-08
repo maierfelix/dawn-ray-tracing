@@ -17,6 +17,7 @@
 
 #include "dawn_native/RayTracingAccelerationContainer.h"
 #include "dawn_native/d3d12/BufferD3D12.h"
+#include "dawn_native/d3d12/ResourceHeapAllocationD3D12.h"
 #include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
@@ -36,6 +37,9 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingAccelerationContainerDescriptor* descriptor);
         ~RayTracingAccelerationContainer();
 
+        ScratchMemoryPool& GetScratchMemory();
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& GetBuildInformation();
+
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
@@ -52,10 +56,11 @@ namespace dawn_native { namespace d3d12 {
         ScratchMemoryPool mScratchMemory;
 
         MemoryEntry mInstanceMemory;
-        uint32_t mInstanceCount;
 
         std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> mGeometries;
         std::vector<D3D12_RAYTRACING_INSTANCE_DESC> mInstances;
+
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS mBuildInformation;
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

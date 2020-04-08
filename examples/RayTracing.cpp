@@ -317,17 +317,15 @@ void init() {
 
     {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
-
-        wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, geometryContainer);
         wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, instanceContainer);
-
         WGPUCommandBuffer commandBuffer = wgpuCommandEncoderFinish(encoder, nullptr);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
 
         wgpuCommandEncoderRelease(encoder);
         wgpuCommandBufferRelease(commandBuffer);
     }
-
+    
+    /*
     WGPURayTracingShaderBindingTable sbt;
     {
         // clang-format off
@@ -441,7 +439,7 @@ void init() {
         descriptor.rayTracingState = &rtStateDescriptor;
 
         rtPipeline = wgpuDeviceCreateRayTracingPipeline(device, &descriptor);
-    }
+    }*/
 
     {
         WGPUBindGroupLayoutBinding bindingDescriptors[1];
@@ -552,7 +550,7 @@ void init() {
 void frame() {
     WGPUTextureView backbufferView = wgpuSwapChainGetCurrentTextureView(swapchain);
 
-    {
+    /*{
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
 
         WGPURayTracingPassDescriptor rayTracingPassInfo;
@@ -571,7 +569,7 @@ void frame() {
         wgpuCommandEncoderRelease(encoder);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
         wgpuCommandBufferRelease(commandBuffer);
-    }
+    }*/
 
     {
         WGPURenderPassDescriptor renderpassInfo;

@@ -28,6 +28,9 @@
 #include "dawn_native/d3d12/DeviceD3D12.h"
 #include "dawn_native/d3d12/PipelineLayoutD3D12.h"
 #include "dawn_native/d3d12/PlatformFunctions.h"
+#include "dawn_native/d3d12/RayTracingAccelerationContainerD3D12.h"
+#include "dawn_native/d3d12/RayTracingPipelineD3D12.h"
+#include "dawn_native/d3d12/RayTracingShaderBindingTableD3D12.h"
 #include "dawn_native/d3d12/RenderPassBuilderD3D12.h"
 #include "dawn_native/d3d12/RenderPipelineD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
@@ -80,6 +83,10 @@ namespace dawn_native { namespace d3d12 {
             mInCompute = inCompute_;
         }
 
+        void SetInRayTracingPass(bool inRayTracing_) {
+            mInRayTracing = inRayTracing_;
+        }
+
         MaybeError Apply(CommandRecordingContext* commandContext) {
             // Bindgroups are allocated in shader-visible descriptor heaps which are managed by a
             // ringbuffer. There can be a single shader-visible descriptor heap of each type bound
@@ -124,7 +131,7 @@ namespace dawn_native { namespace d3d12 {
                                mDynamicOffsetCounts[index], mDynamicOffsets[index].data());
             }
 
-            if (mInCompute) {
+            if (mInCompute || mInRayTracing) {
                 for (uint32_t index : IterateBitSet(mBindGroupLayoutsMask)) {
                     for (uint32_t binding : IterateBitSet(mBuffersNeedingBarrier[index])) {
                         wgpu::BindingType bindingType = mBindingTypes[index][binding];
@@ -197,7 +204,7 @@ namespace dawn_native { namespace d3d12 {
 
                     switch (layout.types[bindingIndex]) {
                         case wgpu::BindingType::UniformBuffer:
-                            if (mInCompute) {
+                            if (mInCompute || mInRayTracing) {
                                 commandList->SetComputeRootConstantBufferView(parameterIndex,
                                                                               bufferLocation);
                             } else {
@@ -206,7 +213,7 @@ namespace dawn_native { namespace d3d12 {
                             }
                             break;
                         case wgpu::BindingType::StorageBuffer:
-                            if (mInCompute) {
+                            if (mInCompute || mInRayTracing) {
                                 commandList->SetComputeRootUnorderedAccessView(parameterIndex,
                                                                                bufferLocation);
                             } else {
@@ -215,7 +222,7 @@ namespace dawn_native { namespace d3d12 {
                             }
                             break;
                         case wgpu::BindingType::ReadonlyStorageBuffer:
-                            if (mInCompute) {
+                            if (mInCompute || mInRayTracing) {
                                 commandList->SetComputeRootShaderResourceView(parameterIndex,
                                                                               bufferLocation);
                             } else {
@@ -251,7 +258,7 @@ namespace dawn_native { namespace d3d12 {
                 uint32_t parameterIndex = pipelineLayout->GetCbvUavSrvRootParameterIndex(index);
                 const D3D12_GPU_DESCRIPTOR_HANDLE baseDescriptor =
                     group->GetBaseCbvUavSrvDescriptor();
-                if (mInCompute) {
+                if (mInCompute || mInRayTracing) {
                     commandList->SetComputeRootDescriptorTable(parameterIndex, baseDescriptor);
                 } else {
                     commandList->SetGraphicsRootDescriptorTable(parameterIndex, baseDescriptor);
@@ -262,7 +269,7 @@ namespace dawn_native { namespace d3d12 {
                 uint32_t parameterIndex = pipelineLayout->GetSamplerRootParameterIndex(index);
                 const D3D12_GPU_DESCRIPTOR_HANDLE baseDescriptor =
                     group->GetBaseSamplerDescriptor();
-                if (mInCompute) {
+                if (mInCompute || mInRayTracing) {
                     commandList->SetComputeRootDescriptorTable(parameterIndex, baseDescriptor);
                 } else {
                     commandList->SetGraphicsRootDescriptorTable(parameterIndex, baseDescriptor);
@@ -271,6 +278,7 @@ namespace dawn_native { namespace d3d12 {
         }
 
         bool mInCompute = false;
+        bool mInRayTracing = false;
 
         ShaderVisibleDescriptorAllocator* mAllocator;
     };
@@ -464,6 +472,7 @@ namespace dawn_native { namespace d3d12 {
         BindGroupStateTracker bindingTracker(device);
 
         ID3D12GraphicsCommandList* commandList = commandContext->GetCommandList();
+        ID3D12GraphicsCommandList4* commandList4 = commandContext->GetCommandList4();
 
         // Make sure we use the correct descriptors for this command list. Could be done once per
         // actual command list but here is ok because there should be few command buffers.
@@ -550,6 +559,44 @@ namespace dawn_native { namespace d3d12 {
                                               passHasUAV));
 
                     nextPassNumber++;
+                } break;
+
+                case Command::BeginRayTracingPass: {
+                    mCommands.NextCommand<BeginRayTracingPassCmd>();
+
+                    PrepareResourcesForSubmission(commandContext,
+                                                  passResourceUsages[nextPassNumber]);
+                    bindingTracker.SetInRayTracingPass(true);
+                    DAWN_TRY(RecordRayTracingPass(commandContext, &bindingTracker));
+
+                    nextPassNumber++;
+                } break;
+
+                case Command::BuildRayTracingAccelerationContainer: {
+                    BuildRayTracingAccelerationContainerCmd* build =
+                        mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
+
+                    ComPtr<ID3D12Resource> resultMemory =
+                        container->GetScratchMemory().result.buffer;
+                    ComPtr<ID3D12Resource> buildMemory = container->GetScratchMemory().build.buffer;
+
+                    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
+                    buildDesc.Inputs = container->GetBuildInformation();
+                    buildDesc.SourceAccelerationStructureData = 0;
+                    buildDesc.DestAccelerationStructureData =
+                        resultMemory.Get()->GetGPUVirtualAddress();
+                    buildDesc.ScratchAccelerationStructureData =
+                        buildMemory.Get()->GetGPUVirtualAddress();
+
+                    commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+                    // barrier for result memory
+                    D3D12_RESOURCE_BARRIER uavBarrier{};
+                    uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                    uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+                    uavBarrier.UAV.pResource = resultMemory.Get();
+                    commandList->ResourceBarrier(1, &uavBarrier);
                 } break;
 
                 case Command::CopyBufferToBuffer: {
@@ -795,6 +842,99 @@ namespace dawn_native { namespace d3d12 {
                 } break;
 
                 default: { UNREACHABLE(); } break;
+            }
+        }
+
+        return {};
+    }
+
+    MaybeError CommandBuffer::RecordRayTracingPass(CommandRecordingContext* commandContext,
+                                                BindGroupStateTracker* bindingTracker) {
+        PipelineLayout* lastLayout = nullptr;
+        ID3D12GraphicsCommandList* commandList = commandContext->GetCommandList();
+
+        Command type;
+        while (mCommands.NextCommandId(&type)) {
+            switch (type) {
+                case Command::TraceRays: {
+                    //TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+
+                    DAWN_TRY(bindingTracker->Apply(commandContext));
+                    //commandList->TraceRays(traceRays.width);
+                } break;
+
+                case Command::EndRayTracingPass: {
+                    mCommands.NextCommand<EndRayTracingPassCmd>();
+                    return {};
+                } break;
+
+                case Command::SetRayTracingPipeline: {
+                    SetRayTracingPipelineCmd* cmd =
+                        mCommands.NextCommand<SetRayTracingPipelineCmd>();
+
+                    RayTracingPipeline* pipeline = ToBackend(cmd->pipeline).Get();
+                    PipelineLayout* layout = ToBackend(pipeline->GetLayout());
+                    /*
+                    commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
+                    commandList->SetPipelineState(pipeline->GetPipelineState().Get());
+                    
+                    bindingTracker->OnSetPipeline(pipeline);*/
+
+                    lastLayout = layout;
+                } break;
+
+                case Command::SetBindGroup: {
+                    SetBindGroupCmd* cmd = mCommands.NextCommand<SetBindGroupCmd>();
+                    BindGroup* group = ToBackend(cmd->group.Get());
+                    uint32_t* dynamicOffsets = nullptr;
+
+                    if (cmd->dynamicOffsetCount > 0) {
+                        dynamicOffsets = mCommands.NextData<uint32_t>(cmd->dynamicOffsetCount);
+                    }
+
+                    bindingTracker->OnSetBindGroup(cmd->index, group, cmd->dynamicOffsetCount,
+                                                   dynamicOffsets);
+                } break;
+
+                case Command::InsertDebugMarker: {
+                    InsertDebugMarkerCmd* cmd = mCommands.NextCommand<InsertDebugMarkerCmd>();
+                    const char* label = mCommands.NextData<char>(cmd->length + 1);
+
+                    if (ToBackend(GetDevice())->GetFunctions()->IsPIXEventRuntimeLoaded()) {
+                        // PIX color is 1 byte per channel in ARGB format
+                        constexpr uint64_t kPIXBlackColor = 0xff000000;
+                        ToBackend(GetDevice())
+                            ->GetFunctions()
+                            ->pixSetMarkerOnCommandList(commandList, kPIXBlackColor, label);
+                    }
+                } break;
+
+                case Command::PopDebugGroup: {
+                    mCommands.NextCommand<PopDebugGroupCmd>();
+
+                    if (ToBackend(GetDevice())->GetFunctions()->IsPIXEventRuntimeLoaded()) {
+                        ToBackend(GetDevice())
+                            ->GetFunctions()
+                            ->pixEndEventOnCommandList(commandList);
+                    }
+                } break;
+
+                case Command::PushDebugGroup: {
+                    PushDebugGroupCmd* cmd = mCommands.NextCommand<PushDebugGroupCmd>();
+                    const char* label = mCommands.NextData<char>(cmd->length + 1);
+
+                    if (ToBackend(GetDevice())->GetFunctions()->IsPIXEventRuntimeLoaded()) {
+                        // PIX color is 1 byte per channel in ARGB format
+                        constexpr uint64_t kPIXBlackColor = 0xff000000;
+                        ToBackend(GetDevice())
+                            ->GetFunctions()
+                            ->pixBeginEventOnCommandList(commandList, kPIXBlackColor, label);
+                    }
+                } break;
+
+                default: {
+                    UNREACHABLE();
+                } break;
             }
         }
 

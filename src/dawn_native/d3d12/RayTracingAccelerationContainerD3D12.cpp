@@ -17,6 +17,7 @@
 #include "common/Assert.h"
 #include "dawn_native/d3d12/D3D12Error.h"
 #include "dawn_native/d3d12/DeviceD3D12.h"
+#include "dawn_native/d3d12/HeapD3D12.h"
 #include "dawn_native/d3d12/UtilsD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
@@ -149,8 +150,10 @@ namespace dawn_native { namespace d3d12 {
 
         D3D12_RAYTRACING_INSTANCE_DESC GetD3D12AccelerationInstance(
             const RayTracingAccelerationInstanceDescriptor& descriptor) {
-            /*RayTracingAccelerationContainer* geometryContainer =
-                ToBackend(descriptor.geometryContainer);*/
+            RayTracingAccelerationContainer* geometryContainer =
+                ToBackend(descriptor.geometryContainer);
+            ComPtr<ID3D12Resource> resultMemory =
+                geometryContainer->GetScratchMemory().result.resource.GetD3D12Resource();
             D3D12_RAYTRACING_INSTANCE_DESC out;
             // process transform object
             if (descriptor.transform != nullptr) {
@@ -167,7 +170,7 @@ namespace dawn_native { namespace d3d12 {
             out.InstanceMask = descriptor.mask;
             out.InstanceContributionToHitGroupIndex = descriptor.instanceOffset;
             out.Flags = ToD3D12RayTracingInstanceFlags(descriptor.flags);
-            // out.AccelerationStructure = geometryContainer->GetHandle();
+            out.AccelerationStructure = resultMemory.Get()->GetGPUVirtualAddress();
             return out;
         }
 
@@ -200,7 +203,7 @@ namespace dawn_native { namespace d3d12 {
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 const RayTracingAccelerationGeometryDescriptor& geometry =
                     descriptor->geometries[ii];
-                D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc;
+                D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};
                 geometryDesc.Type = ToD3D12RayTracingGeometryType(geometry.type);
                 geometryDesc.Flags = ToD3D12RayTracingGeometryFlags(geometry.flags);
 
@@ -215,11 +218,6 @@ namespace dawn_native { namespace d3d12 {
                     geometryDesc.Triangles.VertexCount = geometry.vertex->count;
                     geometryDesc.Triangles.VertexFormat =
                         ToD3D12RayTracingAccelerationContainerVertexFormat(geometry.vertex->format);
-                } else {
-                    geometryDesc.Triangles.VertexBuffer.StartAddress = 0;
-                    geometryDesc.Triangles.VertexBuffer.StrideInBytes = 0;
-                    geometryDesc.Triangles.VertexCount = 0;
-                    geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_UNKNOWN;
                 }
                 // index buffer
                 if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
@@ -230,10 +228,6 @@ namespace dawn_native { namespace d3d12 {
                     geometryDesc.Triangles.IndexCount = geometry.index->count;
                     geometryDesc.Triangles.IndexFormat =
                         ToD3D12RayTracingAccelerationContainerIndexFormat(geometry.index->format);
-                } else {
-                    geometryDesc.Triangles.IndexBuffer = 0;
-                    geometryDesc.Triangles.IndexCount = 0;
-                    geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
                 }
                 // aabb buffer
                 if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
@@ -244,10 +238,6 @@ namespace dawn_native { namespace d3d12 {
                     geometryDesc.AABBs.AABBCount = geometry.aabb->count;
                     geometryDesc.AABBs.AABBs.StrideInBytes =
                         static_cast<uint64_t>(geometry.vertex->stride);
-                } else {
-                    geometryDesc.AABBs.AABBs.StartAddress = 0;
-                    geometryDesc.AABBs.AABBCount = 0;
-                    geometryDesc.AABBs.AABBs.StrideInBytes = 0;
                 }
                 mGeometries.push_back(geometryDesc);
             };
@@ -279,32 +269,24 @@ namespace dawn_native { namespace d3d12 {
 
             // copy instance data into instance buffer
             buffer->SetSubData(0, bufferSize, mInstances.data());
-            mInstanceCount = mInstances.size();
         }
 
         // reserve scratch memory
         {
-            ComPtr<ID3D12Device5> d3d12device5;
-            DAWN_TRY(CheckHRESULT(device->GetD3D12Device().As(&d3d12device5),
-                                  "D3D12 QueryInterface ID3D12Device to ID3D12Device5"));
-
-            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
-            buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-            buildInputs.Flags = ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->flags);
-            buildInputs.Type = ToD3D12RayTracingAccelerationContainerLevel(descriptor->level);
-            buildInputs.NumDescs = 0;
-            // p/pGeometryDescs, InstanceDescs are union
+            mBuildInformation.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+            mBuildInformation.Flags =
+                ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->flags);
+            mBuildInformation.Type = ToD3D12RayTracingAccelerationContainerLevel(descriptor->level);
             if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-                buildInputs.NumDescs = mGeometries.size();
-                buildInputs.pGeometryDescs = mGeometries.data();
-            }
-            if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-                buildInputs.NumDescs = mInstances.size();
-                buildInputs.InstanceDescs = mInstanceMemory.buffer->GetGPUVirtualAddress();
+                mBuildInformation.NumDescs = mGeometries.size();
+                mBuildInformation.pGeometryDescs = mGeometries.data();
+            } else if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+                mBuildInformation.NumDescs = mInstances.size();
+                mBuildInformation.InstanceDescs = mInstanceMemory.buffer->GetGPUVirtualAddress();
             }
             D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
-            d3d12device5->GetRaytracingAccelerationStructurePrebuildInfo(&buildInputs,
-                                                                         &prebuildInfo);
+            device->GetD3D12Device5()->GetRaytracingAccelerationStructurePrebuildInfo(
+                &mBuildInformation, &prebuildInfo);
 
             // allocate result memory
             DAWN_TRY(AllocateScratchMemory(mScratchMemory.result,
@@ -349,7 +331,18 @@ namespace dawn_native { namespace d3d12 {
             ToBackend(GetDevice())
                 ->AllocateMemory(D3D12_HEAP_TYPE_DEFAULT, resourceDescriptor, initialUsage));
 
+        memoryEntry.buffer = memoryEntry.resource.GetD3D12Resource();
+
         return {};
+    }
+
+    ScratchMemoryPool& RayTracingAccelerationContainer::GetScratchMemory() {
+        return mScratchMemory;
+    }
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS&
+    RayTracingAccelerationContainer::GetBuildInformation() {
+        return mBuildInformation;
     }
 
     RayTracingAccelerationContainer::~RayTracingAccelerationContainer() {

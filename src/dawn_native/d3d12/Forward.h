@@ -31,6 +31,7 @@ namespace dawn_native { namespace d3d12 {
     class Queue;
     class RayTracingAccelerationContainer;
     class RayTracingShaderBindingTable;
+    class RayTracingPipeline;
     class RenderPipeline;
     class Sampler;
     class ShaderModule;
@@ -50,6 +51,7 @@ namespace dawn_native { namespace d3d12 {
         using PipelineLayoutType = PipelineLayout;
         using QueueType = Queue;
         using RayTracingAccelerationContainerType = RayTracingAccelerationContainer;
+        using RayTracingPipelineType = RayTracingPipeline;
         using RayTracingShaderBindingTableType = RayTracingShaderBindingTable;
         using RenderPipelineType = RenderPipeline;
         using ResourceHeapType = Heap;

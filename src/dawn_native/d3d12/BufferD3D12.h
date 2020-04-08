@@ -87,7 +87,7 @@ namespace dawn_native { namespace d3d12 {
     struct MemoryEntry {
         ComPtr<ID3D12Resource> buffer = nullptr;
         // can either be a resource or a webgpu buffer
-        ResourceMemoryAllocation resource;
+        ResourceHeapAllocation resource;
         Ref<Buffer> allocation;
     };
 

@@ -55,8 +55,10 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError Device::Initialize() {
         mD3d12Device = ToBackend(GetAdapter())->GetDevice();
-
         ASSERT(mD3d12Device != nullptr);
+
+        DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
+                              "D3D12 query ID3D12Device to ID3D12Device5"));
 
         // Create device-global objects
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -119,6 +121,10 @@ namespace dawn_native { namespace d3d12 {
 
     ComPtr<ID3D12Device> Device::GetD3D12Device() const {
         return mD3d12Device;
+    }
+
+    ComPtr<ID3D12Device5> Device::GetD3D12Device5() const {
+        return mD3d12Device5;
     }
 
     ComPtr<ID3D12CommandQueue> Device::GetCommandQueue() const {
