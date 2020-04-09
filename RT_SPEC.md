@@ -128,7 +128,7 @@ Begin a new Ray-Tracing pass.
 | [GPURayTracingPassDescriptor](#GPURayTracingPassDescriptor)
 
 ##### buildRayTracingAccelerationContainer:
-Build a `GPURayTracingAccelerationContainer`. Order dependent - a top-level container must not be built until all linked bottom-level containers were built.
+Build a `GPURayTracingAccelerationContainer`. When building a top-level container, all linked bottom-level containers (referenced through [GPURayTracingAccelerationInstanceDescriptor.geometryContainer](#GPURayTracingAccelerationInstanceDescriptor)) must have finished building in a former pass.
 
 | Type | Description |
 | :--- | :--- |
