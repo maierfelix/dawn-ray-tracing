@@ -20,6 +20,7 @@
 #include "dawn_native/RayTracingShaderBindingTable.h"
 
 #include "dawn_native/d3d12/d3d12_platform.h"
+#include "dawn_native/d3d12/BufferD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -36,6 +37,8 @@ namespace dawn_native { namespace d3d12 {
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
         void DestroyImpl() override;
+
+        MemoryEntry mGroupMemory;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

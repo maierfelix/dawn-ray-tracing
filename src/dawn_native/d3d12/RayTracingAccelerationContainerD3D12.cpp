@@ -266,6 +266,7 @@ namespace dawn_native { namespace d3d12 {
             Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
             mInstanceMemory.allocation = AcquireRef(buffer);
             mInstanceMemory.buffer = buffer->GetD3D12Resource();
+            mInstanceMemory.address = mInstanceMemory.buffer.Get()->GetGPUVirtualAddress();
 
             // copy instance data into instance buffer
             buffer->SetSubData(0, bufferSize, mInstances.data());
@@ -291,12 +292,12 @@ namespace dawn_native { namespace d3d12 {
             // allocate result memory
             DAWN_TRY(AllocateScratchMemory(mScratchMemory.result,
                                            prebuildInfo.ResultDataMaxSizeInBytes,
-                                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+                                           D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE));
 
             // allocate build memory
             DAWN_TRY(AllocateScratchMemory(mScratchMemory.build,
                                            prebuildInfo.ScratchDataSizeInBytes,
-                                           D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE));
+                                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
             // allocate update memory
             if (prebuildInfo.UpdateScratchDataSizeInBytes > 0) {
@@ -332,6 +333,7 @@ namespace dawn_native { namespace d3d12 {
                 ->AllocateMemory(D3D12_HEAP_TYPE_DEFAULT, resourceDescriptor, initialUsage));
 
         memoryEntry.buffer = memoryEntry.resource.GetD3D12Resource();
+        memoryEntry.address = memoryEntry.buffer.Get()->GetGPUVirtualAddress();
 
         return {};
     }

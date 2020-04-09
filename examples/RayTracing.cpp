@@ -325,7 +325,6 @@ void init() {
         wgpuCommandBufferRelease(commandBuffer);
     }
     
-    /*
     WGPURayTracingShaderBindingTable sbt;
     {
         // clang-format off
@@ -418,6 +417,9 @@ void init() {
         rtBindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }
 
+    printf("Bindgroup created!\n");
+
+    /*
     {
         WGPUPipelineLayoutDescriptor descriptor;
         descriptor.label = nullptr;

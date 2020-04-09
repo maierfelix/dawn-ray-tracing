@@ -577,17 +577,17 @@ namespace dawn_native { namespace d3d12 {
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    ComPtr<ID3D12Resource> resultMemory =
-                        container->GetScratchMemory().result.buffer;
-                    ComPtr<ID3D12Resource> buildMemory = container->GetScratchMemory().build.buffer;
+                    MemoryEntry* resultMemory = &container->GetScratchMemory().result;
+                    MemoryEntry* buildMemory = &container->GetScratchMemory().build;
+
+                    D3D12_GPU_VIRTUAL_ADDRESS resultAddr = resultMemory->address;
+                    D3D12_GPU_VIRTUAL_ADDRESS buildAddr = buildMemory->address;
 
                     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
                     buildDesc.Inputs = container->GetBuildInformation();
                     buildDesc.SourceAccelerationStructureData = 0;
-                    buildDesc.DestAccelerationStructureData =
-                        resultMemory.Get()->GetGPUVirtualAddress();
-                    buildDesc.ScratchAccelerationStructureData =
-                        buildMemory.Get()->GetGPUVirtualAddress();
+                    buildDesc.DestAccelerationStructureData = resultAddr;
+                    buildDesc.ScratchAccelerationStructureData = buildAddr;
 
                     commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
@@ -595,8 +595,26 @@ namespace dawn_native { namespace d3d12 {
                     D3D12_RESOURCE_BARRIER uavBarrier{};
                     uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                     uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-                    uavBarrier.UAV.pResource = resultMemory.Get();
+                    uavBarrier.UAV.pResource = resultMemory->buffer.Get();
                     commandList->ResourceBarrier(1, &uavBarrier);
+                } break;
+
+                case Command::CopyRayTracingAccelerationContainer: {
+                    /*CopyRayTracingAccelerationContainerCmd* copy =
+                        mCommands.NextCommand<CopyRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* srcContainer =
+                        ToBackend(copy->srcContainer.Get());
+                    RayTracingAccelerationContainer* dstContainer =
+                        ToBackend(copy->dstContainer.Get());*/
+                    // TODO
+                } break;
+
+                case Command::UpdateRayTracingAccelerationContainer: {
+                    /*UpdateRayTracingAccelerationContainerCmd* build =
+                        mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
+                    RayTracingAccelerationContainer* container =
+                    ToBackend(build->container.Get());*/
+                    // TODO
                 } break;
 
                 case Command::CopyBufferToBuffer: {

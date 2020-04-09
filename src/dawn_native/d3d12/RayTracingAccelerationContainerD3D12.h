@@ -24,6 +24,12 @@ namespace dawn_native { namespace d3d12 {
 
     class Device;
 
+    struct SBTEntry {
+        SBTEntry(std::wstring entryPoint, std::vector<void*> data);
+        const std::vector<void*> mData;
+        const std::wstring mEntryPoint;
+    };
+
     struct ScratchMemoryPool {
         MemoryEntry result;
         MemoryEntry update;
