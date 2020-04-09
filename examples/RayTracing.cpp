@@ -317,6 +317,16 @@ void init() {
 
     {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
+        wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, geometryContainer);
+        WGPUCommandBuffer commandBuffer = wgpuCommandEncoderFinish(encoder, nullptr);
+        wgpuQueueSubmit(queue, 1, &commandBuffer);
+
+        wgpuCommandEncoderRelease(encoder);
+        wgpuCommandBufferRelease(commandBuffer);
+    }
+
+    {
+        WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
         wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, instanceContainer);
         WGPUCommandBuffer commandBuffer = wgpuCommandEncoderFinish(encoder, nullptr);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
@@ -324,7 +334,7 @@ void init() {
         wgpuCommandEncoderRelease(encoder);
         wgpuCommandBufferRelease(commandBuffer);
     }
-    
+
     WGPURayTracingShaderBindingTable sbt;
     {
         // clang-format off
@@ -417,9 +427,6 @@ void init() {
         rtBindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }
 
-    printf("Bindgroup created!\n");
-
-    /*
     {
         WGPUPipelineLayoutDescriptor descriptor;
         descriptor.label = nullptr;
@@ -441,7 +448,7 @@ void init() {
         descriptor.rayTracingState = &rtStateDescriptor;
 
         rtPipeline = wgpuDeviceCreateRayTracingPipeline(device, &descriptor);
-    }*/
+    }
 
     {
         WGPUBindGroupLayoutBinding bindingDescriptors[1];

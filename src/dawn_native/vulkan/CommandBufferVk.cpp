@@ -485,13 +485,10 @@ namespace dawn_native { namespace vulkan {
                         asInfo.geometryCount = 0;
                         asInfo.pGeometries = nullptr;
 
-                        // barrier only needed when in same command buffer record
-                        // a bottom-level container was previously built
                         if (hasBottomLevelContainerBuild) {
-                            device->fn.CmdPipelineBarrier(
-                                commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1,
-                                &barrier, 0, 0, 0, 0);
+                            return DAWN_VALIDATION_ERROR(
+                                "Acceleration containers of different levels must be built in "
+                                "separate passes");
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
@@ -500,7 +497,6 @@ namespace dawn_native { namespace vulkan {
                             container->GetScratchMemory().build.buffer,
                             0);
 
-                        // probably not needed
                         device->fn.CmdPipelineBarrier(
                             commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
                             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
@@ -528,9 +524,9 @@ namespace dawn_native { namespace vulkan {
                 } break;
 
                 case Command::UpdateRayTracingAccelerationContainer: {
-                    UpdateRayTracingAccelerationContainerCmd* build =
+                    UpdateRayTracingAccelerationContainerCmd* update =
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
-                    RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
+                    RayTracingAccelerationContainer* container = ToBackend(update->container.Get());
 
                     VkMemoryBarrier barrier;
                     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -580,13 +576,11 @@ namespace dawn_native { namespace vulkan {
                         asInfo.geometryCount = 0;
                         asInfo.pGeometries = nullptr;
 
-                        // barrier only needed when in same command buffer record
-                        // a bottom-level container was previously built
                         if (hasBottomLevelContainerUpdate) {
-                            device->fn.CmdPipelineBarrier(
-                                commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                                VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1,
-                                &barrier, 0, 0, 0, 0);
+                            // TODO: is this really necessary?
+                            return DAWN_VALIDATION_ERROR(
+                                "Acceleration containers of different levels must be updated in "
+                                "seperate passes");
                         }
 
                         device->fn.CmdBuildAccelerationStructureNV(
@@ -596,7 +590,6 @@ namespace dawn_native { namespace vulkan {
                             container->GetScratchMemory().update.buffer,
                             0);
 
-                        // probably not needed
                         device->fn.CmdPipelineBarrier(
                             commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
                             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |

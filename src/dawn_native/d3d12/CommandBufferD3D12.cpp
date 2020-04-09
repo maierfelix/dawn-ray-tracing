@@ -532,6 +532,9 @@ namespace dawn_native { namespace d3d12 {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         uint32_t nextPassNumber = 0;
 
+        bool hasBottomLevelContainerBuild = false;
+        bool hasBottomLevelContainerUpdate = false;
+
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
@@ -597,6 +600,17 @@ namespace dawn_native { namespace d3d12 {
                     uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
                     uavBarrier.UAV.pResource = resultMemory->buffer.Get();
                     commandList->ResourceBarrier(1, &uavBarrier);
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
+                        hasBottomLevelContainerBuild) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration containers of different levels must be built in "
+                            "separate passes");
+                    }
+                    if (container->GetLevel() ==
+                        wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+                        hasBottomLevelContainerBuild = true;
+                    }
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {
@@ -610,11 +624,20 @@ namespace dawn_native { namespace d3d12 {
                 } break;
 
                 case Command::UpdateRayTracingAccelerationContainer: {
-                    /*UpdateRayTracingAccelerationContainerCmd* build =
+                    UpdateRayTracingAccelerationContainerCmd* update =
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
-                    RayTracingAccelerationContainer* container =
-                    ToBackend(build->container.Get());*/
+                    RayTracingAccelerationContainer* container = ToBackend(update->container.Get());
                     // TODO
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
+                        hasBottomLevelContainerUpdate) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration containers of different levels must be updated in "
+                            "separate passes");
+                    }
+                    if (container->GetLevel() ==
+                        wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+                        hasBottomLevelContainerUpdate = true;
+                    }
                 } break;
 
                 case Command::CopyBufferToBuffer: {

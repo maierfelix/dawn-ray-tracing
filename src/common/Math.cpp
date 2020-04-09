@@ -152,3 +152,126 @@ float SRGBToLinear(float srgb) {
         return std::pow((srgb + 0.055f) / 1.055f, 2.4f);
     }
 }
+
+// generates a 4x3 transform matrix in row-major order
+void Fill4x3TransformMatrix(float* out,
+                            float tx,
+                            float ty,
+                            float tz,
+                            float rx,
+                            float ry,
+                            float rz,
+                            float sx,
+                            float sy,
+                            float sz) {
+    const float PI = 3.14159265358979f;
+
+    // make identity
+    out[0] = 1.0f;
+    out[5] = 1.0f;
+    out[10] = 1.0f;
+    out[15] = 1.0f;
+    // apply translation
+    {
+        float x = tx;
+        float y = ty;
+        float z = tz;
+        out[12] = out[0] * x + out[4] * y + out[8] * z + out[12];
+        out[13] = out[1] * x + out[5] * y + out[9] * z + out[13];
+        out[14] = out[2] * x + out[6] * y + out[10] * z + out[14];
+        out[15] = out[3] * x + out[7] * y + out[11] * z + out[15];
+    }
+    // apply rotation
+    {
+        // x rotation
+        {
+            rx = rx * (PI / 180.0f);
+            float s = sinf(rx);
+            float c = cosf(rx);
+            float a10 = out[4];
+            float a11 = out[5];
+            float a12 = out[6];
+            float a13 = out[7];
+            float a20 = out[8];
+            float a21 = out[9];
+            float a22 = out[10];
+            float a23 = out[11];
+            out[4] = a10 * c + a20 * s;
+            out[5] = a11 * c + a21 * s;
+            out[6] = a12 * c + a22 * s;
+            out[7] = a13 * c + a23 * s;
+            out[8] = a20 * c - a10 * s;
+            out[9] = a21 * c - a11 * s;
+            out[10] = a22 * c - a12 * s;
+            out[11] = a23 * c - a13 * s;
+        }
+        // y rotation
+        {
+            ry = ry * (PI / 180.0f);
+            float s = sinf(ry);
+            float c = cosf(ry);
+            float a00 = out[0];
+            float a01 = out[1];
+            float a02 = out[2];
+            float a03 = out[3];
+            float a20 = out[8];
+            float a21 = out[9];
+            float a22 = out[10];
+            float a23 = out[11];
+            out[0] = a00 * c - a20 * s;
+            out[1] = a01 * c - a21 * s;
+            out[2] = a02 * c - a22 * s;
+            out[3] = a03 * c - a23 * s;
+            out[8] = a00 * s + a20 * c;
+            out[9] = a01 * s + a21 * c;
+            out[10] = a02 * s + a22 * c;
+            out[11] = a03 * s + a23 * c;
+        }
+        // z rotation
+        {
+            rz = rz * (PI / 180.0f);
+            float s = sinf(rz);
+            float c = cosf(rz);
+            float a00 = out[0];
+            float a01 = out[1];
+            float a02 = out[2];
+            float a03 = out[3];
+            float a10 = out[4];
+            float a11 = out[5];
+            float a12 = out[6];
+            float a13 = out[7];
+            out[0] = a00 * c + a10 * s;
+            out[1] = a01 * c + a11 * s;
+            out[2] = a02 * c + a12 * s;
+            out[3] = a03 * c + a13 * s;
+            out[4] = a10 * c - a00 * s;
+            out[5] = a11 * c - a01 * s;
+            out[6] = a12 * c - a02 * s;
+            out[7] = a13 * c - a03 * s;
+        }
+    }
+    // apply scale
+    {
+        out[0] = out[0] * sx;
+        out[1] = out[1] * sx;
+        out[2] = out[2] * sx;
+        out[3] = out[3] * sx;
+        out[4] = out[4] * sy;
+        out[5] = out[5] * sy;
+        out[6] = out[6] * sy;
+        out[7] = out[7] * sy;
+        out[8] = out[8] * sz;
+        out[9] = out[9] * sz;
+        out[10] = out[10] * sz;
+        out[11] = out[11] * sz;
+    }
+    // turn into 4x3
+    out[3] = out[12];
+    out[7] = out[13];
+    out[11] = out[14];
+    // reset last row
+    out[12] = 0.0f;
+    out[13] = 0.0f;
+    out[14] = 0.0f;
+    out[15] = 0.0f;
+}
