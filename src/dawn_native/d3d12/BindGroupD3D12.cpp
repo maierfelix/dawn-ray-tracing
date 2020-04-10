@@ -173,22 +173,18 @@ namespace dawn_native { namespace d3d12 {
                 case wgpu::BindingType::AccelerationContainer: {
                     RayTracingAccelerationContainer* container =
                         ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
+                    ID3D12Resource* result = container->GetScratchMemory().result.buffer.Get();
 
                     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
                     desc.Format = DXGI_FORMAT_UNKNOWN;
                     desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
                     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                    desc.RaytracingAccelerationStructure.Location =
-                        container->GetScratchMemory().result.buffer.Get()->GetGPUVirtualAddress();
+                    desc.RaytracingAccelerationStructure.Location = result->GetGPUVirtualAddress();
 
-                    D3D12_CPU_DESCRIPTOR_HANDLE descHandle =
+                    d3d12Device->CreateShaderResourceView(
+                        result, &desc,
                         cbvSrvUavDescriptorHeapAllocation.GetCPUHandle(
-                            bindingOffsets[bindingIndex]);
-
-                    descHandle.ptr += d3d12Device->GetDescriptorHandleIncrementSize(
-                        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-                    d3d12Device->CreateShaderResourceView(nullptr, &desc, descHandle);
+                            bindingOffsets[bindingIndex]));
                 } break;
 
                 case wgpu::BindingType::StorageTexture:

@@ -43,13 +43,11 @@ namespace dawn_native { namespace d3d12 {
                     break;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::AccelerationContainer:
                     mBindingOffsets[binding] = mDescriptorCounts[SRV]++;
                     break;
                 case wgpu::BindingType::Sampler:
                     mBindingOffsets[binding] = mDescriptorCounts[Sampler]++;
-                    break;
-                case wgpu::BindingType::AccelerationContainer:
-                    mBindingOffsets[binding] = mDescriptorCounts[AccelerationContainer]++;
                     break;
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
@@ -132,16 +130,12 @@ namespace dawn_native { namespace d3d12 {
                     break;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::AccelerationContainer:
                     mBindingOffsets[binding] += descriptorOffsets[SRV];
                     break;
                 case wgpu::BindingType::Sampler:
                     mBindingOffsets[binding] += descriptorOffsets[Sampler];
                     break;
-
-                case wgpu::BindingType::AccelerationContainer:
-                    mBindingOffsets[binding] += descriptorOffsets[AccelerationContainer];
-                    break;
-
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
                 case wgpu::BindingType::WriteonlyStorageTexture:

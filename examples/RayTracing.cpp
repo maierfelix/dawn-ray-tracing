@@ -62,7 +62,7 @@ struct CameraData {
 };
 
 void init() {
-    device = CreateCppDawnDevice(wgpu::BackendType::D3D12).Release();
+    device = CreateCppDawnDevice(wgpu::BackendType::Vulkan).Release();
     queue = wgpuDeviceCreateQueue(device);
 
     {
@@ -559,7 +559,7 @@ void init() {
 void frame() {
     WGPUTextureView backbufferView = wgpuSwapChainGetCurrentTextureView(swapchain);
 
-    /*{
+    {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
 
         WGPURayTracingPassDescriptor rayTracingPassInfo;
@@ -578,7 +578,7 @@ void frame() {
         wgpuCommandEncoderRelease(encoder);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
         wgpuCommandBufferRelease(commandBuffer);
-    }*/
+    }
 
     {
         WGPURenderPassDescriptor renderpassInfo;

@@ -18,9 +18,9 @@
 #include <vector>
 
 #include "dawn_native/RayTracingShaderBindingTable.h"
-
-#include "dawn_native/d3d12/d3d12_platform.h"
 #include "dawn_native/d3d12/BufferD3D12.h"
+#include "dawn_native/d3d12/ShaderModuleD3D12.h"
+#include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -33,12 +33,18 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable();
 
+        MemoryEntry& GetMemory();
+
+        std::vector<ShaderModule*>& GetStages();
+
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
         void DestroyImpl() override;
 
-        MemoryEntry mGroupMemory;
+        MemoryEntry mMemory;
+
+        std::vector<ShaderModule*> mStages;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

@@ -30,9 +30,12 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingPipelineDescriptor* descriptor);
         ~RayTracingPipeline();
 
+        ComPtr<ID3D12PipelineState> GetPipelineState();
+
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
+        ComPtr<ID3D12PipelineState> mPipelineState;
     };
 
 }}  // namespace dawn_native::d3d12
