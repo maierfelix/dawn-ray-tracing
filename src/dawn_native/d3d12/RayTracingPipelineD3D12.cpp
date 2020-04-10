@@ -39,32 +39,6 @@ namespace dawn_native { namespace d3d12 {
     }
 
     MaybeError RayTracingPipeline::Initialize(const RayTracingPipelineDescriptor* descriptor) {
-        Device* device = ToBackend(GetDevice());
-
-        RayTracingShaderBindingTable* shaderBindingTable =
-            ToBackend(descriptor->rayTracingState->shaderBindingTable);
-
-        std::vector<ShaderModule*> stages = shaderBindingTable->GetStages();
-
-        uint32_t compileFlags = 0;
-        compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
-        for (unsigned int ii = 0; ii < stages.size(); ++ii) {
-            ShaderModule* module = stages[ii];
-            std::string hlslSource;
-            DAWN_TRY_ASSIGN(hlslSource, module->GetHLSLSource(ToBackend(GetLayout())));
-
-            ComPtr<ID3DBlob> compiledShader;
-            ComPtr<ID3DBlob> errors;
-
-            const PlatformFunctions* functions = device->GetFunctions();
-            if (FAILED(functions->d3dCompile(hlslSource.c_str(), hlslSource.length(), nullptr,
-                                             nullptr, nullptr, "main", "cs_5_1", compileFlags, 0,
-                                             &compiledShader, &errors))) {
-                printf("%s\n", reinterpret_cast<char*>(errors->GetBufferPointer()));
-                ASSERT(false);
-            }
-        };
-
         return {};
     }
 

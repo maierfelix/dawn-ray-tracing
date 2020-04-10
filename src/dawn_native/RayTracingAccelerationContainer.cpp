@@ -156,6 +156,11 @@ namespace dawn_native {
         DeviceBase* device,
         const RayTracingAccelerationContainerDescriptor* descriptor)
         : ObjectBase(device) {
+        if (!device->IsExtensionEnabled(Extension::RayTracing)) {
+            GetDevice()->ConsumedError(
+                DAWN_VALIDATION_ERROR("Ray Tracing extension is not enabled"));
+            return;
+        }
         mFlags = descriptor->flags;
         mLevel = descriptor->level;
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {

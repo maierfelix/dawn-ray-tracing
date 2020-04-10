@@ -146,8 +146,7 @@ namespace dawn_native { namespace d3d12 {
 
                     d3d12Device->CreateShaderResourceView(
                         result, &desc,
-                        cbvSrvUavDescriptorHeapAllocation.GetCPUHandle(
-                            bindingOffsets[bindingIndex]));
+                        viewAllocation.OffsetFrom(viewSizeIncrement, bindingOffsets[bindingIndex]));
                 } break;
 
                 case wgpu::BindingType::StorageTexture:

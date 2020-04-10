@@ -987,7 +987,8 @@
         "category": "structure",
         "extensible": false,
         "members": [
-            {"name": "texture compression BC", "type": "bool", "default": "false"}
+            {"name": "texture compression BC", "type": "bool", "default": "false"},
+            {"name": "ray tracing", "type": "bool", "default": "false"}
         ]
     },
     "depth stencil state descriptor": {

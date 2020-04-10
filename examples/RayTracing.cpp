@@ -62,7 +62,8 @@ struct CameraData {
 };
 
 void init() {
-    device = CreateCppDawnDevice(wgpu::BackendType::Vulkan).Release();
+    std::vector<const char*> requiredExtensions = {"ray_tracing"};
+    device = CreateCppDawnDevice(wgpu::BackendType::Vulkan, requiredExtensions).Release();
     queue = wgpuDeviceCreateQueue(device);
 
     {

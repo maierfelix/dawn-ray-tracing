@@ -78,7 +78,7 @@ namespace dawn_native { namespace vulkan {
             vkBinding->descriptorType =
                 VulkanDescriptorType(bindingInfo.type, bindingInfo.hasDynamicOffset);
             vkBinding->descriptorCount = 1;
-            vkBinding->stageFlags = VulkanShaderStageFlags(bindingInfo.visibility);
+            vkBinding->stageFlags = ToVulkanShaderStageFlags(bindingInfo.visibility);
             vkBinding->pImmutableSamplers = nullptr;
             numBindings++;
         }

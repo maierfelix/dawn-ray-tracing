@@ -377,6 +377,10 @@ namespace dawn_native { namespace vulkan {
             usedKnobs.features.textureCompressionBC = VK_TRUE;
         }
 
+        if (IsExtensionEnabled(Extension::RayTracing)) {
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().rayTracingNV == true);
+        }
+
         // Find a universal queue family
         {
             // Note that GRAPHICS and COMPUTE imply TRANSFER so we don't need to check for it.

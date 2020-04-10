@@ -15,6 +15,8 @@
 #include <dawn/dawn_wsi.h>
 #include <dawn/webgpu_cpp.h>
 
+#include <vector>
+
 bool InitSample(int argc, const char** argv);
 void DoFlush();
 bool ShouldQuit();
@@ -22,7 +24,10 @@ bool ShouldQuit();
 struct GLFWwindow;
 struct GLFWwindow* GetGLFWWindow();
 
-wgpu::Device CreateCppDawnDevice(wgpu::BackendType manualBackendType = wgpu::BackendType::Null);
+wgpu::Device CreateCppDawnDevice(
+    wgpu::BackendType manualBackendType = wgpu::BackendType::Null,
+    const std::vector<const char*>& requiredExtensions = std::vector<const char*>());
+
 uint64_t GetSwapChainImplementation();
 wgpu::TextureFormat GetPreferredSwapChainTextureFormat();
 wgpu::SwapChain GetSwapChain(const wgpu::Device& device);

@@ -604,14 +604,11 @@ namespace dawn_native { namespace d3d12 {
                     MemoryEntry* resultMemory = &container->GetScratchMemory().result;
                     MemoryEntry* buildMemory = &container->GetScratchMemory().build;
 
-                    D3D12_GPU_VIRTUAL_ADDRESS resultAddr = resultMemory->address;
-                    D3D12_GPU_VIRTUAL_ADDRESS buildAddr = buildMemory->address;
-
                     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
                     buildDesc.Inputs = container->GetBuildInformation();
                     buildDesc.SourceAccelerationStructureData = 0;
-                    buildDesc.DestAccelerationStructureData = resultAddr;
-                    buildDesc.ScratchAccelerationStructureData = buildAddr;
+                    buildDesc.DestAccelerationStructureData = resultMemory->address;
+                    buildDesc.ScratchAccelerationStructureData = buildMemory->address;
 
                     commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 

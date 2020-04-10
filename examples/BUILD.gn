@@ -22,6 +22,7 @@ group("dawn_samples") {
     ":CppHelloTriangle",
     ":CubeReflection",
     ":ManualSwapChainTest",
+    ":RayTracing",
   ]
 }
 
@@ -99,5 +100,14 @@ dawn_sample("CubeReflection") {
 dawn_sample("ManualSwapChainTest") {
   sources = [
     "ManualSwapChainTest.cpp",
+  ]
+}
+
+dawn_sample("RayTracing") {
+  sources = [
+    "RayTracing.cpp",
+  ]
+  deps = [
+    "${dawn_root}/third_party/gn/glm",
   ]
 }

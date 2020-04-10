@@ -33,18 +33,10 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable();
 
-        MemoryEntry& GetMemory();
-
-        std::vector<ShaderModule*>& GetStages();
-
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
         void DestroyImpl() override;
-
-        MemoryEntry mMemory;
-
-        std::vector<ShaderModule*> mStages;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

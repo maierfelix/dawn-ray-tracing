@@ -25,6 +25,7 @@ namespace dawn_native {
 
     enum class Extension {
         TextureCompressionBC,
+        RayTracing,
 
         EnumCount,
         InvalidEnum = EnumCount,

@@ -93,6 +93,7 @@ namespace dawn_native {
             case wgpu::BindingType::ReadonlyStorageBuffer:
             case wgpu::BindingType::Sampler:
             case wgpu::BindingType::SampledTexture:
+            case wgpu::BindingType::AccelerationContainer:
                 break;
             default:
                 UNREACHABLE();
@@ -253,6 +254,7 @@ namespace dawn_native {
                     case wgpu::BindingType::StorageTexture:
                     case wgpu::BindingType::ReadonlyStorageTexture:
                     case wgpu::BindingType::WriteonlyStorageTexture:
+                    case wgpu::BindingType::AccelerationContainer:
                         firstNonBufferIndex = std::min(i, firstNonBufferIndex);
                         break;
                     default:

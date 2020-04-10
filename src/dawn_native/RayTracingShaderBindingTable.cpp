@@ -68,7 +68,11 @@ namespace dawn_native {
 
     RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor)
         : ObjectBase(device) {
-
+        if (!device->IsExtensionEnabled(Extension::RayTracing)) {
+            GetDevice()->ConsumedError(
+                DAWN_VALIDATION_ERROR("Ray Tracing extension is not enabled"));
+            return;
+        }
     }
 
     RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag)

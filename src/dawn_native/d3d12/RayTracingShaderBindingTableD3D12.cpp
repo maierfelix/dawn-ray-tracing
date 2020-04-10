@@ -42,59 +42,11 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
-        Device* device = ToBackend(GetDevice());
-        mStages.reserve(descriptor->stagesCount);
-        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
-            RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
-            mStages.push_back(ToBackend(stage.module));
-        };
-
-        uint32_t entrySize = Align(D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + 8,
-                                   D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
-
-        uint32_t shaderTableSize = descriptor->groupsCount * entrySize;
-        shaderTableSize = Align(shaderTableSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-
-        D3D12_RESOURCE_DESC resourceDescriptor;
-        resourceDescriptor.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        resourceDescriptor.Alignment = 0;
-        resourceDescriptor.Width = shaderTableSize;
-        resourceDescriptor.Height = 1;
-        resourceDescriptor.DepthOrArraySize = 1;
-        resourceDescriptor.MipLevels = 1;
-        resourceDescriptor.Format = DXGI_FORMAT_UNKNOWN;
-        resourceDescriptor.SampleDesc.Count = 1;
-        resourceDescriptor.SampleDesc.Quality = 0;
-        resourceDescriptor.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        resourceDescriptor.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-        DAWN_TRY_ASSIGN(mMemory.resource,
-                        device->AllocateMemory(D3D12_HEAP_TYPE_UPLOAD, resourceDescriptor,
-                                               D3D12_RESOURCE_STATE_GENERIC_READ));
-        mMemory.buffer = mMemory.resource.GetD3D12Resource();
-
-        void* pData = nullptr;
-
-        D3D12_RANGE mapRange = {0, static_cast<size_t>(shaderTableSize)};
-        DAWN_TRY(CheckHRESULT(mMemory.buffer.Get()->Map(0, &mapRange, &pData), "D3D12 map failed"));
-
-        if (pData == nullptr) {
-            return DAWN_VALIDATION_ERROR("Failed to map SBT memory");
-        }
-
         return {};
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
         DestroyInternal();
-    }
-
-    MemoryEntry& RayTracingShaderBindingTable::GetMemory() {
-        return mMemory;
-    }
-
-    std::vector<ShaderModule*>& RayTracingShaderBindingTable::GetStages() {
-        return mStages;
     }
 
 }}  // namespace dawn_native::d3d12

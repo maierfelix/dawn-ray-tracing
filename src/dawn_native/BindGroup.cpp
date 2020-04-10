@@ -129,19 +129,21 @@ namespace dawn_native {
         }
 
         MaybeError ValidateAccelerationContainerBinding(const DeviceBase* device,
-                                         const BindGroupBinding& binding) {
+                                                        const BindGroupEntry& binding) {
             if (binding.accelerationContainer == nullptr || binding.sampler != nullptr ||
                 binding.textureView != nullptr || binding.buffer != nullptr) {
                 return DAWN_VALIDATION_ERROR("expected acceleration container binding");
             }
             DAWN_TRY(device->ValidateObject(binding.accelerationContainer));
 
-            if (binding.accelerationContainer->GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Top) {
+            if (binding.accelerationContainer->GetLevel() !=
+                wgpu::RayTracingAccelerationContainerLevel::Top) {
                 return DAWN_VALIDATION_ERROR("only top-level acceleration containers can be bound");
             }
 
             if (binding.accelerationContainer->IsDestroyed()) {
-                return DAWN_VALIDATION_ERROR("destroyed acceleration container cannot be used as binding");
+                return DAWN_VALIDATION_ERROR(
+                    "destroyed acceleration container cannot be used as binding");
             }
 
             return {};
@@ -338,8 +340,8 @@ namespace dawn_native {
         BindingIndex bindingIndex) {
         ASSERT(!IsError());
         ASSERT(bindingIndex < kMaxBindingsPerGroup);
-        ASSERT(mLayout->GetBindingInfo().mask[bindingIndex]);
-        ASSERT(mLayout->GetBindingInfo().types[bindingIndex] == wgpu::BindingType::AccelerationContainer);
+        ASSERT(mLayout->GetBindingInfo(bindingIndex).type ==
+               wgpu::BindingType::AccelerationContainer);
         return static_cast<RayTracingAccelerationContainerBase*>(
             mBindingData.bindings[bindingIndex].Get());
     }

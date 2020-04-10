@@ -17,28 +17,28 @@
 #include "dawn_native/Buffer.h"
 #include "dawn_native/CommandEncoder.h"
 #include "dawn_native/Commands.h"
-#include "dawn_native/RayTracingPipeline.h"
 #include "dawn_native/Device.h"
+#include "dawn_native/RayTracingPipeline.h"
 
 namespace dawn_native {
 
     RayTracingPassEncoder::RayTracingPassEncoder(DeviceBase* device,
-                                           CommandEncoder* commandEncoder,
-                                           EncodingContext* encodingContext)
+                                                 CommandEncoder* commandEncoder,
+                                                 EncodingContext* encodingContext)
         : ProgrammablePassEncoder(device, encodingContext), mCommandEncoder(commandEncoder) {
     }
 
     RayTracingPassEncoder::RayTracingPassEncoder(DeviceBase* device,
-                                           CommandEncoder* commandEncoder,
-                                           EncodingContext* encodingContext,
-                                           ErrorTag errorTag)
+                                                 CommandEncoder* commandEncoder,
+                                                 EncodingContext* encodingContext,
+                                                 ErrorTag errorTag)
         : ProgrammablePassEncoder(device, encodingContext, errorTag),
           mCommandEncoder(commandEncoder) {
     }
 
     RayTracingPassEncoder* RayTracingPassEncoder::MakeError(DeviceBase* device,
-                                                      CommandEncoder* commandEncoder,
-                                                      EncodingContext* encodingContext) {
+                                                            CommandEncoder* commandEncoder,
+                                                            EncodingContext* encodingContext) {
         return new RayTracingPassEncoder(device, commandEncoder, encodingContext,
                                          ObjectBase::kError);
     }

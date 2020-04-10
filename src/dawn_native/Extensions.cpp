@@ -34,7 +34,11 @@ namespace dawn_native {
             {{Extension::TextureCompressionBC,
               {"texture_compression_bc", "Support Block Compressed (BC) texture formats",
                "https://bugs.chromium.org/p/dawn/issues/detail?id=42"},
-              &WGPUDeviceProperties::textureCompressionBC}}};
+              &WGPUDeviceProperties::textureCompressionBC},
+             {Extension::RayTracing,
+              {"ray_tracing", "Support Ray Tracing",
+               "https://github.com/maierfelix/dawn-ray-tracing"},
+              &WGPUDeviceProperties::rayTracing}}};
 
     }  // anonymous namespace
 
