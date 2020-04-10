@@ -43,6 +43,7 @@ namespace dawn_native { namespace d3d12 {
                     break;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::AccelerationContainer:
                     mBindingOffsets[binding] = mDescriptorCounts[SRV]++;
                     break;
                 case wgpu::BindingType::Sampler:
@@ -51,9 +52,6 @@ namespace dawn_native { namespace d3d12 {
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
                 case wgpu::BindingType::WriteonlyStorageTexture:
-                    UNREACHABLE();
-                    break;
-                case wgpu::BindingType::AccelerationContainer:
                     UNREACHABLE();
                     break;
             }
@@ -132,19 +130,15 @@ namespace dawn_native { namespace d3d12 {
                     break;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::AccelerationContainer:
                     mBindingOffsets[binding] += descriptorOffsets[SRV];
                     break;
                 case wgpu::BindingType::Sampler:
                     mBindingOffsets[binding] += descriptorOffsets[Sampler];
                     break;
-
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
                 case wgpu::BindingType::WriteonlyStorageTexture:
-                    UNREACHABLE();
-                    break;
-
-                case wgpu::BindingType::AccelerationContainer:
                     UNREACHABLE();
                     break;
 

@@ -14,6 +14,7 @@
 
 #include "dawn_native/vulkan/RayTracingAccelerationContainerVk.h"
 
+#include "common/Math.h"
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
@@ -24,130 +25,6 @@ namespace dawn_native { namespace vulkan {
 
     namespace {
 
-        // generates a 4x3 transform matrix in row-major order
-        void Fill4x3TransformMatrix(float* out,
-                                    const Transform3D* translation,
-                                    const Transform3D* rotation,
-                                    const Transform3D* scale) {
-            const float PI = 3.14159265358979f;
-
-            // make identity
-            out[0] = 1.0f;
-            out[5] = 1.0f;
-            out[10] = 1.0f;
-            out[15] = 1.0f;
-            // apply translation
-            if (translation != nullptr) {
-                float x = translation->x;
-                float y = translation->y;
-                float z = translation->z;
-                out[12] = out[0] * x + out[4] * y + out[8] * z + out[12];
-                out[13] = out[1] * x + out[5] * y + out[9] * z + out[13];
-                out[14] = out[2] * x + out[6] * y + out[10] * z + out[14];
-                out[15] = out[3] * x + out[7] * y + out[11] * z + out[15];
-            }
-            // apply rotation
-            if (rotation != nullptr) {
-                // TODO: beautify this
-                float x = rotation->x;
-                float y = rotation->y;
-                float z = rotation->z;
-                // x rotation
-                if (x != 0.0f) {
-                    x = x * (PI / 180.0f);
-                    float s = sinf(x);
-                    float c = cosf(x);
-                    float a10 = out[4];
-                    float a11 = out[5];
-                    float a12 = out[6];
-                    float a13 = out[7];
-                    float a20 = out[8];
-                    float a21 = out[9];
-                    float a22 = out[10];
-                    float a23 = out[11];
-                    out[4] = a10 * c + a20 * s;
-                    out[5] = a11 * c + a21 * s;
-                    out[6] = a12 * c + a22 * s;
-                    out[7] = a13 * c + a23 * s;
-                    out[8] = a20 * c - a10 * s;
-                    out[9] = a21 * c - a11 * s;
-                    out[10] = a22 * c - a12 * s;
-                    out[11] = a23 * c - a13 * s;
-                }
-                // y rotation
-                if (y != 0.0f) {
-                    y = y * (PI / 180.0f);
-                    float s = sinf(y);
-                    float c = cosf(y);
-                    float a00 = out[0];
-                    float a01 = out[1];
-                    float a02 = out[2];
-                    float a03 = out[3];
-                    float a20 = out[8];
-                    float a21 = out[9];
-                    float a22 = out[10];
-                    float a23 = out[11];
-                    out[0] = a00 * c - a20 * s;
-                    out[1] = a01 * c - a21 * s;
-                    out[2] = a02 * c - a22 * s;
-                    out[3] = a03 * c - a23 * s;
-                    out[8] = a00 * s + a20 * c;
-                    out[9] = a01 * s + a21 * c;
-                    out[10] = a02 * s + a22 * c;
-                    out[11] = a03 * s + a23 * c;
-                }
-                // z rotation
-                if (z != 0.0f) {
-                    z = z * (PI / 180.0f);
-                    float s = sinf(z);
-                    float c = cosf(z);
-                    float a00 = out[0];
-                    float a01 = out[1];
-                    float a02 = out[2];
-                    float a03 = out[3];
-                    float a10 = out[4];
-                    float a11 = out[5];
-                    float a12 = out[6];
-                    float a13 = out[7];
-                    out[0] = a00 * c + a10 * s;
-                    out[1] = a01 * c + a11 * s;
-                    out[2] = a02 * c + a12 * s;
-                    out[3] = a03 * c + a13 * s;
-                    out[4] = a10 * c - a00 * s;
-                    out[5] = a11 * c - a01 * s;
-                    out[6] = a12 * c - a02 * s;
-                    out[7] = a13 * c - a03 * s;
-                }
-            }
-            // apply scale
-            if (scale != nullptr) {
-                float x = scale->x;
-                float y = scale->y;
-                float z = scale->z;
-                out[0] = out[0] * x;
-                out[1] = out[1] * x;
-                out[2] = out[2] * x;
-                out[3] = out[3] * x;
-                out[4] = out[4] * y;
-                out[5] = out[5] * y;
-                out[6] = out[6] * y;
-                out[7] = out[7] * y;
-                out[8] = out[8] * z;
-                out[9] = out[9] * z;
-                out[10] = out[10] * z;
-                out[11] = out[11] * z;
-            }
-            // turn into 4x3
-            out[3] = out[12];
-            out[7] = out[13];
-            out[11] = out[14];
-            // reset last row
-            out[12] = 0.0f;
-            out[13] = 0.0f;
-            out[14] = 0.0f;
-            out[15] = 0.0f;
-        }
-
         VkAccelerationInstance GetVkAccelerationInstance(
             const RayTracingAccelerationInstanceDescriptor& descriptor) {
             RayTracingAccelerationContainer* geometryContainer =
@@ -156,8 +33,11 @@ namespace dawn_native { namespace vulkan {
             // process transform object
             if (descriptor.transform != nullptr) {
                 float transform[16] = {};
-                Fill4x3TransformMatrix(transform, descriptor.transform->translation,
-                                       descriptor.transform->rotation, descriptor.transform->scale);
+                const Transform3D* tr = descriptor.transform->translation;
+                const Transform3D* ro = descriptor.transform->rotation;
+                const Transform3D* sc = descriptor.transform->scale;
+                Fill4x3TransformMatrix(transform, tr->x, tr->y, tr->z, ro->x, ro->y, ro->z, sc->x,
+                                       sc->y, sc->z);
                 memcpy(&out.transform, transform, sizeof(out.transform));
             }
             // process transform matrix
@@ -174,33 +54,14 @@ namespace dawn_native { namespace vulkan {
 
     }  // anonymous namespace
 
-    // validate geometry instance flag bits to match with wgpu
-    // we have to do this since we allow instance buffer to be created from outside
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable ==
-                      VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise ==
-                      VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque ==
-                      VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV,
-                  "");
-    static_assert((VkGeometryInstanceFlagBitsNV)
-                          wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque ==
-                      VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV,
-                  "");
-
     // static
     ResultOrError<RayTracingAccelerationContainer*> RayTracingAccelerationContainer::Create(
         Device* device,
         const RayTracingAccelerationContainerDescriptor* descriptor) {
-        std::unique_ptr<RayTracingAccelerationContainer> geometry =
+        std::unique_ptr<RayTracingAccelerationContainer> container =
             std::make_unique<RayTracingAccelerationContainer>(device, descriptor);
-        DAWN_TRY(geometry->Initialize(descriptor));
-        return geometry.release();
+        DAWN_TRY(container->Initialize(descriptor));
+        return container.release();
     }
 
     void RayTracingAccelerationContainer::DestroyImpl() {
@@ -234,7 +95,7 @@ namespace dawn_native { namespace vulkan {
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
 
-        // validate ray tracing calls
+        // TODO: make this an extension
         if (device->fn.CreateAccelerationStructureNV == nullptr) {
             return DAWN_VALIDATION_ERROR("Invalid Call to CreateAccelerationStructureNV");
         }
@@ -266,7 +127,7 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.vertexCount = geometry.vertex->count;
                     geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
                     geometryInfo.geometry.triangles.vertexFormat =
-                        ToVulkanVertexFormat(geometry.vertex->format);
+                        ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
                 } else {
                     geometryInfo.geometry.triangles.vertexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.vertexOffset = 0;
@@ -281,7 +142,7 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.indexOffset = geometry.index->offset;
                     geometryInfo.geometry.triangles.indexCount = geometry.index->count;
                     geometryInfo.geometry.triangles.indexType =
-                        ToVulkanIndexFormat(geometry.index->format);
+                        ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
                 } else {
                     geometryInfo.geometry.triangles.indexData = VK_NULL_HANDLE;
                     geometryInfo.geometry.triangles.indexOffset = 0;
@@ -319,32 +180,20 @@ namespace dawn_native { namespace vulkan {
 
         // container requires instance buffer
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
-            // only create internal instance buffer when no external one was provided
-            if (descriptor->instanceBuffer == nullptr) {
-                uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
+            uint64_t bufferSize = descriptor->instanceCount * sizeof(VkAccelerationInstance);
 
-                BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
-                                               bufferSize};
-                Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
-                mInstanceMemory.allocation = AcquireRef(buffer);
-                mInstanceMemory.buffer = buffer->GetHandle();
-                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
-                mInstanceMemory.memory =
-                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
+            BufferDescriptor descriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
+                                           bufferSize};
+            Buffer* buffer = ToBackend(device->CreateBuffer(&descriptor));
+            mInstanceMemory.allocation = AcquireRef(buffer);
+            mInstanceMemory.buffer = buffer->GetHandle();
+            mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
+            mInstanceMemory.memory =
+                ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
 
-                // copy instance data into instance buffer
-                buffer->SetSubData(0, bufferSize, mInstances.data());
-                mInstanceCount = mInstances.size();
-            }
-            // external instance buffer
-            else {
-                Buffer* buffer = ToBackend(descriptor->instanceBuffer);
-                mInstanceMemory.buffer = buffer->GetHandle();
-                mInstanceMemory.offset = buffer->GetMemoryResource().GetOffset();
-                mInstanceMemory.memory =
-                    ToBackend(buffer->GetMemoryResource().GetResourceHeap())->GetMemory();
-                mInstanceCount = buffer->GetSize() / sizeof(VkAccelerationInstance);
-            }
+            // copy instance data into instance buffer
+            buffer->SetSubData(0, bufferSize, mInstances.data());
+            mInstanceCount = mInstances.size();
         }
 
         // create the acceleration container
@@ -359,13 +208,11 @@ namespace dawn_native { namespace vulkan {
             VkMemoryRequirements resultRequirements =
                 GetMemoryRequirements(VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV);
 
-            VkMemoryRequirements buildRequirements =
-                GetMemoryRequirements(
-                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
+            VkMemoryRequirements buildRequirements = GetMemoryRequirements(
+                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV);
 
-            VkMemoryRequirements updateRequirements =
-                GetMemoryRequirements(
-                    VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
+            VkMemoryRequirements updateRequirements = GetMemoryRequirements(
+                VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV);
 
             DAWN_TRY(AllocateScratchMemory(mScratchMemory.result, resultRequirements));
             DAWN_TRY(AllocateScratchMemory(mScratchMemory.build, buildRequirements));

@@ -84,6 +84,14 @@ namespace dawn_native { namespace d3d12 {
         SerialQueue<Request> mInflightRequests;
     };
 
+    struct MemoryEntry {
+        ComPtr<ID3D12Resource> buffer = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS address = 0;
+        // can either be a resource or a webgpu buffer
+        ResourceHeapAllocation resource;
+        Ref<Buffer> allocation;
+    };
+
 }}  // namespace dawn_native::d3d12
 
 #endif  // DAWNNATIVE_D3D12_BUFFERD3D12_H_

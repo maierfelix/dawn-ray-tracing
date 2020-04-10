@@ -52,7 +52,7 @@ namespace dawn_native { namespace vulkan {
         VkBuffer mGroupBuffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation mGroupBufferResource;
 
-        MaybeError ValidateGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
+        bool IsValidGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
 
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };

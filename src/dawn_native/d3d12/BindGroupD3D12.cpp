@@ -18,6 +18,7 @@
 #include "dawn_native/d3d12/BindGroupLayoutD3D12.h"
 #include "dawn_native/d3d12/BufferD3D12.h"
 #include "dawn_native/d3d12/DeviceD3D12.h"
+#include "dawn_native/d3d12/RayTracingAccelerationContainerD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
 #include "dawn_native/d3d12/ShaderVisibleDescriptorAllocatorD3D12.h"
 #include "dawn_native/d3d12/TextureD3D12.h"
@@ -169,9 +170,22 @@ namespace dawn_native { namespace d3d12 {
                         samplerDescriptorHeapAllocation.GetCPUHandle(bindingOffsets[bindingIndex]));
                 } break;
 
-                case wgpu::BindingType::AccelerationContainer:
-                    UNREACHABLE();
-                    break;
+                case wgpu::BindingType::AccelerationContainer: {
+                    RayTracingAccelerationContainer* container =
+                        ToBackend(GetBindingAsRayTracingAccelerationContainer(bindingIndex));
+                    ID3D12Resource* result = container->GetScratchMemory().result.buffer.Get();
+
+                    D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+                    desc.Format = DXGI_FORMAT_UNKNOWN;
+                    desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+                    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                    desc.RaytracingAccelerationStructure.Location = result->GetGPUVirtualAddress();
+
+                    d3d12Device->CreateShaderResourceView(
+                        result, &desc,
+                        cbvSrvUavDescriptorHeapAllocation.GetCPUHandle(
+                            bindingOffsets[bindingIndex]));
+                } break;
 
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
@@ -180,7 +194,6 @@ namespace dawn_native { namespace d3d12 {
                     break;
 
                     // TODO(shaobo.yan@intel.com): Implement dynamic buffer offset.
-
             }
         }
 

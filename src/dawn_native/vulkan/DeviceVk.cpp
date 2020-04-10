@@ -123,7 +123,8 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    ResultOrError<RayTracingAccelerationContainerBase*> Device::CreateRayTracingAccelerationContainerImpl(
+    ResultOrError<RayTracingAccelerationContainerBase*>
+    Device::CreateRayTracingAccelerationContainerImpl(
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         return RayTracingAccelerationContainer::Create(this, descriptor);
     }

@@ -31,6 +31,9 @@
 #include "dawn_native/d3d12/PipelineLayoutD3D12.h"
 #include "dawn_native/d3d12/PlatformFunctions.h"
 #include "dawn_native/d3d12/QueueD3D12.h"
+#include "dawn_native/d3d12/RayTracingAccelerationContainerD3D12.h"
+#include "dawn_native/d3d12/RayTracingPipelineD3D12.h"
+#include "dawn_native/d3d12/RayTracingShaderBindingTableD3D12.h"
 #include "dawn_native/d3d12/RenderPipelineD3D12.h"
 #include "dawn_native/d3d12/ResourceAllocatorManagerD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
@@ -52,8 +55,10 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError Device::Initialize() {
         mD3d12Device = ToBackend(GetAdapter())->GetDevice();
-
         ASSERT(mD3d12Device != nullptr);
+
+        DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
+                              "D3D12 query ID3D12Device to ID3D12Device5"));
 
         // Create device-global objects
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -116,6 +121,10 @@ namespace dawn_native { namespace d3d12 {
 
     ComPtr<ID3D12Device> Device::GetD3D12Device() const {
         return mD3d12Device;
+    }
+
+    ComPtr<ID3D12Device5> Device::GetD3D12Device5() const {
+        return mD3d12Device5;
     }
 
     ComPtr<ID3D12CommandQueue> Device::GetCommandQueue() const {
@@ -217,6 +226,19 @@ namespace dawn_native { namespace d3d12 {
         return mPendingCommands.ExecuteCommandList(mCommandQueue.Get());
     }
 
+    ResultOrError<RayTracingAccelerationContainerBase*>
+    Device::CreateRayTracingAccelerationContainerImpl(
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
+        return RayTracingAccelerationContainer::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingShaderBindingTableBase*> Device::CreateRayTracingShaderBindingTableImpl(
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
+        return RayTracingShaderBindingTable::Create(this, descriptor);
+    }
+    ResultOrError<RayTracingPipelineBase*> Device::CreateRayTracingPipelineImpl(
+        const RayTracingPipelineDescriptor* descriptor) {
+        return RayTracingPipeline::Create(this, descriptor);
+    }
     ResultOrError<BindGroupBase*> Device::CreateBindGroupImpl(
         const BindGroupDescriptor* descriptor) {
         return BindGroup::Create(this, descriptor);
@@ -403,6 +425,7 @@ namespace dawn_native { namespace d3d12 {
         const bool useResourceHeapTier2 = (GetDeviceInfo().resourceHeapTier >= 2);
         SetToggle(Toggle::UseD3D12ResourceHeapTier2, useResourceHeapTier2);
         SetToggle(Toggle::UseD3D12RenderPass, GetDeviceInfo().supportsRenderPass);
+        SetToggle(Toggle::UseD3D12RayTracing, GetDeviceInfo().supportsRayTracing);
     }
 
     MaybeError Device::WaitForIdleForDestruction() {

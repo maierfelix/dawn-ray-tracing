@@ -57,6 +57,7 @@ namespace dawn_native { namespace d3d12 {
         MaybeError TickImpl() override;
 
         ComPtr<ID3D12Device> GetD3D12Device() const;
+        ComPtr<ID3D12Device5> GetD3D12Device5() const;
         ComPtr<ID3D12CommandQueue> GetCommandQueue() const;
 
         ComPtr<ID3D12CommandSignature> GetDispatchIndirectSignature() const;
@@ -110,17 +111,11 @@ namespace dawn_native { namespace d3d12 {
       private:
         ResultOrError<RayTracingAccelerationContainerBase*>
         CreateRayTracingAccelerationContainerImpl(
-            const RayTracingAccelerationContainerDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingAccelerationContainerDescriptor* descriptor) override;
         ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
-            const RayTracingShaderBindingTableDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingShaderBindingTableDescriptor* descriptor) override;
         ResultOrError<RayTracingPipelineBase*> CreateRayTracingPipelineImpl(
-            const RayTracingPipelineDescriptor* descriptor) override {
-            UNREACHABLE();
-        }
+            const RayTracingPipelineDescriptor* descriptor) override;
         ResultOrError<BindGroupBase*> CreateBindGroupImpl(
             const BindGroupDescriptor* descriptor) override;
         ResultOrError<BindGroupLayoutBase*> CreateBindGroupLayoutImpl(
@@ -156,6 +151,7 @@ namespace dawn_native { namespace d3d12 {
         HANDLE mFenceEvent = nullptr;
 
         ComPtr<ID3D12Device> mD3d12Device;  // Device is owned by adapter and will not be outlived.
+        ComPtr<ID3D12Device5> mD3d12Device5;
         ComPtr<ID3D12CommandQueue> mCommandQueue;
 
         // 11on12 device and device context corresponding to mCommandQueue

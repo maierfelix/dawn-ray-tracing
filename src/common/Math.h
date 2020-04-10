@@ -65,4 +65,16 @@ bool IsFloat16NaN(uint16_t fp16);
 
 float SRGBToLinear(float srgb);
 
+// generates a 4x3 transform matrix in row-major order
+void Fill4x3TransformMatrix(float* out,
+                            float tx,
+                            float ty,
+                            float tz,
+                            float rx,
+                            float ry,
+                            float rz,
+                            float sx,
+                            float sy,
+                            float sz);
+
 #endif  // COMMON_MATH_H_

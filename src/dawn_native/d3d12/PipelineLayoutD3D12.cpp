@@ -47,13 +47,13 @@ namespace dawn_native { namespace d3d12 {
                 case wgpu::BindingType::StorageBuffer:
                     return D3D12_ROOT_PARAMETER_TYPE_UAV;
                 case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::AccelerationContainer:
                     return D3D12_ROOT_PARAMETER_TYPE_SRV;
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::Sampler:
                 case wgpu::BindingType::StorageTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
                 case wgpu::BindingType::WriteonlyStorageTexture:
-                case wgpu::BindingType::AccelerationContainer:
                     UNREACHABLE();
             }
         }

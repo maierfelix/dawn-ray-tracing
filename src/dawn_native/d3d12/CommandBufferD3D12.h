@@ -54,6 +54,8 @@ namespace dawn_native { namespace d3d12 {
       private:
         MaybeError RecordComputePass(CommandRecordingContext* commandContext,
                                      BindGroupStateTracker* bindingTracker);
+        MaybeError RecordRayTracingPass(CommandRecordingContext* commandContext,
+                                        BindGroupStateTracker* bindingTracker);
         MaybeError RecordRenderPass(CommandRecordingContext* commandContext,
                                     BindGroupStateTracker* bindingTracker,
                                     BeginRenderPassCmd* renderPass,

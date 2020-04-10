@@ -15,21 +15,19 @@
 #ifndef DAWNNATIVE_VULKAN_DEVICEVK_H_
 #define DAWNNATIVE_VULKAN_DEVICEVK_H_
 
-#include "dawn_native/dawn_platform.h"
+#include <memory>
+#include <queue>
 
 #include "common/Serial.h"
 #include "common/SerialQueue.h"
 #include "dawn_native/Device.h"
+#include "dawn_native/dawn_platform.h"
 #include "dawn_native/vulkan/CommandRecordingContext.h"
 #include "dawn_native/vulkan/Forward.h"
 #include "dawn_native/vulkan/VulkanFunctions.h"
 #include "dawn_native/vulkan/VulkanInfo.h"
-
 #include "dawn_native/vulkan/external_memory/MemoryService.h"
 #include "dawn_native/vulkan/external_semaphore/SemaphoreService.h"
-
-#include <memory>
-#include <queue>
 
 namespace dawn_native { namespace vulkan {
 
@@ -101,7 +99,8 @@ namespace dawn_native { namespace vulkan {
         ResourceMemoryAllocator* GetResourceMemoryAllocatorForTesting() const;
 
       private:
-        ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
+        ResultOrError<RayTracingAccelerationContainerBase*>
+        CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override;
         ResultOrError<RayTracingShaderBindingTableBase*> CreateRayTracingShaderBindingTableImpl(
             const RayTracingShaderBindingTableDescriptor* descriptor) override;
