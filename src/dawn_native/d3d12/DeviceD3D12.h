@@ -34,6 +34,7 @@ namespace dawn_native { namespace d3d12 {
     class MapRequestTracker;
     class PlatformFunctions;
     class ResourceAllocatorManager;
+    class ResidencyManager;
 
 #define ASSERT_SUCCESS(hr)            \
     {                                 \
@@ -44,8 +45,8 @@ namespace dawn_native { namespace d3d12 {
     // Definition of backend types
     class Device : public DeviceBase {
       public:
-        Device(Adapter* adapter, const DeviceDescriptor* descriptor);
-        ~Device();
+        static ResultOrError<Device*> Create(Adapter* adapter, const DeviceDescriptor* descriptor);
+        ~Device() override;
 
         MaybeError Initialize();
 
@@ -59,6 +60,7 @@ namespace dawn_native { namespace d3d12 {
         ComPtr<ID3D12Device> GetD3D12Device() const;
         ComPtr<ID3D12Device5> GetD3D12Device5() const;
         ComPtr<ID3D12CommandQueue> GetCommandQueue() const;
+        ID3D12SharingContract* GetSharingContract() const;
 
         ComPtr<ID3D12CommandSignature> GetDispatchIndirectSignature() const;
         ComPtr<ID3D12CommandSignature> GetDrawIndirectSignature() const;
@@ -67,6 +69,7 @@ namespace dawn_native { namespace d3d12 {
         DescriptorHeapAllocator* GetDescriptorHeapAllocator() const;
         MapRequestTracker* GetMapRequestTracker() const;
         CommandAllocatorManager* GetCommandAllocatorManager() const;
+        ResidencyManager* GetResidencyManager() const;
 
         const PlatformFunctions* GetFunctions() const;
         ComPtr<IDXGIFactory4> GetFactory() const;
@@ -101,7 +104,8 @@ namespace dawn_native { namespace d3d12 {
 
         TextureBase* WrapSharedHandle(const ExternalImageDescriptor* descriptor,
                                       HANDLE sharedHandle,
-                                      uint64_t acquireMutexKey);
+                                      uint64_t acquireMutexKey,
+                                      bool isSwapChainTexture);
         ResultOrError<ComPtr<IDXGIKeyedMutex>> CreateKeyedMutexForTexture(
             ID3D12Resource* d3d12Resource);
         void ReleaseKeyedMutexForTexture(ComPtr<IDXGIKeyedMutex> dxgiKeyedMutex);
@@ -109,6 +113,8 @@ namespace dawn_native { namespace d3d12 {
         void InitTogglesFromDriver();
 
       private:
+        using DeviceBase::DeviceBase;
+
         ResultOrError<RayTracingAccelerationContainerBase*>
         CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override;
@@ -142,7 +148,7 @@ namespace dawn_native { namespace d3d12 {
             TextureBase* texture,
             const TextureViewDescriptor* descriptor) override;
 
-        void Destroy() override;
+        void ShutDownImpl() override;
         MaybeError WaitForIdleForDestruction() override;
 
         Serial mCompletedSerial = 0;
@@ -153,6 +159,7 @@ namespace dawn_native { namespace d3d12 {
         ComPtr<ID3D12Device> mD3d12Device;  // Device is owned by adapter and will not be outlived.
         ComPtr<ID3D12Device5> mD3d12Device5;
         ComPtr<ID3D12CommandQueue> mCommandQueue;
+        ComPtr<ID3D12SharingContract> mD3d12SharingContract;
 
         // 11on12 device and device context corresponding to mCommandQueue
         ComPtr<ID3D11On12Device> mD3d11On12Device;
@@ -170,6 +177,7 @@ namespace dawn_native { namespace d3d12 {
         std::unique_ptr<DescriptorHeapAllocator> mDescriptorHeapAllocator;
         std::unique_ptr<MapRequestTracker> mMapRequestTracker;
         std::unique_ptr<ResourceAllocatorManager> mResourceAllocatorManager;
+        std::unique_ptr<ResidencyManager> mResidencyManager;
         std::unique_ptr<ShaderVisibleDescriptorAllocator> mShaderVisibleDescriptorAllocator;
     };
 

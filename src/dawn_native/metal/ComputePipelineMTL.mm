@@ -23,10 +23,9 @@ namespace dawn_native { namespace metal {
     ResultOrError<ComputePipeline*> ComputePipeline::Create(
         Device* device,
         const ComputePipelineDescriptor* descriptor) {
-        std::unique_ptr<ComputePipeline> pipeline =
-            std::make_unique<ComputePipeline>(device, descriptor);
+        Ref<ComputePipeline> pipeline = AcquireRef(new ComputePipeline(device, descriptor));
         DAWN_TRY(pipeline->Initialize(descriptor));
-        return pipeline.release();
+        return pipeline.Detach();
     }
 
     MaybeError ComputePipeline::Initialize(const ComputePipelineDescriptor* descriptor) {
@@ -43,7 +42,7 @@ namespace dawn_native { namespace metal {
             [mtlDevice newComputePipelineStateWithFunction:computeData.function error:&error];
         if (error != nil) {
             NSLog(@" error => %@", error);
-            return DAWN_DEVICE_LOST_ERROR("Error creating pipeline state");
+            return DAWN_INTERNAL_ERROR("Error creating pipeline state");
         }
 
         // Copy over the local workgroup size as it is passed to dispatch explicitly in Metal

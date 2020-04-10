@@ -47,7 +47,6 @@ namespace dawn_native {
 
       public:
         BufferBase(DeviceBase* device, const BufferDescriptor* descriptor);
-        ~BufferBase();
 
         static BufferBase* MakeError(DeviceBase* device);
         static BufferBase* MakeErrorMapped(DeviceBase* device,
@@ -70,6 +69,7 @@ namespace dawn_native {
 
       protected:
         BufferBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+        ~BufferBase() override;
 
         void CallMapReadCallback(uint32_t serial,
                                  WGPUBufferMapAsyncStatus status,
@@ -81,6 +81,8 @@ namespace dawn_native {
                                   uint32_t dataLength);
 
         void DestroyInternal();
+
+        bool IsMapped() const;
 
       private:
         virtual MaybeError MapAtCreationImpl(uint8_t** mappedPointer) = 0;

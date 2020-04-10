@@ -57,11 +57,9 @@ namespace dawn_native { namespace metal {
     // static
     ResultOrError<ShaderModule*> ShaderModule::Create(Device* device,
                                                       const ShaderModuleDescriptor* descriptor) {
-        std::unique_ptr<ShaderModule> module(new ShaderModule(device, descriptor));
-        if (!module)
-            return DAWN_VALIDATION_ERROR("Unable to create ShaderModule");
+        Ref<ShaderModule> module = AcquireRef(new ShaderModule(device, descriptor));
         DAWN_TRY(module->Initialize(descriptor));
-        return module.release();
+        return module.Detach();
     }
 
     ShaderModule::ShaderModule(Device* device, const ShaderModuleDescriptor* descriptor)
@@ -131,26 +129,34 @@ namespace dawn_native { namespace metal {
 
         // Create one resource binding entry per stage per binding.
         for (uint32_t group : IterateBitSet(layout->GetBindGroupLayoutsMask())) {
-            const auto& bgInfo = layout->GetBindGroupLayout(group)->GetBindingInfo();
-            for (uint32_t binding : IterateBitSet(bgInfo.mask)) {
-                for (auto stage : IterateStages(bgInfo.visibilities[binding])) {
-                    uint32_t index = layout->GetBindingIndexInfo(stage)[group][binding];
+            const BindGroupLayoutBase::BindingMap& bindingMap =
+                layout->GetBindGroupLayout(group)->GetBindingMap();
+
+            for (const auto& it : bindingMap) {
+                BindingNumber bindingNumber = it.first;
+                BindingIndex bindingIndex = it.second;
+
+                const BindingInfo& bindingInfo =
+                    layout->GetBindGroupLayout(group)->GetBindingInfo(bindingIndex);
+
+                for (auto stage : IterateStages(bindingInfo.visibility)) {
+                    uint32_t shaderIndex = layout->GetBindingIndexInfo(stage)[group][bindingIndex];
                     if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
                         shaderc_spvc_msl_resource_binding mslBinding;
                         mslBinding.stage = ToSpvcExecutionModel(stage);
                         mslBinding.desc_set = group;
-                        mslBinding.binding = binding;
+                        mslBinding.binding = bindingNumber;
                         mslBinding.msl_buffer = mslBinding.msl_texture = mslBinding.msl_sampler =
-                            index;
+                            shaderIndex;
                         DAWN_TRY(CheckSpvcSuccess(mSpvcContext.AddMSLResourceBinding(mslBinding),
                                                   "Unable to add MSL Resource Binding"));
                     } else {
                         spirv_cross::MSLResourceBinding mslBinding;
                         mslBinding.stage = SpirvExecutionModelForStage(stage);
                         mslBinding.desc_set = group;
-                        mslBinding.binding = binding;
+                        mslBinding.binding = bindingNumber;
                         mslBinding.msl_buffer = mslBinding.msl_texture = mslBinding.msl_sampler =
-                            index;
+                            shaderIndex;
 
                         compiler->add_msl_resource_binding(mslBinding);
                     }
@@ -184,10 +190,10 @@ namespace dawn_native { namespace metal {
                 std::string result_str;
                 DAWN_TRY(CheckSpvcSuccess(result.GetStringOutput(&result_str),
                                           "Unable to get MSL shader text"));
-                mslSource = [NSString stringWithFormat:@"%s", result_str.c_str()];
+                mslSource = [[NSString alloc] initWithUTF8String:result_str.c_str()];
             } else {
                 std::string msl = compiler->compile();
-                mslSource = [NSString stringWithFormat:@"%s", msl.c_str()];
+                mslSource = [[NSString alloc] initWithUTF8String:msl.c_str()];
             }
             auto mtlDevice = ToBackend(GetDevice())->GetMTLDevice();
             NSError* error = nil;
@@ -210,7 +216,7 @@ namespace dawn_native { namespace metal {
                 functionName = "main0";
             }
 
-            NSString* name = [NSString stringWithFormat:@"%s", functionName];
+            NSString* name = [[NSString alloc] initWithUTF8String:functionName];
             out->function = [library newFunctionWithName:name];
             [library release];
         }

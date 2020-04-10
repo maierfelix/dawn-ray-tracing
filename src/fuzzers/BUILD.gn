@@ -85,11 +85,11 @@ static_library("dawn_wire_server_fuzzer_common") {
     "DawnWireServerFuzzer.h",
   ]
   public_deps = [
-    "${dawn_root}/:libdawn_native_static",
-    "${dawn_root}/:libdawn_wire_static",
     "${dawn_root}/src/common",
     "${dawn_root}/src/dawn:dawncpp",
     "${dawn_root}/src/dawn:libdawn_proc",
+    "${dawn_root}/src/dawn_native:dawn_native_static",
+    "${dawn_root}/src/dawn_wire:dawn_wire_static",
   ]
 }
 
@@ -181,4 +181,18 @@ dawn_fuzzer_test("dawn_wire_server_and_vulkan_backend_fuzzer") {
   ]
 
   additional_configs = [ "${dawn_root}/src/common:dawn_internal" ]
+}
+
+# A group target to build all the fuzzers
+group("dawn_fuzzers") {
+  testonly = true
+  deps = [
+    ":dawn_spirv_cross_glsl_fast_fuzzer",
+    ":dawn_spirv_cross_hlsl_fast_fuzzer",
+    ":dawn_spirv_cross_msl_fast_fuzzer",
+    ":dawn_spvc_glsl_fast_fuzzer",
+    ":dawn_spvc_hlsl_fast_fuzzer",
+    ":dawn_spvc_msl_fast_fuzzer",
+    ":dawn_wire_server_and_frontend_fuzzer",
+  ]
 }

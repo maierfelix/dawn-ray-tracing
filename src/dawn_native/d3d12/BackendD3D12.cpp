@@ -61,7 +61,7 @@ namespace dawn_native { namespace d3d12 {
             }
 
             if (FAILED(functions->createDxgiFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)))) {
-                return DAWN_DEVICE_LOST_ERROR("Failed to create a DXGI factory");
+                return DAWN_INTERNAL_ERROR("Failed to create a DXGI factory");
             }
 
             ASSERT(factory != nullptr);
@@ -106,7 +106,12 @@ namespace dawn_native { namespace d3d12 {
 
             ASSERT(dxgiAdapter != nullptr);
 
-            std::unique_ptr<Adapter> adapter = std::make_unique<Adapter>(this, dxgiAdapter);
+            ComPtr<IDXGIAdapter3> dxgiAdapter3;
+            HRESULT result = dxgiAdapter.As(&dxgiAdapter3);
+            ASSERT(SUCCEEDED(result));
+
+            std::unique_ptr<Adapter> adapter =
+                std::make_unique<Adapter>(this, std::move(dxgiAdapter3));
             if (GetInstance()->ConsumedError(adapter->Initialize())) {
                 continue;
             }

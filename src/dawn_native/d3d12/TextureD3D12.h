@@ -32,27 +32,28 @@ namespace dawn_native { namespace d3d12 {
                                                 const TextureDescriptor* descriptor);
     MaybeError ValidateTextureDescriptorCanBeWrapped(const TextureDescriptor* descriptor);
 
-    class Texture : public TextureBase {
+    class Texture final : public TextureBase {
       public:
         static ResultOrError<TextureBase*> Create(Device* device,
                                                   const TextureDescriptor* descriptor);
         static ResultOrError<TextureBase*> Create(Device* device,
                                                   const ExternalImageDescriptor* descriptor,
                                                   HANDLE sharedHandle,
-                                                  uint64_t acquireMutexKey);
+                                                  uint64_t acquireMutexKey,
+                                                  bool isSwapChainTexture);
         Texture(Device* device,
                 const TextureDescriptor* descriptor,
                 ComPtr<ID3D12Resource> d3d12Texture);
 
-        ~Texture();
-
         DXGI_FORMAT GetD3D12Format() const;
         ID3D12Resource* GetD3D12Resource() const;
 
-        D3D12_RENDER_TARGET_VIEW_DESC GetRTVDescriptor(uint32_t baseMipLevel,
+        D3D12_RENDER_TARGET_VIEW_DESC GetRTVDescriptor(uint32_t mipLevel,
                                                        uint32_t baseArrayLayer,
                                                        uint32_t layerCount) const;
-        D3D12_DEPTH_STENCIL_VIEW_DESC GetDSVDescriptor(uint32_t baseMipLevel) const;
+        D3D12_DEPTH_STENCIL_VIEW_DESC GetDSVDescriptor(uint32_t mipLevel,
+                                                       uint32_t baseArrayLayer,
+                                                       uint32_t layerCount) const;
         void EnsureSubresourceContentInitialized(CommandRecordingContext* commandContext,
                                                  uint32_t baseMipLevel,
                                                  uint32_t levelCount,
@@ -68,12 +69,14 @@ namespace dawn_native { namespace d3d12 {
                                         D3D12_RESOURCE_STATES newState);
 
       private:
+        ~Texture() override;
         using TextureBase::TextureBase;
 
         MaybeError InitializeAsInternalTexture();
         MaybeError InitializeAsExternalTexture(const TextureDescriptor* descriptor,
                                                HANDLE sharedHandle,
-                                               uint64_t acquireMutexKey);
+                                               uint64_t acquireMutexKey,
+                                               bool isSwapChainTexture);
 
         // Dawn API
         void DestroyImpl() override;
@@ -98,12 +101,13 @@ namespace dawn_native { namespace d3d12 {
 
         Serial mLastUsedSerial = UINT64_MAX;
         bool mValidToDecay = false;
+        bool mSwapChainTexture = false;
 
         Serial mAcquireMutexKey = 0;
         ComPtr<IDXGIKeyedMutex> mDxgiKeyedMutex;
     };
 
-    class TextureView : public TextureViewBase {
+    class TextureView final : public TextureViewBase {
       public:
         TextureView(TextureBase* texture, const TextureViewDescriptor* descriptor);
 

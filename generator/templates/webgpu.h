@@ -114,6 +114,10 @@ typedef struct WGPUChainedStruct {
 
 {% endfor %}
 
+// TODO(dawn:22): Remove this once users use the "Entry" version.
+typedef WGPUBindGroupEntry WGPUBindGroupBinding;
+typedef WGPUBindGroupLayoutEntry WGPUBindGroupLayoutBinding;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -126,7 +130,7 @@ extern "C" {
     );
 {% endfor %}
 
-typedef void (*WGPUProc)();
+typedef void (*WGPUProc)(void);
 
 #if !defined(WGPU_SKIP_PROCS)
 

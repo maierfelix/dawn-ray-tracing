@@ -28,6 +28,16 @@ deps = {
     'url': '{chromium_git}/chromium/src/third_party/binutils@01aa7745b0bab64ae22600f09fd6483c60f22ebf',
     'condition': 'dawn_standalone',
   },
+  'tools/clang/dsymutil': {
+    'packages': [
+      {
+        'package': 'chromium/llvm-build-tools/dsymutil',
+        'version': 'M56jPzDv1620Rnm__jTMYS62Zi8rxHVq7yw0qeBFEgkC',
+      }
+    ],
+    'condition': 'checkout_mac or checkout_ios',
+    'dep_type': 'cipd',
+  },
 
   # Testing, GTest and GMock
   'testing': {
@@ -51,25 +61,25 @@ deps = {
 
   # SPIRV-Cross
   'third_party/spirv-cross': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Cross@7d42fd7f7b8bd92a57a6a7745f9841a1128f58f7',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Cross@6637610b16aacfe43c77ad4060da62008a83cd12',
     'condition': 'dawn_standalone',
   },
 
   # SPIRV compiler dependencies: SPIRV-Tools, SPIRV-headers, glslang and shaderc
   'third_party/SPIRV-Tools': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@4c027048d88bcdd047ddace38081b6d6f896aba4',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@e95fbfb1f509ad7a7fdfb72ac35fe412d72fc4a4',
     'condition': 'dawn_standalone',
   },
   'third_party/spirv-headers': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@d9ce9ca52ffea72d45b313d06867d5312f222aaa',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@f8bf11a0253a32375c32cad92c841237b96696c0',
     'condition': 'dawn_standalone',
   },
   'third_party/glslang': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@f333272eb504735a78f91c76acd814c38ed0c142',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@b5757b95005bbf6b0287096c5b708c5e25645311',
     'condition': 'dawn_standalone',
   },
   'third_party/shaderc': {
-    'url': '{chromium_git}/external/github.com/google/shaderc@14f128e8dc29b40b1853a9c89481b72fec1044bb',
+    'url': '{chromium_git}/external/github.com/google/shaderc@8026364968acb2e55390f6ccf295740ab818ebda',
     'condition': 'dawn_standalone',
   },
 
@@ -104,7 +114,7 @@ deps = {
   },
 
   'third_party/swiftshader': {
-    'url': '{swiftshader_git}/SwiftShader@51b2800bb317d9ab6026e6123c62f013dd5cf5e4',
+    'url': '{swiftshader_git}/SwiftShader@63ed0e445fa525ee01637350ea92fbdaa2226c73',
     'condition': 'dawn_standalone',
   },
 

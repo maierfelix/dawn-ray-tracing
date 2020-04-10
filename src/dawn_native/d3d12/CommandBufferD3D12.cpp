@@ -56,18 +56,40 @@ namespace dawn_native { namespace d3d12 {
             }
         }
 
-        bool CanUseCopyResource(const uint32_t sourceNumMipLevels,
-                                const Extent3D& srcSize,
-                                const Extent3D& dstSize,
-                                const Extent3D& copySize) {
-            if (sourceNumMipLevels == 1 && srcSize.width == dstSize.width &&
-                srcSize.height == dstSize.height && srcSize.depth == dstSize.depth &&
-                srcSize.width == copySize.width && srcSize.height == copySize.height &&
-                srcSize.depth == copySize.depth) {
-                return true;
-            }
+        bool CanUseCopyResource(const Texture* src, const Texture* dst, const Extent3D& copySize) {
+            // Checked by validation
+            ASSERT(src->GetSampleCount() == dst->GetSampleCount());
+            ASSERT(src->GetFormat().format == dst->GetFormat().format);
 
-            return false;
+            const Extent3D& srcSize = src->GetSize();
+            const Extent3D& dstSize = dst->GetSize();
+
+            auto GetCopyDepth = [](const Texture* texture) {
+                switch (texture->GetDimension()) {
+                    case wgpu::TextureDimension::e1D:
+                        return 1u;
+                    case wgpu::TextureDimension::e2D:
+                        return texture->GetArrayLayers();
+                    case wgpu::TextureDimension::e3D:
+                        return texture->GetSize().depth;
+                }
+            };
+
+            // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12graphicscommandlist-copyresource
+            // In order to use D3D12's copy resource, the textures must be the same dimensions, and
+            // the copy must be of the entire resource.
+            // TODO(dawn:129): Support 1D textures.
+            return src->GetDimension() == dst->GetDimension() &&  //
+                   dst->GetNumMipLevels() == 1 &&                 //
+                   src->GetNumMipLevels() == 1 &&      // A copy command is of a single mip, so if a
+                                                       // resource has more than one, we definitely
+                                                       // cannot use CopyResource.
+                   copySize.width == dstSize.width &&  //
+                   copySize.width == srcSize.width &&  //
+                   copySize.height == dstSize.height &&    //
+                   copySize.height == srcSize.height &&    //
+                   copySize.depth == GetCopyDepth(src) &&  //
+                   copySize.depth == GetCopyDepth(dst);
         }
 
     }  // anonymous namespace
@@ -181,28 +203,27 @@ namespace dawn_native { namespace d3d12 {
                             BindGroup* group,
                             uint32_t dynamicOffsetCount,
                             const uint64_t* dynamicOffsets) {
+            ASSERT(dynamicOffsetCount == group->GetLayout()->GetDynamicBufferCount());
+
             // Usually, the application won't set the same offsets many times,
             // so always try to apply dynamic offsets even if the offsets stay the same
-            if (dynamicOffsetCount) {
-                // Update dynamic offsets
-                const BindGroupLayout::LayoutBindingInfo& layout =
-                    group->GetLayout()->GetBindingInfo();
-                uint32_t currentDynamicBufferIndex = 0;
-
-                for (uint32_t bindingIndex : IterateBitSet(layout.hasDynamicOffset)) {
-                    ASSERT(dynamicOffsetCount > 0);
+            if (dynamicOffsetCount != 0) {
+                // Update dynamic offsets.
+                // Dynamic buffer bindings are packed at the beginning of the layout.
+                for (BindingIndex bindingIndex = 0; bindingIndex < dynamicOffsetCount;
+                     ++bindingIndex) {
                     uint32_t parameterIndex =
                         pipelineLayout->GetDynamicRootParameterIndex(index, bindingIndex);
                     BufferBinding binding = group->GetBindingAsBufferBinding(bindingIndex);
 
                     // Calculate buffer locations that root descriptors links to. The location
                     // is (base buffer location + initial offset + dynamic offset)
-                    uint64_t dynamicOffset = dynamicOffsets[currentDynamicBufferIndex];
+                    uint64_t dynamicOffset = dynamicOffsets[bindingIndex];
                     uint64_t offset = binding.offset + dynamicOffset;
                     D3D12_GPU_VIRTUAL_ADDRESS bufferLocation =
                         ToBackend(binding.buffer)->GetVA() + offset;
 
-                    switch (layout.types[bindingIndex]) {
+                    switch (group->GetLayout()->GetBindingInfo(bindingIndex).type) {
                         case wgpu::BindingType::UniformBuffer:
                             if (mInCompute || mInRayTracing) {
                                 commandList->SetComputeRootConstantBufferView(parameterIndex,
@@ -239,8 +260,6 @@ namespace dawn_native { namespace d3d12 {
                             UNREACHABLE();
                             break;
                     }
-
-                    ++currentDynamicBufferIndex;
                 }
             }
 
@@ -547,7 +566,8 @@ namespace dawn_native { namespace d3d12 {
                     DAWN_TRY(RecordComputePass(commandContext, &bindingTracker));
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BeginRenderPass: {
                     BeginRenderPassCmd* beginRenderPassCmd =
@@ -562,7 +582,8 @@ namespace dawn_native { namespace d3d12 {
                                               passHasUAV));
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BeginRayTracingPass: {
                     mCommands.NextCommand<BeginRayTracingPassCmd>();
@@ -653,7 +674,8 @@ namespace dawn_native { namespace d3d12 {
                     commandList->CopyBufferRegion(
                         dstBuffer->GetD3D12Resource().Get(), copy->destinationOffset,
                         srcBuffer->GetD3D12Resource().Get(), copy->sourceOffset, copy->size);
-                } break;
+                    break;
+                }
 
                 case Command::CopyBufferToTexture: {
                     CopyBufferToTextureCmd* copy = mCommands.NextCommand<CopyBufferToTextureCmd>();
@@ -696,7 +718,8 @@ namespace dawn_native { namespace d3d12 {
                                                        info.textureOffset.y, info.textureOffset.z,
                                                        &bufferLocation, &sourceRegion);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToBuffer: {
                     CopyTextureToBufferCmd* copy = mCommands.NextCommand<CopyTextureToBufferCmd>();
@@ -734,7 +757,8 @@ namespace dawn_native { namespace d3d12 {
                                                        info.bufferOffset.y, info.bufferOffset.z,
                                                        &textureLocation, &sourceRegion);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToTexture: {
                     CopyTextureToTextureCmd* copy =
@@ -758,8 +782,7 @@ namespace dawn_native { namespace d3d12 {
                     destination->TrackUsageAndTransitionNow(commandContext,
                                                             wgpu::TextureUsage::CopyDst);
 
-                    if (CanUseCopyResource(source->GetNumMipLevels(), source->GetSize(),
-                                           destination->GetSize(), copy->copySize)) {
+                    if (CanUseCopyResource(source, destination, copy->copySize)) {
                         commandList->CopyResource(destination->GetD3D12Resource(),
                                                   source->GetD3D12Resource());
                     } else {
@@ -779,9 +802,13 @@ namespace dawn_native { namespace d3d12 {
                             &dstLocation, copy->destination.origin.x, copy->destination.origin.y,
                             copy->destination.origin.z, &srcLocation, &sourceRegion);
                     }
-                } break;
+                    break;
+                }
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
             }
         }
 
@@ -801,7 +828,8 @@ namespace dawn_native { namespace d3d12 {
 
                     DAWN_TRY(bindingTracker->Apply(commandContext));
                     commandList->Dispatch(dispatch->x, dispatch->y, dispatch->z);
-                } break;
+                    break;
+                }
 
                 case Command::DispatchIndirect: {
                     DispatchIndirectCmd* dispatch = mCommands.NextCommand<DispatchIndirectCmd>();
@@ -813,12 +841,13 @@ namespace dawn_native { namespace d3d12 {
                     commandList->ExecuteIndirect(signature.Get(), 1,
                                                  buffer->GetD3D12Resource().Get(),
                                                  dispatch->indirectOffset, nullptr, 0);
-                } break;
+                    break;
+                }
 
                 case Command::EndComputePass: {
                     mCommands.NextCommand<EndComputePassCmd>();
                     return {};
-                } break;
+                }
 
                 case Command::SetComputePipeline: {
                     SetComputePipelineCmd* cmd = mCommands.NextCommand<SetComputePipelineCmd>();
@@ -831,7 +860,8 @@ namespace dawn_native { namespace d3d12 {
                     bindingTracker->OnSetPipeline(pipeline);
 
                     lastLayout = layout;
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = mCommands.NextCommand<SetBindGroupCmd>();
@@ -844,7 +874,8 @@ namespace dawn_native { namespace d3d12 {
 
                     bindingTracker->OnSetBindGroup(cmd->index, group, cmd->dynamicOffsetCount,
                                                    dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     InsertDebugMarkerCmd* cmd = mCommands.NextCommand<InsertDebugMarkerCmd>();
@@ -857,7 +888,8 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixSetMarkerOnCommandList(commandList, kPIXBlackColor, label);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     mCommands.NextCommand<PopDebugGroupCmd>();
@@ -867,7 +899,8 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixEndEventOnCommandList(commandList);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     PushDebugGroupCmd* cmd = mCommands.NextCommand<PushDebugGroupCmd>();
@@ -880,9 +913,13 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixBeginEventOnCommandList(commandList, kPIXBlackColor, label);
                     }
-                } break;
+                    break;
+                }
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
             }
         }
 
@@ -1157,7 +1194,8 @@ namespace dawn_native { namespace d3d12 {
                     vertexBufferTracker.Apply(commandList, lastPipeline);
                     commandList->DrawInstanced(draw->vertexCount, draw->instanceCount,
                                                draw->firstVertex, draw->firstInstance);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexed: {
                     DrawIndexedCmd* draw = iter->NextCommand<DrawIndexedCmd>();
@@ -1168,7 +1206,8 @@ namespace dawn_native { namespace d3d12 {
                     commandList->DrawIndexedInstanced(draw->indexCount, draw->instanceCount,
                                                       draw->firstIndex, draw->baseVertex,
                                                       draw->firstInstance);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndirect: {
                     DrawIndirectCmd* draw = iter->NextCommand<DrawIndirectCmd>();
@@ -1181,7 +1220,8 @@ namespace dawn_native { namespace d3d12 {
                     commandList->ExecuteIndirect(signature.Get(), 1,
                                                  buffer->GetD3D12Resource().Get(),
                                                  draw->indirectOffset, nullptr, 0);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexedIndirect: {
                     DrawIndexedIndirectCmd* draw = iter->NextCommand<DrawIndexedIndirectCmd>();
@@ -1195,7 +1235,8 @@ namespace dawn_native { namespace d3d12 {
                     commandList->ExecuteIndirect(signature.Get(), 1,
                                                  buffer->GetD3D12Resource().Get(),
                                                  draw->indirectOffset, nullptr, 0);
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     InsertDebugMarkerCmd* cmd = iter->NextCommand<InsertDebugMarkerCmd>();
@@ -1208,7 +1249,8 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixSetMarkerOnCommandList(commandList, kPIXBlackColor, label);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     iter->NextCommand<PopDebugGroupCmd>();
@@ -1218,7 +1260,8 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixEndEventOnCommandList(commandList);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     PushDebugGroupCmd* cmd = iter->NextCommand<PushDebugGroupCmd>();
@@ -1231,7 +1274,8 @@ namespace dawn_native { namespace d3d12 {
                             ->GetFunctions()
                             ->pixBeginEventOnCommandList(commandList, kPIXBlackColor, label);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::SetRenderPipeline: {
                     SetRenderPipelineCmd* cmd = iter->NextCommand<SetRenderPipelineCmd>();
@@ -1247,7 +1291,8 @@ namespace dawn_native { namespace d3d12 {
 
                     lastPipeline = pipeline;
                     lastLayout = layout;
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = iter->NextCommand<SetBindGroupCmd>();
@@ -1260,20 +1305,23 @@ namespace dawn_native { namespace d3d12 {
 
                     bindingTracker->OnSetBindGroup(cmd->index, group, cmd->dynamicOffsetCount,
                                                    dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::SetIndexBuffer: {
                     SetIndexBufferCmd* cmd = iter->NextCommand<SetIndexBufferCmd>();
 
                     indexBufferTracker.OnSetIndexBuffer(ToBackend(cmd->buffer.Get()), cmd->offset);
-                } break;
+                    break;
+                }
 
                 case Command::SetVertexBuffer: {
                     SetVertexBufferCmd* cmd = iter->NextCommand<SetVertexBufferCmd>();
 
                     vertexBufferTracker.OnSetVertexBuffer(cmd->slot, ToBackend(cmd->buffer.Get()),
                                                           cmd->offset);
-                } break;
+                    break;
+                }
 
                 default:
                     UNREACHABLE();
@@ -1293,13 +1341,14 @@ namespace dawn_native { namespace d3d12 {
                         ResolveMultisampledRenderPass(commandContext, renderPass);
                     }
                     return {};
-                } break;
+                }
 
                 case Command::SetStencilReference: {
                     SetStencilReferenceCmd* cmd = mCommands.NextCommand<SetStencilReferenceCmd>();
 
                     commandList->OMSetStencilRef(cmd->reference);
-                } break;
+                    break;
+                }
 
                 case Command::SetViewport: {
                     SetViewportCmd* cmd = mCommands.NextCommand<SetViewportCmd>();
@@ -1312,7 +1361,8 @@ namespace dawn_native { namespace d3d12 {
                     viewport.MaxDepth = cmd->maxDepth;
 
                     commandList->RSSetViewports(1, &viewport);
-                } break;
+                    break;
+                }
 
                 case Command::SetScissorRect: {
                     SetScissorRectCmd* cmd = mCommands.NextCommand<SetScissorRectCmd>();
@@ -1323,12 +1373,14 @@ namespace dawn_native { namespace d3d12 {
                     rect.bottom = cmd->y + cmd->height;
 
                     commandList->RSSetScissorRects(1, &rect);
-                } break;
+                    break;
+                }
 
                 case Command::SetBlendColor: {
                     SetBlendColorCmd* cmd = mCommands.NextCommand<SetBlendColorCmd>();
                     commandList->OMSetBlendFactor(static_cast<const FLOAT*>(&cmd->color.r));
-                } break;
+                    break;
+                }
 
                 case Command::ExecuteBundles: {
                     ExecuteBundlesCmd* cmd = mCommands.NextCommand<ExecuteBundlesCmd>();
@@ -1341,9 +1393,13 @@ namespace dawn_native { namespace d3d12 {
                             DAWN_TRY(EncodeRenderBundleCommand(iter, type));
                         }
                     }
-                } break;
+                    break;
+                }
 
-                default: { DAWN_TRY(EncodeRenderBundleCommand(&mCommands, type)); } break;
+                default: {
+                    DAWN_TRY(EncodeRenderBundleCommand(&mCommands, type));
+                    break;
+                }
             }
         }
         return {};

@@ -15,15 +15,15 @@
 #ifndef DAWNNATIVE_D3D12_PIPELINELAYOUTD3D12_H_
 #define DAWNNATIVE_D3D12_PIPELINELAYOUTD3D12_H_
 
+#include "dawn_native/BindingInfo.h"
 #include "dawn_native/PipelineLayout.h"
-
 #include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
 
     class Device;
 
-    class PipelineLayout : public PipelineLayoutBase {
+    class PipelineLayout final : public PipelineLayoutBase {
       public:
         static ResultOrError<PipelineLayout*> Create(Device* device,
                                                      const PipelineLayoutDescriptor* descriptor);
@@ -32,11 +32,12 @@ namespace dawn_native { namespace d3d12 {
         uint32_t GetSamplerRootParameterIndex(uint32_t group) const;
 
         // Returns the index of the root parameter reserved for a dynamic buffer binding
-        uint32_t GetDynamicRootParameterIndex(uint32_t group, uint32_t binding) const;
+        uint32_t GetDynamicRootParameterIndex(uint32_t group, BindingIndex bindingIndex) const;
 
         ComPtr<ID3D12RootSignature> GetRootSignature() const;
 
       private:
+        ~PipelineLayout() override = default;
         using PipelineLayoutBase::PipelineLayoutBase;
         MaybeError Initialize();
         std::array<uint32_t, kMaxBindGroups> mCbvUavSrvRootParameterInfo;

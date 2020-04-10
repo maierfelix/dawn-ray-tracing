@@ -399,7 +399,7 @@ TEST_P(TextureZeroInitTest, RenderingLoadingDepth) {
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
     auto pass = encoder.BeginRenderPass(&renderPassDescriptor);
     pass.SetPipeline(CreatePipelineForTest());
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     wgpu::CommandBuffer commandBuffer = encoder.Finish();
     // Expect 0 lazy clears, depth stencil texture will clear using loadop
@@ -441,7 +441,7 @@ TEST_P(TextureZeroInitTest, RenderingLoadingStencil) {
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
     auto pass = encoder.BeginRenderPass(&renderPassDescriptor);
     pass.SetPipeline(CreatePipelineForTest());
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     wgpu::CommandBuffer commandBuffer = encoder.Finish();
     // Expect 0 lazy clears, depth stencil texture will clear using loadop
@@ -480,7 +480,7 @@ TEST_P(TextureZeroInitTest, RenderingLoadingDepthStencil) {
     wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
     auto pass = encoder.BeginRenderPass(&renderPassDescriptor);
     pass.SetPipeline(CreatePipelineForTest());
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     wgpu::CommandBuffer commandBuffer = encoder.Finish();
     // Expect 0 lazy clears, depth stencil texture will clear using loadop
@@ -550,7 +550,7 @@ TEST_P(TextureZeroInitTest, RenderPassSampledTextureClear) {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDesc);
     pass.SetPipeline(renderPipeline);
     pass.SetBindGroup(0, bindGroup);
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     wgpu::CommandBuffer commands = encoder.Finish();
     // Expect 1 lazy clear for sampled texture
@@ -616,7 +616,7 @@ TEST_P(TextureZeroInitTest, ComputePassSampledTextureClear) {
     wgpu::ComputePassEncoder pass = encoder.BeginComputePass();
     pass.SetPipeline(computePipeline);
     pass.SetBindGroup(0, bindGroup);
-    pass.Dispatch(1, 1, 1);
+    pass.Dispatch(1);
     pass.EndPass();
     wgpu::CommandBuffer commands = encoder.Finish();
     EXPECT_LAZY_CLEAR(1u, queue.Submit(1, &commands));
@@ -691,10 +691,6 @@ TEST_P(TextureZeroInitTest, NonRenderableTextureClearUnalignedSize) {
 // This tests that the code path of CopyTextureToBuffer clears correctly for non-renderable textures
 // with more than 1 array layers
 TEST_P(TextureZeroInitTest, NonRenderableTextureClearWithMultiArrayLayers) {
-    // TODO(natlee@microsoft.com): skip for now on opengl because TextureClear nonrenderable
-    // textures does not create large enough buffers for array layers greater than 1.
-    DAWN_SKIP_TEST_IF(IsOpenGL());
-
     wgpu::TextureDescriptor descriptor =
         CreateTextureDescriptor(1, 2, wgpu::TextureUsage::CopySrc, kNonrenderableColorFormat);
     wgpu::Texture texture = device.CreateTexture(&descriptor);
@@ -771,7 +767,7 @@ TEST_P(TextureZeroInitTest, RenderPassStoreOpClear) {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDesc);
     pass.SetPipeline(renderPipeline);
     pass.SetBindGroup(0, bindGroup);
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     commands = encoder.Finish();
     // Expect 0 lazy clears, sample texture is initialized by copyBufferToTexture and render texture
@@ -825,7 +821,7 @@ TEST_P(TextureZeroInitTest, RenderingLoadingDepthStencilStoreOpClear) {
         wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
         pass.SetPipeline(CreatePipelineForTest());
-        pass.Draw(6, 1, 0, 0);
+        pass.Draw(6);
         pass.EndPass();
         wgpu::CommandBuffer commandBuffer = encoder.Finish();
         // Expect 0 lazy clears, depth stencil texture will clear using loadop
@@ -850,7 +846,7 @@ TEST_P(TextureZeroInitTest, RenderingLoadingDepthStencilStoreOpClear) {
         wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
         pass.SetPipeline(CreatePipelineForTest());
-        pass.Draw(6, 1, 0, 0);
+        pass.Draw(6);
         pass.EndPass();
         wgpu::CommandBuffer commandBuffer = encoder.Finish();
         // Expect 0 lazy clears, depth stencil texture will clear using loadop
@@ -871,9 +867,6 @@ TEST_P(TextureZeroInitTest, RenderingLoadingDepthStencilStoreOpClear) {
 // Test that if one mip of a texture is initialized and another is uninitialized, lazy clearing the
 // uninitialized mip does not clear the initialized mip.
 TEST_P(TextureZeroInitTest, PreservesInitializedMip) {
-    // TODO(crbug.com/dawn/145): Fix this on other backends
-    DAWN_SKIP_TEST_IF(!IsMetal());
-
     wgpu::TextureDescriptor sampleTextureDescriptor = CreateTextureDescriptor(
         2, 1,
         wgpu::TextureUsage::CopySrc | wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::Sampled,
@@ -923,7 +916,7 @@ TEST_P(TextureZeroInitTest, PreservesInitializedMip) {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDesc);
     pass.SetPipeline(renderPipeline);
     pass.SetBindGroup(0, bindGroup);
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     commands = encoder.Finish();
     // Expect 1 lazy clears, because not all mips of the sample texture are initialized by
@@ -952,9 +945,6 @@ TEST_P(TextureZeroInitTest, PreservesInitializedMip) {
 // Test that if one layer of a texture is initialized and another is uninitialized, lazy clearing
 // the uninitialized layer does not clear the initialized layer.
 TEST_P(TextureZeroInitTest, PreservesInitializedArrayLayer) {
-    // TODO(crbug.com/dawn/145): Fix this on other backends
-    DAWN_SKIP_TEST_IF(!IsMetal());
-
     wgpu::TextureDescriptor sampleTextureDescriptor = CreateTextureDescriptor(
         1, 2,
         wgpu::TextureUsage::CopySrc | wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::Sampled,
@@ -1008,7 +998,7 @@ TEST_P(TextureZeroInitTest, PreservesInitializedArrayLayer) {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDesc);
     pass.SetPipeline(renderPipeline);
     pass.SetBindGroup(0, bindGroup);
-    pass.Draw(6, 1, 0, 0);
+    pass.Draw(6);
     pass.EndPass();
     commands = encoder.Finish();
     // Expect 1 lazy clears, because not all array layers of the sample texture are initialized by

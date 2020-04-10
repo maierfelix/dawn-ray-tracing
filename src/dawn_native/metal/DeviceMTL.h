@@ -36,8 +36,12 @@ namespace dawn_native { namespace metal {
 
     class Device : public DeviceBase {
       public:
-        Device(AdapterBase* adapter, id<MTLDevice> mtlDevice, const DeviceDescriptor* descriptor);
-        ~Device();
+        static ResultOrError<Device*> Create(AdapterBase* adapter,
+                                             id<MTLDevice> mtlDevice,
+                                             const DeviceDescriptor* descriptor);
+        ~Device() override;
+
+        MaybeError Initialize();
 
         CommandBufferBase* CreateCommandBuffer(CommandEncoder* encoder,
                                                const CommandBufferDescriptor* descriptor) override;
@@ -68,6 +72,7 @@ namespace dawn_native { namespace metal {
                                            uint64_t size) override;
 
       private:
+        Device(AdapterBase* adapter, id<MTLDevice> mtlDevice, const DeviceDescriptor* descriptor);
         ResultOrError<RayTracingAccelerationContainerBase*> CreateRayTracingAccelerationContainerImpl(
             const RayTracingAccelerationContainerDescriptor* descriptor) override {
             UNREACHABLE();
@@ -107,7 +112,7 @@ namespace dawn_native { namespace metal {
             const TextureViewDescriptor* descriptor) override;
 
         void InitTogglesFromDriver();
-        void Destroy() override;
+        void ShutDownImpl() override;
         MaybeError WaitForIdleForDestruction() override;
 
         id<MTLDevice> mMtlDevice = nil;

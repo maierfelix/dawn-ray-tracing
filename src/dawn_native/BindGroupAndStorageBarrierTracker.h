@@ -38,22 +38,24 @@ namespace dawn_native {
                 mBuffersNeedingBarrier[index] = {};
 
                 const BindGroupLayoutBase* layout = bindGroup->GetLayout();
-                const auto& info = layout->GetBindingInfo();
 
-                for (uint32_t binding : IterateBitSet(info.mask)) {
+                for (BindingIndex bindingIndex = 0; bindingIndex < layout->GetBindingCount();
+                     ++bindingIndex) {
+                    const BindingInfo& bindingInfo = layout->GetBindingInfo(bindingIndex);
+
                     if (
-                        ((info.visibilities[binding] & wgpu::ShaderStage::Compute) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayGeneration) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayAnyHit) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayClosestHit) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayMiss) == 0) ||
-                        ((info.visibilities[binding] & wgpu::ShaderStage::RayIntersection) == 0)
+                        (bindingInfo.visibility & wgpu::ShaderStage::Compute) == 0 ||
+                        (bindingInfo.visibility & wgpu::ShaderStage::RayGeneration) == 0 ||
+                        (bindingInfo.visibility & wgpu::ShaderStage::RayAnyHit) == 0 ||
+                        (bindingInfo.visibility & wgpu::ShaderStage::RayClosestHit) == 0 ||
+                        (bindingInfo.visibility & wgpu::ShaderStage::RayMiss) == 0 ||
+                        (bindingInfo.visibility & wgpu::ShaderStage::RayIntersection) == 0
                         ) {
                         continue;
                     }
 
-                    mBindingTypes[index][binding] = info.types[binding];
-                    switch (info.types[binding]) {
+                    mBindingTypes[index][bindingIndex] = bindingInfo.type;
+                    switch (bindingInfo.type) {
                         case wgpu::BindingType::UniformBuffer:
                         case wgpu::BindingType::ReadonlyStorageBuffer:
                         case wgpu::BindingType::Sampler:
@@ -63,9 +65,9 @@ namespace dawn_native {
                             break;
 
                         case wgpu::BindingType::StorageBuffer:
-                            mBuffersNeedingBarrier[index].set(binding);
-                            mBuffers[index][binding] =
-                                bindGroup->GetBindingAsBufferBinding(binding).buffer;
+                            mBuffersNeedingBarrier[index].set(bindingIndex);
+                            mBuffers[index][bindingIndex] =
+                                bindGroup->GetBindingAsBufferBinding(bindingIndex).buffer;
                             break;
 
                         case wgpu::BindingType::StorageTexture:

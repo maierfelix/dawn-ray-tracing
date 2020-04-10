@@ -408,10 +408,10 @@ namespace dawn_native { namespace vulkan {
 
     // static
     ResultOrError<Texture*> Texture::Create(Device* device, const TextureDescriptor* descriptor) {
-        std::unique_ptr<Texture> texture =
-            std::make_unique<Texture>(device, descriptor, TextureState::OwnedInternal);
+        Ref<Texture> texture =
+            AcquireRef(new Texture(device, descriptor, TextureState::OwnedInternal));
         DAWN_TRY(texture->InitializeAsInternalTexture());
-        return texture.release();
+        return texture.Detach();
     }
 
     // static
@@ -420,10 +420,10 @@ namespace dawn_native { namespace vulkan {
         const ExternalImageDescriptor* descriptor,
         const TextureDescriptor* textureDescriptor,
         external_memory::Service* externalMemoryService) {
-        std::unique_ptr<Texture> texture =
-            std::make_unique<Texture>(device, textureDescriptor, TextureState::OwnedInternal);
+        Ref<Texture> texture =
+            AcquireRef(new Texture(device, textureDescriptor, TextureState::OwnedInternal));
         DAWN_TRY(texture->InitializeFromExternal(descriptor, externalMemoryService));
-        return texture.release();
+        return texture.Detach();
     }
 
     MaybeError Texture::InitializeAsInternalTexture() {
@@ -678,30 +678,45 @@ namespace dawn_native { namespace vulkan {
                                      uint32_t layerCount,
                                      TextureBase::ClearValue clearValue) {
         Device* device = ToBackend(GetDevice());
-        VkImageSubresourceRange range = {};
-        range.aspectMask = GetVkAspectMask();
-        range.baseMipLevel = baseMipLevel;
-        range.levelCount = levelCount;
-        range.baseArrayLayer = baseArrayLayer;
-        range.layerCount = layerCount;
+
         uint8_t clearColor = (clearValue == TextureBase::ClearValue::Zero) ? 0 : 1;
         float fClearColor = (clearValue == TextureBase::ClearValue::Zero) ? 0.f : 1.f;
 
         TransitionUsageNow(recordingContext, wgpu::TextureUsage::CopyDst);
         if (GetFormat().isRenderable) {
-            if (GetFormat().HasDepthOrStencil()) {
-                VkClearDepthStencilValue clearDepthStencilValue[1];
-                clearDepthStencilValue[0].depth = fClearColor;
-                clearDepthStencilValue[0].stencil = clearColor;
-                device->fn.CmdClearDepthStencilImage(recordingContext->commandBuffer, GetHandle(),
-                                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                     clearDepthStencilValue, 1, &range);
-            } else {
-                VkClearColorValue clearColorValue = {
-                    {fClearColor, fClearColor, fClearColor, fClearColor}};
-                device->fn.CmdClearColorImage(recordingContext->commandBuffer, GetHandle(),
-                                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                              &clearColorValue, 1, &range);
+            VkImageSubresourceRange range = {};
+            range.aspectMask = GetVkAspectMask();
+            range.levelCount = 1;
+            range.layerCount = 1;
+
+            for (uint32_t level = baseMipLevel; level < baseMipLevel + levelCount; ++level) {
+                range.baseMipLevel = level;
+                for (uint32_t layer = baseArrayLayer; layer < baseArrayLayer + layerCount;
+                     ++layer) {
+                    if (clearValue == TextureBase::ClearValue::Zero &&
+                        IsSubresourceContentInitialized(level, 1, layer, 1)) {
+                        // Skip lazy clears if already initialized.
+                        continue;
+                    }
+
+                    range.baseArrayLayer = layer;
+
+                    if (GetFormat().HasDepthOrStencil()) {
+                        VkClearDepthStencilValue clearDepthStencilValue[1];
+                        clearDepthStencilValue[0].depth = fClearColor;
+                        clearDepthStencilValue[0].stencil = clearColor;
+                        device->fn.CmdClearDepthStencilImage(recordingContext->commandBuffer,
+                                                             GetHandle(),
+                                                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                             clearDepthStencilValue, 1, &range);
+                    } else {
+                        VkClearColorValue clearColorValue = {
+                            {fClearColor, fClearColor, fClearColor, fClearColor}};
+                        device->fn.CmdClearColorImage(recordingContext->commandBuffer, GetHandle(),
+                                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                      &clearColorValue, 1, &range);
+                    }
+                }
             }
         } else {
             // TODO(natlee@microsoft.com): test compressed textures are cleared
@@ -726,11 +741,17 @@ namespace dawn_native { namespace vulkan {
             bufferCopy.offset = uploadHandle.startOffset;
             bufferCopy.rowPitch = rowPitch;
 
-            Extent3D copySize = {GetSize().width, GetSize().height, 1};
-
             for (uint32_t level = baseMipLevel; level < baseMipLevel + levelCount; ++level) {
+                Extent3D copySize = GetMipLevelVirtualSize(level);
+
                 for (uint32_t layer = baseArrayLayer; layer < baseArrayLayer + layerCount;
                      ++layer) {
+                    if (clearValue == TextureBase::ClearValue::Zero &&
+                        IsSubresourceContentInitialized(level, 1, layer, 1)) {
+                        // Skip lazy clears if already initialized.
+                        continue;
+                    }
+
                     dawn_native::TextureCopy textureCopy;
                     textureCopy.texture = this;
                     textureCopy.origin = {0, 0, 0};
@@ -783,9 +804,9 @@ namespace dawn_native { namespace vulkan {
     // static
     ResultOrError<TextureView*> TextureView::Create(TextureBase* texture,
                                                     const TextureViewDescriptor* descriptor) {
-        std::unique_ptr<TextureView> view = std::make_unique<TextureView>(texture, descriptor);
+        Ref<TextureView> view = AcquireRef(new TextureView(texture, descriptor));
         DAWN_TRY(view->Initialize(descriptor));
-        return view.release();
+        return view.Detach();
     }
 
     MaybeError TextureView::Initialize(const TextureViewDescriptor* descriptor) {

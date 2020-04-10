@@ -16,8 +16,8 @@
 
 #include "dawn_native/BackendConnection.h"
 #include "dawn_native/BindGroupLayout.h"
-#include "dawn_native/DynamicUploader.h"
 #include "dawn_native/ErrorData.h"
+#include "dawn_native/StagingBuffer.h"
 #include "dawn_native/opengl/BindGroupGL.h"
 #include "dawn_native/opengl/BindGroupLayoutGL.h"
 #include "dawn_native/opengl/BufferGL.h"
@@ -33,19 +33,30 @@
 
 namespace dawn_native { namespace opengl {
 
+    // static
+    ResultOrError<Device*> Device::Create(AdapterBase* adapter,
+                                          const DeviceDescriptor* descriptor,
+                                          const OpenGLFunctions& functions) {
+        Ref<Device> device = AcquireRef(new Device(adapter, descriptor, functions));
+        DAWN_TRY(device->Initialize());
+        return device.Detach();
+    }
+
     Device::Device(AdapterBase* adapter,
                    const DeviceDescriptor* descriptor,
                    const OpenGLFunctions& functions)
         : DeviceBase(adapter, descriptor), gl(functions) {
-        InitTogglesFromDriver();
-        if (descriptor != nullptr) {
-            ApplyToggleOverrides(descriptor);
-        }
-        mFormatTable = BuildGLFormatTable();
     }
 
     Device::~Device() {
-        BaseDestructor();
+        ShutDownBase();
+    }
+
+    MaybeError Device::Initialize() {
+        InitTogglesFromDriver();
+        mFormatTable = BuildGLFormatTable();
+
+        return DeviceBase::Initialize();
     }
 
     void Device::InitTogglesFromDriver() {
@@ -193,15 +204,13 @@ namespace dawn_native { namespace opengl {
         return DAWN_UNIMPLEMENTED_ERROR("Device unable to copy from staging buffer.");
     }
 
-    void Device::Destroy() {
-        ASSERT(mLossStatus != LossStatus::AlreadyLost);
+    void Device::ShutDownImpl() {
+        ASSERT(GetState() == State::Disconnected);
 
         // Some operations might have been started since the last submit and waiting
         // on a serial that doesn't have a corresponding fence enqueued. Force all
         // operations to look as if they were completed (because they were).
         mCompletedSerial = mLastSubmittedSerial + 1;
-
-        mDynamicUploader = nullptr;
     }
 
     MaybeError Device::WaitForIdleForDestruction() {

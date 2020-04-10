@@ -28,9 +28,6 @@ namespace dawn_native {
         ASSERT((payload & kPayloadMask) == payload);
     }
 
-    RefCounted::~RefCounted() {
-    }
-
     uint64_t RefCounted::GetRefCountForTesting() const {
         return mRefCount >> kPayloadBits;
     }
@@ -75,8 +72,12 @@ namespace dawn_native {
             // memory barrier, when an acquire load on mRefCount (using the `ldar` instruction)
             // should be enough and could end up being faster.
             std::atomic_thread_fence(std::memory_order_acquire);
-            delete this;
+            DeleteThis();
         }
+    }
+
+    void RefCounted::DeleteThis() {
+        delete this;
     }
 
 }  // namespace dawn_native

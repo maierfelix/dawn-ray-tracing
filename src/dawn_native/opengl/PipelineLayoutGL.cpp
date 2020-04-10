@@ -28,30 +28,27 @@ namespace dawn_native { namespace opengl {
         GLuint ssboIndex = 0;
 
         for (uint32_t group : IterateBitSet(GetBindGroupLayoutsMask())) {
-            const auto& groupInfo = GetBindGroupLayout(group)->GetBindingInfo();
+            const BindGroupLayoutBase* bgl = GetBindGroupLayout(group);
 
-            for (size_t binding = 0; binding < kMaxBindingsPerGroup; ++binding) {
-                if (!groupInfo.mask[binding]) {
-                    continue;
-                }
-
-                switch (groupInfo.types[binding]) {
+            for (BindingIndex bindingIndex = 0; bindingIndex < bgl->GetBindingCount();
+                 ++bindingIndex) {
+                switch (bgl->GetBindingInfo(bindingIndex).type) {
                     case wgpu::BindingType::UniformBuffer:
-                        mIndexInfo[group][binding] = uboIndex;
+                        mIndexInfo[group][bindingIndex] = uboIndex;
                         uboIndex++;
                         break;
                     case wgpu::BindingType::Sampler:
-                        mIndexInfo[group][binding] = samplerIndex;
+                        mIndexInfo[group][bindingIndex] = samplerIndex;
                         samplerIndex++;
                         break;
                     case wgpu::BindingType::SampledTexture:
-                        mIndexInfo[group][binding] = sampledTextureIndex;
+                        mIndexInfo[group][bindingIndex] = sampledTextureIndex;
                         sampledTextureIndex++;
                         break;
 
                     case wgpu::BindingType::StorageBuffer:
                     case wgpu::BindingType::ReadonlyStorageBuffer:
-                        mIndexInfo[group][binding] = ssboIndex;
+                        mIndexInfo[group][bindingIndex] = ssboIndex;
                         ssboIndex++;
                         break;
 

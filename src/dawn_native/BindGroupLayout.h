@@ -18,6 +18,7 @@
 #include "common/Constants.h"
 #include "common/Math.h"
 #include "common/SlabAllocator.h"
+#include "dawn_native/BindingInfo.h"
 #include "dawn_native/CachedObject.h"
 #include "dawn_native/Error.h"
 #include "dawn_native/Forward.h"
@@ -26,6 +27,7 @@
 
 #include <array>
 #include <bitset>
+#include <map>
 
 namespace dawn_native {
 
@@ -36,6 +38,13 @@ namespace dawn_native {
         wgpu::BindingType bindingType,
         wgpu::ShaderStage shaderStageVisibility);
 
+    MaybeError ValidateStorageTextureFormat(DeviceBase* device,
+                                            wgpu::BindingType bindingType,
+                                            wgpu::TextureFormat storageTextureFormat);
+
+    // Bindings are specified as a |BindingNumber| in the BindGroupLayoutDescriptor.
+    // These numbers may be arbitrary and sparse. Internally, Dawn packs these numbers
+    // into a packed range of |BindingIndex| integers.
     class BindGroupLayoutBase : public CachedObject {
       public:
         BindGroupLayoutBase(DeviceBase* device, const BindGroupLayoutDescriptor* descriptor);
@@ -43,16 +52,16 @@ namespace dawn_native {
 
         static BindGroupLayoutBase* MakeError(DeviceBase* device);
 
-        struct LayoutBindingInfo {
-            std::array<wgpu::ShaderStage, kMaxBindingsPerGroup> visibilities;
-            std::array<wgpu::BindingType, kMaxBindingsPerGroup> types;
-            std::array<wgpu::TextureComponentType, kMaxBindingsPerGroup> textureComponentTypes;
-            std::array<wgpu::TextureViewDimension, kMaxBindingsPerGroup> textureDimensions;
-            std::bitset<kMaxBindingsPerGroup> hasDynamicOffset;
-            std::bitset<kMaxBindingsPerGroup> multisampled;
-            std::bitset<kMaxBindingsPerGroup> mask;
-        };
-        const LayoutBindingInfo& GetBindingInfo() const;
+        // A map from the BindingNumber to its packed BindingIndex.
+        using BindingMap = std::map<BindingNumber, BindingIndex>;
+
+        const BindingInfo& GetBindingInfo(BindingIndex bindingIndex) const {
+            ASSERT(!IsError());
+            ASSERT(bindingIndex < kMaxBindingsPerGroup);
+            return mBindingInfo[bindingIndex];
+        }
+        const BindingMap& GetBindingMap() const;
+        BindingIndex GetBindingIndex(BindingNumber bindingNumber) const;
 
         // Functors necessary for the unordered_set<BGLBase*>-based cache.
         struct HashFunc {
@@ -62,8 +71,9 @@ namespace dawn_native {
             bool operator()(const BindGroupLayoutBase* a, const BindGroupLayoutBase* b) const;
         };
 
-        uint32_t GetBindingCount() const;
-        uint32_t GetDynamicBufferCount() const;
+        BindingIndex GetBindingCount() const;
+        // Returns |BindingIndex| because dynamic buffers are packed at the front.
+        BindingIndex GetDynamicBufferCount() const;
         uint32_t GetDynamicUniformBufferCount() const;
         uint32_t GetDynamicStorageBufferCount() const;
 
@@ -100,11 +110,15 @@ namespace dawn_native {
       private:
         BindGroupLayoutBase(DeviceBase* device, ObjectBase::ErrorTag tag);
 
-        LayoutBindingInfo mBindingInfo;
-        uint32_t mBindingCount = 0;
-        uint32_t mBufferCount = 0;
+        BindingIndex mBindingCount;
+        BindingIndex mBufferCount = 0;  // |BindingIndex| because buffers are packed at the front.
         uint32_t mDynamicUniformBufferCount = 0;
         uint32_t mDynamicStorageBufferCount = 0;
+
+        std::array<BindingInfo, kMaxBindingsPerGroup> mBindingInfo;
+
+        // Map from BindGroupLayoutEntry.binding to packed indices.
+        BindingMap mBindingMap;
     };
 
 }  // namespace dawn_native

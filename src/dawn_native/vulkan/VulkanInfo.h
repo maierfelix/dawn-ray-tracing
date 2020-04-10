@@ -33,7 +33,7 @@ namespace dawn_native { namespace vulkan {
     extern const char kExtensionNameExtDebugMarker[];
     extern const char kExtensionNameExtDebugUtils[];
     extern const char kExtensionNameExtDebugReport[];
-    extern const char kExtensionNameMvkMacosSurface[];
+    extern const char kExtensionNameExtMetalSurface[];
     extern const char kExtensionNameKhrExternalMemory[];
     extern const char kExtensionNameKhrExternalMemoryCapabilities[];
     extern const char kExtensionNameKhrExternalMemoryFD[];
@@ -71,7 +71,7 @@ namespace dawn_native { namespace vulkan {
         bool externalMemoryCapabilities = false;
         bool externalSemaphoreCapabilities = false;
         bool getPhysicalDeviceProperties2 = false;
-        bool macosSurface = false;
+        bool metalSurface = false;
         bool surface = false;
         bool waylandSurface = false;
         bool win32Surface = false;
@@ -130,12 +130,11 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<VulkanGlobalInfo> GatherGlobalInfo(const Backend& backend);
     ResultOrError<std::vector<VkPhysicalDevice>> GetPhysicalDevices(const Backend& backend);
     ResultOrError<VulkanDeviceInfo> GatherDeviceInfo(const Adapter& adapter);
-    MaybeError GatherSurfaceInfo(const Adapter& adapter,
-                                 VkSurfaceKHR surface,
-                                 VulkanSurfaceInfo* info);
 
     VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingProperties(const Adapter& adapter);
 
+    ResultOrError<VulkanSurfaceInfo> GatherSurfaceInfo(const Adapter& adapter,
+                                                       VkSurfaceKHR surface);
 }}  // namespace dawn_native::vulkan
 
 #endif  // DAWNNATIVE_VULKAN_VULKANINFO_H_

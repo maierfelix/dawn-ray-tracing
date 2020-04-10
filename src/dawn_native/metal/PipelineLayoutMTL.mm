@@ -29,28 +29,27 @@ namespace dawn_native { namespace metal {
             uint32_t textureIndex = 0;
 
             for (uint32_t group : IterateBitSet(GetBindGroupLayoutsMask())) {
-                const auto& groupInfo = GetBindGroupLayout(group)->GetBindingInfo();
-                for (size_t binding = 0; binding < kMaxBindingsPerGroup; ++binding) {
-                    if (!(groupInfo.visibilities[binding] & StageBit(stage))) {
-                        continue;
-                    }
-                    if (!groupInfo.mask[binding]) {
+                for (BindingIndex bindingIndex = 0;
+                     bindingIndex < GetBindGroupLayout(group)->GetBindingCount(); ++bindingIndex) {
+                    const BindingInfo& bindingInfo =
+                        GetBindGroupLayout(group)->GetBindingInfo(bindingIndex);
+                    if (!(bindingInfo.visibility & StageBit(stage))) {
                         continue;
                     }
 
-                    switch (groupInfo.types[binding]) {
+                    switch (bindingInfo.type) {
                         case wgpu::BindingType::UniformBuffer:
                         case wgpu::BindingType::StorageBuffer:
                         case wgpu::BindingType::ReadonlyStorageBuffer:
-                            mIndexInfo[stage][group][binding] = bufferIndex;
+                            mIndexInfo[stage][group][bindingIndex] = bufferIndex;
                             bufferIndex++;
                             break;
                         case wgpu::BindingType::Sampler:
-                            mIndexInfo[stage][group][binding] = samplerIndex;
+                            mIndexInfo[stage][group][bindingIndex] = samplerIndex;
                             samplerIndex++;
                             break;
                         case wgpu::BindingType::SampledTexture:
-                            mIndexInfo[stage][group][binding] = textureIndex;
+                            mIndexInfo[stage][group][bindingIndex] = textureIndex;
                             textureIndex++;
                             break;
                         case wgpu::BindingType::StorageTexture:

@@ -17,6 +17,7 @@
 #include "common/Assert.h"
 #include "common/Math.h"
 #include "utils/ComboRenderPipelineDescriptor.h"
+#include "utils/TextureFormatUtils.h"
 #include "utils/WGPUHelpers.h"
 
 #include <type_traits>
@@ -185,21 +186,7 @@ class TextureFormatTest : public DawnTest {
             })");
 
         // Compute the prefix needed for GLSL types that handle our texture's data.
-        const char* prefix = nullptr;
-        switch (sampleFormatInfo.type) {
-            case wgpu::TextureComponentType::Float:
-                prefix = "";
-                break;
-            case wgpu::TextureComponentType::Sint:
-                prefix = "i";
-                break;
-            case wgpu::TextureComponentType::Uint:
-                prefix = "u";
-                break;
-            default:
-                UNREACHABLE();
-                break;
-        }
+        const char* prefix = utils::GetColorTextureComponentTypePrefix(sampleFormatInfo.format);
 
         std::ostringstream fsSource;
         fsSource << "#version 450\n";
@@ -291,7 +278,7 @@ class TextureFormatTest : public DawnTest {
         wgpu::RenderPassEncoder renderPass = encoder.BeginRenderPass(&renderPassDesc);
         renderPass.SetPipeline(pipeline);
         renderPass.SetBindGroup(0, bindGroup);
-        renderPass.Draw(3, 1, 0, 0);
+        renderPass.Draw(3);
         renderPass.EndPass();
 
         {
@@ -595,16 +582,28 @@ TEST_P(TextureFormatTest, RGBA32Float) {
 
 // Test the R16Float format
 TEST_P(TextureFormatTest, R16Float) {
+    // TODO(https://crbug.com/swiftshader/147) Rendering INFINITY isn't handled correctly by
+    // swiftshader
+    DAWN_SKIP_TEST_IF(IsVulkan() && IsSwiftshader());
+
     DoFloat16Test({wgpu::TextureFormat::R16Float, 2, wgpu::TextureComponentType::Float, 1});
 }
 
 // Test the RG16Float format
 TEST_P(TextureFormatTest, RG16Float) {
+    // TODO(https://crbug.com/swiftshader/147) Rendering INFINITY isn't handled correctly by
+    // swiftshader
+    DAWN_SKIP_TEST_IF(IsVulkan() && IsSwiftshader());
+
     DoFloat16Test({wgpu::TextureFormat::RG16Float, 4, wgpu::TextureComponentType::Float, 2});
 }
 
 // Test the RGBA16Float format
 TEST_P(TextureFormatTest, RGBA16Float) {
+    // TODO(https://crbug.com/swiftshader/147) Rendering INFINITY isn't handled correctly by
+    // swiftshader
+    DAWN_SKIP_TEST_IF(IsVulkan() && IsSwiftshader());
+
     DoFloat16Test({wgpu::TextureFormat::RGBA16Float, 8, wgpu::TextureComponentType::Float, 4});
 }
 

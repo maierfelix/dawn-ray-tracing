@@ -47,19 +47,22 @@ namespace dawn_native { namespace vulkan {
             writeAccelerationInfo;
         std::array<VkAccelerationStructureNV, kMaxBindingsPerGroup> accelerationStructures;
 
-        const auto& layoutInfo = GetLayout()->GetBindingInfo();
-        for (uint32_t bindingIndex : IterateBitSet(layoutInfo.mask)) {
+        for (const auto& it : GetLayout()->GetBindingMap()) {
+            BindingNumber bindingNumber = it.first;
+            BindingIndex bindingIndex = it.second;
+            const BindingInfo& bindingInfo = GetLayout()->GetBindingInfo(bindingIndex);
+
             auto& write = writes[numWrites];
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.pNext = nullptr;
             write.dstSet = GetHandle();
-            write.dstBinding = bindingIndex;
+            write.dstBinding = bindingNumber;
             write.dstArrayElement = 0;
             write.descriptorCount = 1;
-            write.descriptorType = VulkanDescriptorType(layoutInfo.types[bindingIndex],
-                                                        layoutInfo.hasDynamicOffset[bindingIndex]);
+            write.descriptorType =
+                VulkanDescriptorType(bindingInfo.type, bindingInfo.hasDynamicOffset);
 
-            switch (layoutInfo.types[bindingIndex]) {
+            switch (bindingInfo.type) {
                 case wgpu::BindingType::UniformBuffer:
                 case wgpu::BindingType::StorageBuffer:
                 case wgpu::BindingType::ReadonlyStorageBuffer: {
@@ -69,13 +72,15 @@ namespace dawn_native { namespace vulkan {
                     writeBufferInfo[numWrites].offset = binding.offset;
                     writeBufferInfo[numWrites].range = binding.size;
                     write.pBufferInfo = &writeBufferInfo[numWrites];
-                } break;
+                    break;
+                }
 
                 case wgpu::BindingType::Sampler: {
                     Sampler* sampler = ToBackend(GetBindingAsSampler(bindingIndex));
                     writeImageInfo[numWrites].sampler = sampler->GetHandle();
                     write.pImageInfo = &writeImageInfo[numWrites];
-                } break;
+                    break;
+                }
 
                 case wgpu::BindingType::SampledTexture: {
                     TextureView* view = ToBackend(GetBindingAsTextureView(bindingIndex));
@@ -87,7 +92,19 @@ namespace dawn_native { namespace vulkan {
                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
                     write.pImageInfo = &writeImageInfo[numWrites];
-                } break;
+                    break;
+                }
+
+                case wgpu::BindingType::ReadonlyStorageTexture:
+                case wgpu::BindingType::WriteonlyStorageTexture: {
+                    TextureView* view = ToBackend(GetBindingAsTextureView(bindingIndex));
+
+                    writeImageInfo[numWrites].imageView = view->GetHandle();
+                    writeImageInfo[numWrites].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+                    write.pImageInfo = &writeImageInfo[numWrites];
+                    break;
+                }
 
                 case wgpu::BindingType::AccelerationContainer: {
                     RayTracingAccelerationContainer* container =
@@ -103,7 +120,8 @@ namespace dawn_native { namespace vulkan {
                         AsVkArray(&accelerationStructures.data()[numWrites]);
 
                     write.pNext = &writeAccelerationInfo[numWrites];
-                } break;
+                    break;
+                }
 
                 default:
                     UNREACHABLE();

@@ -22,12 +22,12 @@ namespace dawn_native { namespace vulkan {
 #define GET_GLOBAL_PROC(name)                                                          \
     name = reinterpret_cast<decltype(name)>(GetInstanceProcAddr(nullptr, "vk" #name)); \
     if (name == nullptr) {                                                             \
-        return DAWN_DEVICE_LOST_ERROR(std::string("Couldn't get proc vk") + #name);    \
+        return DAWN_INTERNAL_ERROR(std::string("Couldn't get proc vk") + #name);       \
     }
 
     MaybeError VulkanFunctions::LoadGlobalProcs(const DynamicLib& vulkanLib) {
         if (!vulkanLib.GetProc(&GetInstanceProcAddr, "vkGetInstanceProcAddr")) {
-            return DAWN_DEVICE_LOST_ERROR("Couldn't get vkGetInstanceProcAddr");
+            return DAWN_INTERNAL_ERROR("Couldn't get vkGetInstanceProcAddr");
         }
 
         GET_GLOBAL_PROC(CreateInstance);
@@ -44,7 +44,7 @@ namespace dawn_native { namespace vulkan {
 #define GET_INSTANCE_PROC_BASE(name, procName)                                              \
     name = reinterpret_cast<decltype(name)>(GetInstanceProcAddr(instance, "vk" #procName)); \
     if (name == nullptr) {                                                                  \
-        return DAWN_DEVICE_LOST_ERROR(std::string("Couldn't get proc vk") + #procName);     \
+        return DAWN_INTERNAL_ERROR(std::string("Couldn't get proc vk") + #procName);        \
     }
 
 #define GET_INSTANCE_PROC(name) GET_INSTANCE_PROC_BASE(name, name)
@@ -123,19 +123,38 @@ namespace dawn_native { namespace vulkan {
             GET_INSTANCE_PROC(GetPhysicalDeviceSurfacePresentModesKHR);
         }
 
-#ifdef VK_USE_PLATFORM_FUCHSIA
+#if defined(VK_USE_PLATFORM_FUCHSIA)
         if (globalInfo.fuchsiaImagePipeSurface) {
             GET_INSTANCE_PROC(CreateImagePipeSurfaceFUCHSIA);
         }
-#endif
+#endif  // defined(VK_USE_PLATFORM_FUCHSIA)
 
+#if defined(DAWN_ENABLE_BACKEND_METAL)
+        if (globalInfo.metalSurface) {
+            GET_INSTANCE_PROC(CreateMetalSurfaceEXT);
+        }
+#endif  // defined(DAWN_ENABLE_BACKEND_METAL)
+
+#if defined(DAWN_PLATFORM_WINDOWS)
+        if (globalInfo.win32Surface) {
+            GET_INSTANCE_PROC(CreateWin32SurfaceKHR);
+            GET_INSTANCE_PROC(GetPhysicalDeviceWin32PresentationSupportKHR);
+        }
+#endif  // defined(DAWN_PLATFORM_WINDOWS)
+
+#if defined(DAWN_USE_X11)
+        if (globalInfo.xlibSurface) {
+            GET_INSTANCE_PROC(CreateXlibSurfaceKHR);
+            GET_INSTANCE_PROC(GetPhysicalDeviceXlibPresentationSupportKHR);
+        }
+#endif  // defined(DAWN_USE_X11)
         return {};
     }
 
 #define GET_DEVICE_PROC(name)                                                       \
     name = reinterpret_cast<decltype(name)>(GetDeviceProcAddr(device, "vk" #name)); \
     if (name == nullptr) {                                                          \
-        return DAWN_DEVICE_LOST_ERROR(std::string("Couldn't get proc vk") + #name); \
+        return DAWN_INTERNAL_ERROR(std::string("Couldn't get proc vk") + #name);    \
     }
 
     MaybeError VulkanFunctions::LoadDeviceProcs(VkDevice device,

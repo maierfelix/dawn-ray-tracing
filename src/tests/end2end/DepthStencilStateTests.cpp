@@ -288,7 +288,7 @@ class DepthStencilStateTest : public DawnTest {
                 pass.SetStencilReference(test.stencil);  // Set the stencil reference
                 pass.SetBindGroup(
                     0, bindGroup);  // Set the bind group which contains color and depth data
-                pass.Draw(6, 1, 0, 0);
+                pass.Draw(6);
             }
             pass.EndPass();
 
@@ -679,6 +679,25 @@ TEST_P(DepthStencilStateTest, StencilDepthPass) {
         { baseState, RGBA8(255, 255, 255, 255), 1.f, 1 },   // Triangle to set stencil value to 1. Depth is 0
         { state, RGBA8(0, 0, 0, 255), 0.f, 2 } },           // Triangle with stencil reference 2 passes the Greater comparison function. At depth 0, it pass the Less depth test
 2);                                                         // Replace the stencil on stencil pass, depth pass, so it should be 2
+}
+
+// Test that creating a render pipeline works with for all depth and combined formats
+TEST_P(DepthStencilStateTest, CreatePipelineWithAllFormats) {
+    constexpr wgpu::TextureFormat kDepthStencilFormats[] = {
+        wgpu::TextureFormat::Depth32Float,
+        wgpu::TextureFormat::Depth24PlusStencil8,
+        wgpu::TextureFormat::Depth24Plus,
+    };
+
+    for (wgpu::TextureFormat depthStencilFormat : kDepthStencilFormats) {
+        utils::ComboRenderPipelineDescriptor descriptor(device);
+        descriptor.vertexStage.module = vsModule;
+        descriptor.cFragmentStage.module = fsModule;
+        descriptor.cDepthStencilState.format = depthStencilFormat;
+        descriptor.depthStencilState = &descriptor.cDepthStencilState;
+
+        device.CreateRenderPipeline(&descriptor);
+    }
 }
 
 DAWN_INSTANTIATE_TEST(DepthStencilStateTest,

@@ -16,7 +16,6 @@
 
 #include "dawn_native/BackendConnection.h"
 #include "dawn_native/BindGroupLayout.h"
-#include "dawn_native/DynamicUploader.h"
 #include "dawn_native/ErrorData.h"
 #include "dawn_native/metal/BindGroupLayoutMTL.h"
 #include "dawn_native/metal/BindGroupMTL.h"
@@ -38,6 +37,15 @@
 
 namespace dawn_native { namespace metal {
 
+    // static
+    ResultOrError<Device*> Device::Create(AdapterBase* adapter,
+                                          id<MTLDevice> mtlDevice,
+                                          const DeviceDescriptor* descriptor) {
+        Ref<Device> device = AcquireRef(new Device(adapter, mtlDevice, descriptor));
+        DAWN_TRY(device->Initialize());
+        return device.Detach();
+    }
+
     Device::Device(AdapterBase* adapter,
                    id<MTLDevice> mtlDevice,
                    const DeviceDescriptor* descriptor)
@@ -46,16 +54,17 @@ namespace dawn_native { namespace metal {
           mMapTracker(new MapRequestTracker(this)),
           mCompletedSerial(0) {
         [mMtlDevice retain];
-        mCommandQueue = [mMtlDevice newCommandQueue];
-
-        InitTogglesFromDriver();
-        if (descriptor != nil) {
-            ApplyToggleOverrides(descriptor);
-        }
     }
 
     Device::~Device() {
-        BaseDestructor();
+        ShutDownBase();
+    }
+
+    MaybeError Device::Initialize() {
+        InitTogglesFromDriver();
+        mCommandQueue = [mMtlDevice newCommandQueue];
+
+        return DeviceBase::Initialize();
     }
 
     void Device::InitTogglesFromDriver() {
@@ -130,13 +139,13 @@ namespace dawn_native { namespace metal {
     }
     ResultOrError<SwapChainBase*> Device::CreateSwapChainImpl(
         const SwapChainDescriptor* descriptor) {
-        return new SwapChain(this, descriptor);
+        return new OldSwapChain(this, descriptor);
     }
     ResultOrError<NewSwapChainBase*> Device::CreateSwapChainImpl(
         Surface* surface,
         NewSwapChainBase* previousSwapChain,
         const SwapChainDescriptor* descriptor) {
-        return DAWN_VALIDATION_ERROR("New swapchains not implemented.");
+        return new SwapChain(this, surface, previousSwapChain, descriptor);
     }
     ResultOrError<TextureBase*> Device::CreateTextureImpl(const TextureDescriptor* descriptor) {
         return new Texture(this, descriptor);
@@ -163,7 +172,6 @@ namespace dawn_native { namespace metal {
     MaybeError Device::TickImpl() {
         Serial completedSerial = GetCompletedCommandSerial();
 
-        mDynamicUploader->Deallocate(completedSerial);
         mMapTracker->Tick(completedSerial);
 
         if (mCommandContext.GetCommands() != nil) {
@@ -297,17 +305,21 @@ namespace dawn_native { namespace metal {
         while (GetCompletedCommandSerial() != mLastSubmittedSerial) {
             usleep(100);
         }
-        Tick();
+
+        // Artificially increase the serials so work that was pending knows it can complete.
+        mCompletedSerial++;
+        mLastSubmittedSerial++;
+
+        DAWN_TRY(TickImpl());
         return {};
     }
 
-    void Device::Destroy() {
-        ASSERT(mLossStatus != LossStatus::AlreadyLost);
+    void Device::ShutDownImpl() {
+        ASSERT(GetState() == State::Disconnected);
 
         [mCommandContext.AcquireCommands() release];
 
         mMapTracker = nullptr;
-        mDynamicUploader = nullptr;
 
         [mCommandQueue release];
         mCommandQueue = nil;

@@ -14,6 +14,7 @@
 
 #include "dawn_native/Device.h"
 
+#include "common/Log.h"
 #include "dawn_native/Adapter.h"
 #include "dawn_native/AttachmentState.h"
 #include "dawn_native/BindGroup.h"
@@ -56,6 +57,16 @@ namespace dawn_native {
         std::unordered_set<Object*, typename Object::HashFunc, typename Object::EqualityFunc>;
 
     struct DeviceBase::Caches {
+        ~Caches() {
+            ASSERT(attachmentStates.empty());
+            ASSERT(bindGroupLayouts.empty());
+            ASSERT(computePipelines.empty());
+            ASSERT(pipelineLayouts.empty());
+            ASSERT(renderPipelines.empty());
+            ASSERT(samplers.empty());
+            ASSERT(shaderModules.empty());
+        }
+
         ContentLessObjectCache<AttachmentStateBlueprint> attachmentStates;
         ContentLessObjectCache<BindGroupLayoutBase> bindGroupLayouts;
         ContentLessObjectCache<ComputePipelineBase> computePipelines;
@@ -68,67 +79,122 @@ namespace dawn_native {
     // DeviceBase
 
     DeviceBase::DeviceBase(AdapterBase* adapter, const DeviceDescriptor* descriptor)
-        : mAdapter(adapter),
-          mRootErrorScope(AcquireRef(new ErrorScope())),
-          mCurrentErrorScope(mRootErrorScope.Get()) {
-        mCaches = std::make_unique<DeviceBase::Caches>();
-        mErrorScopeTracker = std::make_unique<ErrorScopeTracker>(this);
-        mFenceSignalTracker = std::make_unique<FenceSignalTracker>(this);
-        mDynamicUploader = std::make_unique<DynamicUploader>(this);
-        SetDefaultToggles();
-
+        : mAdapter(adapter) {
         if (descriptor != nullptr) {
+            ApplyToggleOverrides(descriptor);
             ApplyExtensions(descriptor);
         }
 
         mFormatTable = BuildFormatTable(this);
+        SetDefaultToggles();
     }
 
     DeviceBase::~DeviceBase() {
-        // Devices must explicitly free the uploader
-        ASSERT(mDynamicUploader == nullptr);
         ASSERT(mDeferredCreateBufferMappedAsyncResults.empty());
-
-        ASSERT(mCaches->attachmentStates.empty());
-        ASSERT(mCaches->bindGroupLayouts.empty());
-        ASSERT(mCaches->computePipelines.empty());
-        ASSERT(mCaches->pipelineLayouts.empty());
-        ASSERT(mCaches->renderPipelines.empty());
-        ASSERT(mCaches->samplers.empty());
-        ASSERT(mCaches->shaderModules.empty());
     }
 
-    void DeviceBase::BaseDestructor() {
-        if (mLossStatus != LossStatus::Alive) {
-            // if device is already lost, we may still have fences and error scopes to clear since
-            // the time the device was lost, clear them now before we destruct the device.
-            mErrorScopeTracker->Tick(GetCompletedCommandSerial());
-            mFenceSignalTracker->Tick(GetCompletedCommandSerial());
-            return;
-        }
-        // Assert that errors are device loss so that we can continue with destruction
-        AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
-        Destroy();
-        mLossStatus = LossStatus::AlreadyLost;
+    MaybeError DeviceBase::Initialize() {
+        mRootErrorScope = AcquireRef(new ErrorScope());
+        mCurrentErrorScope = mRootErrorScope.Get();
+
+        mCaches = std::make_unique<DeviceBase::Caches>();
+        mErrorScopeTracker = std::make_unique<ErrorScopeTracker>(this);
+        mFenceSignalTracker = std::make_unique<FenceSignalTracker>(this);
+        mDynamicUploader = std::make_unique<DynamicUploader>(this);
+
+        // Starting from now the backend can start doing reentrant calls so the device is marked as
+        // alive.
+        mState = State::Alive;
+
+        return {};
     }
 
-    void DeviceBase::HandleError(wgpu::ErrorType type, const char* message) {
-        if (type == wgpu::ErrorType::DeviceLost) {
-            HandleLoss(message);
+    void DeviceBase::ShutDownBase() {
+        // Disconnect the device, depending on which state we are currently in.
+        switch (mState) {
+            case State::BeingCreated:
+                // The GPU timeline was never started so we don't have to wait.
+                mState = State::Disconnected;
+                break;
+
+            case State::Alive:
+                // Alive is the only state which can have GPU work happening. Wait for all of it to
+                // complete before proceeding with destruction.
+                // Assert that errors are device loss so that we can continue with destruction
+                AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
+                mState = State::Disconnected;
+                break;
+
+            case State::BeingDisconnected:
+                // Getting disconnected is a transient state happening in a single API call so there
+                // is always an external reference keeping the Device alive, which means the
+                // destructor cannot run while BeingDisconnected.
+                UNREACHABLE();
+                break;
+
+            case State::Disconnected:
+                break;
         }
-        // Still forward device loss to error scope so it can reject them all
-        mCurrentErrorScope->HandleError(type, message);
+
+        // The GPU timeline is finished so all services can be freed immediately. They need to be
+        // freed before ShutDownImpl() because they might relinquish resources that will be freed by
+        // backends in the ShutDownImpl() call.
+        // Still tick the ones that might have pending callbacks.
+        mErrorScopeTracker->Tick(GetCompletedCommandSerial());
+        mErrorScopeTracker = nullptr;
+        mFenceSignalTracker->Tick(GetCompletedCommandSerial());
+        mFenceSignalTracker = nullptr;
+        mDynamicUploader = nullptr;
+
+        // Tell the backend that it can free all the objects now that the GPU timeline is empty.
+        ShutDownImpl();
+
+        mCaches = nullptr;
+    }
+
+    void DeviceBase::HandleError(InternalErrorType type, const char* message) {
+        // If we receive an internal error, assume the backend can't recover and proceed with
+        // device destruction. We first wait for all previous commands to be completed so that
+        // backend objects can be freed immediately, before handling the loss.
+        if (type == InternalErrorType::Internal) {
+            // Move away from the Alive state so that the application cannot use this device
+            // anymore.
+            // TODO(cwallez@chromium.org): Do we need atomics for this to become visible to other
+            // threads in a multithreaded scenario?
+            mState = State::BeingDisconnected;
+
+            // Assert that errors are device losses so that we can continue with destruction.
+            AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
+            mState = State::Disconnected;
+
+            // Now everything is as if the device was lost.
+            type = InternalErrorType::DeviceLost;
+        }
+
+        // The device was lost, call the application callback.
+        if (type == InternalErrorType::DeviceLost && mDeviceLostCallback != nullptr) {
+            mDeviceLostCallback(message, mDeviceLostUserdata);
+            mDeviceLostCallback = nullptr;
+        }
+
+        // Still forward device loss and internal errors to the error scopes so they all reject.
+        mCurrentErrorScope->HandleError(ToWGPUErrorType(type), message);
     }
 
     void DeviceBase::InjectError(wgpu::ErrorType type, const char* message) {
         if (ConsumedError(ValidateErrorType(type))) {
             return;
         }
-        if (DAWN_UNLIKELY(type == wgpu::ErrorType::NoError)) {
-            HandleError(wgpu::ErrorType::Validation, "Invalid injected error NoError");
+
+        // This method should only be used to make error scope reject. For DeviceLost there is the
+        // LoseForTesting function that can be used instead.
+        if (type != wgpu::ErrorType::Validation && type != wgpu::ErrorType::OutOfMemory) {
+            HandleError(InternalErrorType::Validation,
+                        "Invalid injected error, must be Validation or OutOfMemory");
             return;
         }
-        HandleError(type, message);
+
+        HandleError(FromWGPUErrorType(type), message);
     }
 
     void DeviceBase::ConsumeError(std::unique_ptr<ErrorData> error) {
@@ -179,34 +245,27 @@ namespace dawn_native {
     }
 
     MaybeError DeviceBase::ValidateIsAlive() const {
-        if (DAWN_LIKELY(mLossStatus == LossStatus::Alive)) {
+        if (DAWN_LIKELY(mState == State::Alive)) {
             return {};
         }
         return DAWN_DEVICE_LOST_ERROR("Device is lost");
     }
 
-    void DeviceBase::HandleLoss(const char* message) {
-        if (mLossStatus == LossStatus::AlreadyLost) {
+    void DeviceBase::LoseForTesting() {
+        if (mState != State::Alive) {
             return;
         }
 
-        Destroy();
-        mLossStatus = LossStatus::AlreadyLost;
-
-        if (mDeviceLostCallback) {
-            mDeviceLostCallback(message, mDeviceLostUserdata);
-        }
+        HandleError(InternalErrorType::Internal, "Device lost for testing");
     }
 
-    void DeviceBase::LoseForTesting() {
-        mLossStatus = LossStatus::BeingLost;
-        // Assert that errors are device loss so that we can continue with destruction
-        AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
-        HandleError(wgpu::ErrorType::DeviceLost, "Device lost for testing");
+    DeviceBase::State DeviceBase::GetState() const {
+        return mState;
     }
 
     bool DeviceBase::IsLost() const {
-        return mLossStatus != LossStatus::Alive;
+        ASSERT(mState != State::BeingCreated);
+        return mState != State::Alive;
     }
 
     AdapterBase* DeviceBase::GetAdapter() const {
@@ -474,8 +533,8 @@ namespace dawn_native {
     }
     BufferBase* DeviceBase::CreateBuffer(const BufferDescriptor* descriptor) {
         BufferBase* result = nullptr;
-
-        if (ConsumedError(CreateBufferInternal(&result, descriptor))) {
+        if (ConsumedError(CreateBufferInternal(descriptor), &result)) {
+            ASSERT(result == nullptr);
             return BufferBase::MakeError(this);
         }
 
@@ -487,11 +546,11 @@ namespace dawn_native {
         uint8_t* data = nullptr;
 
         uint64_t size = descriptor->size;
-        if (ConsumedError(CreateBufferInternal(&buffer, descriptor)) ||
+        if (ConsumedError(CreateBufferInternal(descriptor), &buffer) ||
             ConsumedError(buffer->MapAtCreation(&data))) {
             // Map failed. Replace the buffer with an error buffer.
             if (buffer != nullptr) {
-                delete buffer;
+                buffer->Release();
             }
             buffer = BufferBase::MakeErrorMapped(this, size, &data);
         }
@@ -652,6 +711,10 @@ namespace dawn_native {
             return;
         }
 
+        // TODO(cwallez@chromium.org): decouple TickImpl from updating the serial so that we can
+        // tick the dynamic uploader before the backend resource allocators. This would allow
+        // reclaiming resources one tick earlier.
+        mDynamicUploader->Deallocate(GetCompletedCommandSerial());
         mErrorScopeTracker->Tick(GetCompletedCommandSerial());
         mFenceSignalTracker->Tick(GetCompletedCommandSerial());
     }
@@ -669,23 +732,6 @@ namespace dawn_native {
         }
     }
 
-    void DeviceBase::ApplyToggleOverrides(const DeviceDescriptor* deviceDescriptor) {
-        ASSERT(deviceDescriptor);
-
-        for (const char* toggleName : deviceDescriptor->forceEnabledToggles) {
-            Toggle toggle = GetAdapter()->GetInstance()->ToggleNameToEnum(toggleName);
-            if (toggle != Toggle::InvalidEnum) {
-                mTogglesSet.SetToggle(toggle, true);
-            }
-        }
-        for (const char* toggleName : deviceDescriptor->forceDisabledToggles) {
-            Toggle toggle = GetAdapter()->GetInstance()->ToggleNameToEnum(toggleName);
-            if (toggle != Toggle::InvalidEnum) {
-                mTogglesSet.SetToggle(toggle, false);
-            }
-        }
-    }
-
     void DeviceBase::ApplyExtensions(const DeviceDescriptor* deviceDescriptor) {
         ASSERT(deviceDescriptor);
         ASSERT(GetAdapter()->SupportsAllRequestedExtensions(deviceDescriptor->requiredExtensions));
@@ -698,16 +744,8 @@ namespace dawn_native {
         return mEnabledExtensions.GetEnabledExtensionNames();
     }
 
-    std::vector<const char*> DeviceBase::GetTogglesUsed() const {
-        return mTogglesSet.GetEnabledToggleNames();
-    }
-
     bool DeviceBase::IsExtensionEnabled(Extension extension) const {
         return mEnabledExtensions.IsEnabled(extension);
-    }
-
-    bool DeviceBase::IsToggleEnabled(Toggle toggle) const {
-        return mTogglesSet.IsEnabled(toggle);
     }
 
     bool DeviceBase::IsValidationEnabled() const {
@@ -720,11 +758,6 @@ namespace dawn_native {
 
     void DeviceBase::IncrementLazyClearCountForTesting() {
         ++mLazyClearCountForTesting;
-    }
-
-    void DeviceBase::SetDefaultToggles() {
-        // Sets the default-enabled toggles
-        mTogglesSet.SetToggle(Toggle::LazyClearResourceOnFirstUse, true);
     }
 
     // Implementation details of object creation
@@ -749,14 +782,13 @@ namespace dawn_native {
         return {};
     }
 
-    MaybeError DeviceBase::CreateBufferInternal(BufferBase** result,
-                                                const BufferDescriptor* descriptor) {
+    ResultOrError<BufferBase*> DeviceBase::CreateBufferInternal(
+        const BufferDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
         if (IsValidationEnabled()) {
             DAWN_TRY(ValidateBufferDescriptor(this, descriptor));
         }
-        DAWN_TRY_ASSIGN(*result, CreateBufferImpl(descriptor));
-        return {};
+        return CreateBufferImpl(descriptor);
     }
 
     MaybeError DeviceBase::CreateComputePipelineInternal(
@@ -954,8 +986,52 @@ namespace dawn_native {
         return mDynamicUploader.get();
     }
 
+    // The Toggle device facility
+
+    std::vector<const char*> DeviceBase::GetTogglesUsed() const {
+        return mEnabledToggles.GetContainedToggleNames();
+    }
+
+    bool DeviceBase::IsToggleEnabled(Toggle toggle) const {
+        return mEnabledToggles.Has(toggle);
+    }
+
     void DeviceBase::SetToggle(Toggle toggle, bool isEnabled) {
-        mTogglesSet.SetToggle(toggle, isEnabled);
+        if (!mOverridenToggles.Has(toggle)) {
+            mEnabledToggles.Set(toggle, isEnabled);
+        }
+    }
+
+    void DeviceBase::ForceSetToggle(Toggle toggle, bool isEnabled) {
+        if (!mOverridenToggles.Has(toggle) && mEnabledToggles.Has(toggle) != isEnabled) {
+            dawn::WarningLog() << "Forcing toggle \"" << ToggleEnumToName(toggle) << "\" to "
+                               << isEnabled << "when it was overriden to be " << !isEnabled;
+        }
+        mEnabledToggles.Set(toggle, isEnabled);
+    }
+
+    void DeviceBase::SetDefaultToggles() {
+        SetToggle(Toggle::LazyClearResourceOnFirstUse, true);
+        SetToggle(Toggle::UseSpvc, false);
+    }
+
+    void DeviceBase::ApplyToggleOverrides(const DeviceDescriptor* deviceDescriptor) {
+        ASSERT(deviceDescriptor);
+
+        for (const char* toggleName : deviceDescriptor->forceEnabledToggles) {
+            Toggle toggle = GetAdapter()->GetInstance()->ToggleNameToEnum(toggleName);
+            if (toggle != Toggle::InvalidEnum) {
+                mEnabledToggles.Set(toggle, true);
+                mOverridenToggles.Set(toggle, true);
+            }
+        }
+        for (const char* toggleName : deviceDescriptor->forceDisabledToggles) {
+            Toggle toggle = GetAdapter()->GetInstance()->ToggleNameToEnum(toggleName);
+            if (toggle != Toggle::InvalidEnum) {
+                mEnabledToggles.Set(toggle, false);
+                mOverridenToggles.Set(toggle, true);
+            }
+        }
     }
 
 }  // namespace dawn_native

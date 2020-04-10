@@ -144,10 +144,10 @@ namespace dawn_native { namespace vulkan {
                                     mDynamicOffsetCounts, mDynamicOffsets);
 
                 for (uint32_t index : IterateBitSet(mBindGroupLayoutsMask)) {
-                    for (uint32_t binding : IterateBitSet(mBuffersNeedingBarrier[index])) {
-                        switch (mBindingTypes[index][binding]) {
+                    for (uint32_t bindingIndex : IterateBitSet(mBuffersNeedingBarrier[index])) {
+                        switch (mBindingTypes[index][bindingIndex]) {
                             case wgpu::BindingType::StorageBuffer:
-                                ToBackend(mBuffers[index][binding])
+                                ToBackend(mBuffers[index][bindingIndex])
                                     ->TransitionUsageNow(recordingContext,
                                                          wgpu::BufferUsage::Storage);
                                 break;
@@ -616,7 +616,8 @@ namespace dawn_native { namespace vulkan {
                     VkBuffer srcHandle = srcBuffer->GetHandle();
                     VkBuffer dstHandle = dstBuffer->GetHandle();
                     device->fn.CmdCopyBuffer(commands, srcHandle, dstHandle, 1, &region);
-                } break;
+                    break;
+                }
 
                 case Command::CopyBufferToTexture: {
                     CopyBufferToTextureCmd* copy = mCommands.NextCommand<CopyBufferToTextureCmd>();
@@ -650,7 +651,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdCopyBufferToImage(commands, srcBuffer, dstImage,
                                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                                     &region);
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToBuffer: {
                     CopyTextureToBufferCmd* copy = mCommands.NextCommand<CopyTextureToBufferCmd>();
@@ -676,7 +678,8 @@ namespace dawn_native { namespace vulkan {
                     // The Dawn CopySrc usage is always mapped to GENERAL
                     device->fn.CmdCopyImageToBuffer(commands, srcImage, VK_IMAGE_LAYOUT_GENERAL,
                                                     dstBuffer, 1, &region);
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToTexture: {
                     CopyTextureToTextureCmd* copy =
@@ -735,7 +738,8 @@ namespace dawn_native { namespace vulkan {
                                                            copy->copySize);
                     }
 
-                } break;
+                    break;
+                }
 
                 case Command::BeginRenderPass: {
                     BeginRenderPassCmd* cmd = mCommands.NextCommand<BeginRenderPassCmd>();
@@ -746,7 +750,8 @@ namespace dawn_native { namespace vulkan {
                     DAWN_TRY(RecordRenderPass(recordingContext, cmd));
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BeginComputePass: {
                     mCommands.NextCommand<BeginComputePassCmd>();
@@ -755,7 +760,8 @@ namespace dawn_native { namespace vulkan {
                     RecordComputePass(recordingContext);
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BeginRayTracingPass: {
                     mCommands.NextCommand<BeginRayTracingPassCmd>();
@@ -766,7 +772,11 @@ namespace dawn_native { namespace vulkan {
                     nextPassNumber++;
                 } break;
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
+
             }
         }
 
@@ -785,14 +795,15 @@ namespace dawn_native { namespace vulkan {
                 case Command::EndComputePass: {
                     mCommands.NextCommand<EndComputePassCmd>();
                     return;
-                } break;
+                }
 
                 case Command::Dispatch: {
                     DispatchCmd* dispatch = mCommands.NextCommand<DispatchCmd>();
 
                     descriptorSets.Apply(device, recordingContext, VK_PIPELINE_BIND_POINT_COMPUTE);
                     device->fn.CmdDispatch(commands, dispatch->x, dispatch->y, dispatch->z);
-                } break;
+                    break;
+                }
 
                 case Command::DispatchIndirect: {
                     DispatchIndirectCmd* dispatch = mCommands.NextCommand<DispatchIndirectCmd>();
@@ -802,7 +813,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdDispatchIndirect(
                         commands, indirectBuffer,
                         static_cast<VkDeviceSize>(dispatch->indirectOffset));
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = mCommands.NextCommand<SetBindGroupCmd>();
@@ -815,7 +827,8 @@ namespace dawn_native { namespace vulkan {
 
                     descriptorSets.OnSetBindGroup(cmd->index, bindGroup, cmd->dynamicOffsetCount,
                                                   dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::SetComputePipeline: {
                     SetComputePipelineCmd* cmd = mCommands.NextCommand<SetComputePipelineCmd>();
@@ -824,7 +837,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_COMPUTE,
                                                pipeline->GetHandle());
                     descriptorSets.OnSetPipeline(pipeline);
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -843,7 +857,8 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(&mCommands, Command::InsertDebugMarker);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -852,7 +867,8 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(&mCommands, Command::PopDebugGroup);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -871,9 +887,13 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(&mCommands, Command::PushDebugGroup);
                     }
-                } break;
+                    break;
+                }
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
             }
         }
 
@@ -1062,7 +1082,8 @@ namespace dawn_native { namespace vulkan {
                     descriptorSets.Apply(device, recordingContext, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     device->fn.CmdDraw(commands, draw->vertexCount, draw->instanceCount,
                                        draw->firstVertex, draw->firstInstance);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexed: {
                     DrawIndexedCmd* draw = iter->NextCommand<DrawIndexedCmd>();
@@ -1071,7 +1092,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdDrawIndexed(commands, draw->indexCount, draw->instanceCount,
                                               draw->firstIndex, draw->baseVertex,
                                               draw->firstInstance);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndirect: {
                     DrawIndirectCmd* draw = iter->NextCommand<DrawIndirectCmd>();
@@ -1081,7 +1103,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdDrawIndirect(commands, indirectBuffer,
                                                static_cast<VkDeviceSize>(draw->indirectOffset), 1,
                                                0);
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexedIndirect: {
                     DrawIndirectCmd* draw = iter->NextCommand<DrawIndirectCmd>();
@@ -1091,7 +1114,8 @@ namespace dawn_native { namespace vulkan {
                     device->fn.CmdDrawIndexedIndirect(
                         commands, indirectBuffer, static_cast<VkDeviceSize>(draw->indirectOffset),
                         1, 0);
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -1110,7 +1134,8 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(iter, Command::InsertDebugMarker);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -1119,7 +1144,8 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(iter, Command::PopDebugGroup);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     if (device->GetDeviceInfo().debugMarker) {
@@ -1138,7 +1164,8 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         SkipCommand(iter, Command::PushDebugGroup);
                     }
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = iter->NextCommand<SetBindGroupCmd>();
@@ -1150,7 +1177,8 @@ namespace dawn_native { namespace vulkan {
 
                     descriptorSets.OnSetBindGroup(cmd->index, bindGroup, cmd->dynamicOffsetCount,
                                                   dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::SetIndexBuffer: {
                     SetIndexBufferCmd* cmd = iter->NextCommand<SetIndexBufferCmd>();
@@ -1163,7 +1191,8 @@ namespace dawn_native { namespace vulkan {
                         VulkanIndexType(lastPipeline->GetVertexStateDescriptor()->indexFormat);
                     device->fn.CmdBindIndexBuffer(
                         commands, indexBuffer, static_cast<VkDeviceSize>(cmd->offset), indexType);
-                } break;
+                    break;
+                }
 
                 case Command::SetRenderPipeline: {
                     SetRenderPipelineCmd* cmd = iter->NextCommand<SetRenderPipelineCmd>();
@@ -1174,7 +1203,8 @@ namespace dawn_native { namespace vulkan {
                     lastPipeline = pipeline;
 
                     descriptorSets.OnSetPipeline(pipeline);
-                } break;
+                    break;
+                }
 
                 case Command::SetVertexBuffer: {
                     SetVertexBufferCmd* cmd = iter->NextCommand<SetVertexBufferCmd>();
@@ -1182,7 +1212,8 @@ namespace dawn_native { namespace vulkan {
                     VkDeviceSize offset = static_cast<VkDeviceSize>(cmd->offset);
 
                     device->fn.CmdBindVertexBuffers(commands, cmd->slot, 1, &*buffer, &offset);
-                } break;
+                    break;
+                }
 
                 default:
                     UNREACHABLE();
@@ -1197,7 +1228,7 @@ namespace dawn_native { namespace vulkan {
                     mCommands.NextCommand<EndRenderPassCmd>();
                     device->fn.CmdEndRenderPass(commands);
                     return {};
-                } break;
+                }
 
                 case Command::SetBlendColor: {
                     SetBlendColorCmd* cmd = mCommands.NextCommand<SetBlendColorCmd>();
@@ -1208,13 +1239,15 @@ namespace dawn_native { namespace vulkan {
                         cmd->color.a,
                     };
                     device->fn.CmdSetBlendConstants(commands, blendConstants);
-                } break;
+                    break;
+                }
 
                 case Command::SetStencilReference: {
                     SetStencilReferenceCmd* cmd = mCommands.NextCommand<SetStencilReferenceCmd>();
                     device->fn.CmdSetStencilReference(commands, VK_STENCIL_FRONT_AND_BACK,
                                                       cmd->reference);
-                } break;
+                    break;
+                }
 
                 case Command::SetViewport: {
                     SetViewportCmd* cmd = mCommands.NextCommand<SetViewportCmd>();
@@ -1227,7 +1260,8 @@ namespace dawn_native { namespace vulkan {
                     viewport.maxDepth = cmd->maxDepth;
 
                     device->fn.CmdSetViewport(commands, 0, 1, &viewport);
-                } break;
+                    break;
+                }
 
                 case Command::SetScissorRect: {
                     SetScissorRectCmd* cmd = mCommands.NextCommand<SetScissorRectCmd>();
@@ -1238,7 +1272,8 @@ namespace dawn_native { namespace vulkan {
                     rect.extent.height = cmd->height;
 
                     device->fn.CmdSetScissor(commands, 0, 1, &rect);
-                } break;
+                    break;
+                }
 
                 case Command::ExecuteBundles: {
                     ExecuteBundlesCmd* cmd = mCommands.NextCommand<ExecuteBundlesCmd>();
@@ -1251,9 +1286,13 @@ namespace dawn_native { namespace vulkan {
                             EncodeRenderBundleCommand(iter, type);
                         }
                     }
-                } break;
+                    break;
+                }
 
-                default: { EncodeRenderBundleCommand(&mCommands, type); } break;
+                default: {
+                    EncodeRenderBundleCommand(&mCommands, type);
+                    break;
+                }
             }
         }
 

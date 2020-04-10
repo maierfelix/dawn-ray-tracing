@@ -104,6 +104,9 @@ DawnTestParam D3D12Backend(std::initializer_list<const char*> forceEnabledWorkar
 DawnTestParam MetalBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
                            std::initializer_list<const char*> forceDisabledWorkarounds = {});
 
+DawnTestParam NullBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                          std::initializer_list<const char*> forceDisabledWorkarounds = {});
+
 DawnTestParam OpenGLBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
                             std::initializer_list<const char*> forceDisabledWorkarounds = {});
 
@@ -129,7 +132,7 @@ void InitDawnEnd2EndTestEnvironment(int argc, char** argv);
 class DawnTestEnvironment : public testing::Environment {
   public:
     DawnTestEnvironment(int argc, char** argv);
-    ~DawnTestEnvironment() = default;
+    ~DawnTestEnvironment() override = default;
 
     static void SetEnvironment(DawnTestEnvironment* env);
 
@@ -177,6 +180,7 @@ class DawnTestBase {
 
     bool IsD3D12() const;
     bool IsMetal() const;
+    bool IsNull() const;
     bool IsOpenGL() const;
     bool IsVulkan() const;
 
@@ -186,6 +190,7 @@ class DawnTestBase {
     bool IsIntel() const;
     bool IsNvidia() const;
     bool IsQualcomm() const;
+    bool IsSwiftshader() const;
 
     bool IsWindows() const;
     bool IsLinux() const;
@@ -201,6 +206,9 @@ class DawnTestBase {
 
     bool HasVendorIdFilter() const;
     uint32_t GetVendorIdFilter() const;
+
+    wgpu::Instance GetInstance() const;
+    dawn_native::Adapter GetAdapter() const;
 
   protected:
     wgpu::Device device;

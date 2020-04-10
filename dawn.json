@@ -32,7 +32,7 @@
             {"value": 0, "name": "discrete GPU"},
             {"value": 1, "name": "integrated GPU"},
             {"value": 2, "name": "CPU"},
-            {"value": 3, "name": "Unknown"}
+            {"value": 3, "name": "unknown"}
         ]
     },
     "address mode": {
@@ -82,7 +82,7 @@
             }
         ]
     },
-    "bind group binding": {
+    "bind group entry": {
         "category": "structure",
         "extensible": false,
         "members": [
@@ -266,13 +266,13 @@
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "layout", "type": "bind group layout"},
             {"name": "binding count", "type": "uint32_t"},
-            {"name": "bindings", "type": "bind group binding", "annotation": "const*", "length": "binding count"}
+            {"name": "bindings", "type": "bind group entry", "annotation": "const*", "length": "binding count"}
         ]
     },
     "bind group layout": {
         "category": "object"
     },
-    "bind group layout binding": {
+    "bind group layout entry": {
         "category": "structure",
         "extensible": false,
         "members": [
@@ -282,7 +282,8 @@
             {"name": "has dynamic offset", "type": "bool", "default": "false"},
             {"name": "multisampled", "type": "bool", "default": "false"},
             {"name": "texture dimension", "type": "texture view dimension", "default": "undefined"},
-            {"name": "texture component type", "type": "texture component type", "default": "float"}
+            {"name": "texture component type", "type": "texture component type", "default": "float"},
+            {"name": "storage texture format", "type": "texture format", "default": "undefined"}
         ]
     },
     "bind group layout descriptor": {
@@ -291,7 +292,7 @@
         "members": [
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "binding count", "type": "uint32_t"},
-            {"name": "bindings", "type": "bind group layout binding", "annotation": "const*", "length": "binding count"}
+            {"name": "bindings", "type": "bind group layout entry", "annotation": "const*", "length": "binding count"}
         ]
     },
     "binding type": {
@@ -695,7 +696,7 @@
                 "name": "get bind group layout",
                 "returns": "bind group layout",
                 "args": [
-                    {"name": "group", "type": "uint32_t"}
+                    {"name": "group index", "type": "uint32_t"}
                 ]
             }
         ]
@@ -1191,8 +1192,9 @@
     "present mode": {
         "category": "enum",
         "values": [
-            {"value": 0, "name": "no v sync"},
-            {"value": 1, "name": "v sync"}
+            {"value": 0, "name": "immediate"},
+            {"value": 1, "name": "mailbox"},
+            {"value": 2, "name": "fifo"}
         ]
     },
     "programmable stage descriptor": {
@@ -1278,19 +1280,19 @@
                 "name": "draw",
                 "args": [
                     {"name": "vertex count", "type": "uint32_t"},
-                    {"name": "instance count", "type": "uint32_t"},
-                    {"name": "first vertex", "type": "uint32_t"},
-                    {"name": "first instance", "type": "uint32_t"}
+                    {"name": "instance count", "type": "uint32_t", "default": "1"},
+                    {"name": "first vertex", "type": "uint32_t", "default": "0"},
+                    {"name": "first instance", "type": "uint32_t",  "default": "0"}
                 ]
             },
             {
                 "name": "draw indexed",
                 "args": [
                     {"name": "index count", "type": "uint32_t"},
-                    {"name": "instance count", "type": "uint32_t"},
-                    {"name": "first index", "type": "uint32_t"},
-                    {"name": "base vertex", "type": "int32_t"},
-                    {"name": "first instance", "type": "uint32_t"}
+                    {"name": "instance count", "type": "uint32_t", "default": "1"},
+                    {"name": "first index", "type": "uint32_t", "default": "0"},
+                    {"name": "base vertex", "type": "int32_t", "default": "0"},
+                    {"name": "first instance", "type": "uint32_t", "default": "0"}
                 ]
             },
             {
@@ -1424,19 +1426,19 @@
                 "name": "draw",
                 "args": [
                     {"name": "vertex count", "type": "uint32_t"},
-                    {"name": "instance count", "type": "uint32_t"},
-                    {"name": "first vertex", "type": "uint32_t"},
-                    {"name": "first instance", "type": "uint32_t"}
+                    {"name": "instance count", "type": "uint32_t", "default": "1"},
+                    {"name": "first vertex", "type": "uint32_t", "default": "0"},
+                    {"name": "first instance", "type": "uint32_t",  "default": "0"}
                 ]
             },
             {
                 "name": "draw indexed",
                 "args": [
                     {"name": "index count", "type": "uint32_t"},
-                    {"name": "instance count", "type": "uint32_t"},
-                    {"name": "first index", "type": "uint32_t"},
-                    {"name": "base vertex", "type": "int32_t"},
-                    {"name": "first instance", "type": "uint32_t"}
+                    {"name": "instance count", "type": "uint32_t", "default": "1"},
+                    {"name": "first index", "type": "uint32_t", "default": "0"},
+                    {"name": "base vertex", "type": "int32_t", "default": "0"},
+                    {"name": "first instance", "type": "uint32_t", "default": "0"}
                 ]
             },
             {
@@ -1535,7 +1537,7 @@
                 "name": "get bind group layout",
                 "returns": "bind group layout",
                 "args": [
-                    {"name": "group", "type": "uint32_t"}
+                    {"name": "group index", "type": "uint32_t"}
                 ]
             }
         ]
@@ -1559,6 +1561,13 @@
             {"name": "alpha to coverage enabled", "type": "bool", "default": "false"}
         ]
     },
+    "render pipeline descriptor dummy extension": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "dummy stage", "type": "programmable stage descriptor"}
+        ]
+    },
     "sampler": {
         "category": "object"
     },
@@ -1576,6 +1585,13 @@
             {"name": "lod min clamp", "type": "float", "default": "0.0f"},
             {"name": "lod max clamp", "type": "float", "default": "1000.0f"},
             {"name": "compare", "type": "compare function", "default": "never"}
+        ]
+    },
+    "sampler descriptor dummy anisotropic filtering": {
+        "category": "structure",
+        "chained": true,
+        "members": [
+            {"name": "max anisotropy", "type": "float"}
         ]
     },
     "shader module": {
@@ -1703,11 +1719,13 @@
         "category": "enum",
         "javascript": false,
         "values": [
-            {"value": 0, "name": "invalid"},
+            {"value": 0, "name": "invalid", "valid": false},
             {"value": 1, "name": "surface descriptor from metal layer"},
             {"value": 2, "name": "surface descriptor from windows HWND"},
             {"value": 3, "name": "surface descriptor from xlib"},
-            {"value": 4, "name": "surface descriptor from HTML canvas id"}
+            {"value": 4, "name": "surface descriptor from HTML canvas id"},
+            {"value": 5, "name": "sampler descriptor dummy anisotropic filtering"},
+            {"value": 6, "name": "render pipeline descriptor dummy extension"}
         ]
     },
     "texture": {

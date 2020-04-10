@@ -143,30 +143,47 @@ namespace dawn_native { namespace vulkan {
         }                                                                           \
     }  // namespace dawn_native::vulkan
 
+// Import additional parts of Vulkan that are supported on our architecture and preemptively include
+// headers that vulkan.h includes that we have "undefs" for.
+#if defined(DAWN_PLATFORM_WINDOWS)
+#    define VK_USE_PLATFORM_WIN32_KHR
+#    include "common/windows_with_undefs.h"
+#endif  // DAWN_PLATFORM_WINDOWS
+
+#if defined(DAWN_USE_X11)
+#    define VK_USE_PLATFORM_XLIB_KHR
+#    include "common/xlib_with_undefs.h"
+#endif  // defined(DAWN_USE_X11)
+
+#if defined(DAWN_ENABLE_BACKEND_METAL)
+#    define VK_USE_PLATFORM_METAL_EXT
+#endif  // defined(DAWN_ENABLE_BACKEND_METAL)
+
+#if defined(DAWN_PLATFORM_ANDROID)
+#    define VK_USE_PLATFORM_ANDROID_KHR
+#endif  // defined(DAWN_PLATFORM_ANDROID)
+
+#if defined(DAWN_PLATFORM_FUCHSIA)
+#    define VK_USE_PLATFORM_FUCHSIA
+#endif  // defined(DAWN_PLATFORM_FUCHSIA)
+
+// The actual inclusion of vulkan.h!
+#define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
 // Redefine VK_NULL_HANDLE for better type safety where possible.
 #undef VK_NULL_HANDLE
 #if defined(DAWN_PLATFORM_64_BIT)
-static constexpr nullptr_t VK_NULL_HANDLE = nullptr;
+static constexpr std::nullptr_t VK_NULL_HANDLE = nullptr;
 #elif defined(DAWN_PLATFORM_32_BIT)
 static constexpr uint64_t VK_NULL_HANDLE = 0;
 #else
 #    error "Unsupported platform"
 #endif
 
-// Remove windows.h macros after vulkan_platform's include of windows.h
-#if defined(DAWN_PLATFORM_WINDOWS)
-#    include "common/windows_with_undefs.h"
-#endif
-// Remove X11/Xlib.h macros after vulkan_platform's include of it.
-#if defined(DAWN_USE_X11)
-#    include "common/xlib_with_undefs.h"
-#endif
-
 // Include Fuchsia-specific definitions that are not upstreamed yet.
 #if defined(DAWN_PLATFORM_FUCHSIA)
 #    include <vulkan/vulkan_fuchsia_extras.h>
-#endif
+#endif  // defined(DAWN_PLATFORM_FUCHSIA)
 
 #endif  // COMMON_VULKANPLATFORM_H_

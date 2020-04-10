@@ -110,28 +110,175 @@ namespace dawn_native {
                 case shaderc_spvc_binding_type_readonly_storage_buffer:
                     return wgpu::BindingType::ReadonlyStorageBuffer;
                 case shaderc_spvc_binding_type_sampler:
+                case shaderc_spvc_binding_type_comparison_sampler:
+                    // TODO: Break out comparison sampler into its own case, once Dawn has seperate
+                    // handling
                     return wgpu::BindingType::Sampler;
                 case shaderc_spvc_binding_type_sampled_texture:
                     return wgpu::BindingType::SampledTexture;
+                case shaderc_spvc_binding_type_readonly_storage_texture:
+                    return wgpu::BindingType::ReadonlyStorageTexture;
+                case shaderc_spvc_binding_type_writeonly_storage_texture:
+                    return wgpu::BindingType::WriteonlyStorageTexture;
                 case shaderc_spvc_binding_type_storage_texture:
                     return wgpu::BindingType::StorageTexture;
-            }
-            UNREACHABLE();
-        }
-
-        ResultOrError<SingleShaderStage> ToSingleShaderStage(
-            shaderc_spvc_execution_model execution_model) {
-            switch (execution_model) {
-                case shaderc_spvc_execution_model_vertex:
-                    return {SingleShaderStage::Vertex};
-                case shaderc_spvc_execution_model_fragment:
-                    return {SingleShaderStage::Fragment};
-                case shaderc_spvc_execution_model_glcompute:
-                    return {SingleShaderStage::Compute};
                 default:
                     UNREACHABLE();
-                    return DAWN_VALIDATION_ERROR(
-                        "Attempted to convert invalid spvc execution model to SingleShaderStage");
+            }
+        }
+
+        SingleShaderStage ToSingleShaderStage(shaderc_spvc_execution_model execution_model) {
+            switch (execution_model) {
+                case shaderc_spvc_execution_model_vertex:
+                    return SingleShaderStage::Vertex;
+                case shaderc_spvc_execution_model_fragment:
+                    return SingleShaderStage::Fragment;
+                case shaderc_spvc_execution_model_glcompute:
+                    return SingleShaderStage::Compute;
+                default:
+                    UNREACHABLE();
+            }
+        }
+
+        wgpu::TextureFormat ToWGPUTextureFormat(spv::ImageFormat format) {
+            switch (format) {
+                case spv::ImageFormatR8:
+                    return wgpu::TextureFormat::R8Unorm;
+                case spv::ImageFormatR8Snorm:
+                    return wgpu::TextureFormat::R8Snorm;
+                case spv::ImageFormatR8ui:
+                    return wgpu::TextureFormat::R8Uint;
+                case spv::ImageFormatR8i:
+                    return wgpu::TextureFormat::R8Sint;
+                case spv::ImageFormatR16ui:
+                    return wgpu::TextureFormat::R16Uint;
+                case spv::ImageFormatR16i:
+                    return wgpu::TextureFormat::R16Sint;
+                case spv::ImageFormatR16f:
+                    return wgpu::TextureFormat::R16Float;
+                case spv::ImageFormatRg8:
+                    return wgpu::TextureFormat::RG8Unorm;
+                case spv::ImageFormatRg8Snorm:
+                    return wgpu::TextureFormat::RG8Snorm;
+                case spv::ImageFormatRg8ui:
+                    return wgpu::TextureFormat::RG8Uint;
+                case spv::ImageFormatRg8i:
+                    return wgpu::TextureFormat::RG8Sint;
+                case spv::ImageFormatR32f:
+                    return wgpu::TextureFormat::R32Float;
+                case spv::ImageFormatR32ui:
+                    return wgpu::TextureFormat::R32Uint;
+                case spv::ImageFormatR32i:
+                    return wgpu::TextureFormat::R32Sint;
+                case spv::ImageFormatRg16ui:
+                    return wgpu::TextureFormat::RG16Uint;
+                case spv::ImageFormatRg16i:
+                    return wgpu::TextureFormat::RG16Sint;
+                case spv::ImageFormatRg16f:
+                    return wgpu::TextureFormat::RG16Float;
+                case spv::ImageFormatRgba8:
+                    return wgpu::TextureFormat::RGBA8Unorm;
+                case spv::ImageFormatRgba8Snorm:
+                    return wgpu::TextureFormat::RGBA8Snorm;
+                case spv::ImageFormatRgba8ui:
+                    return wgpu::TextureFormat::RGBA8Uint;
+                case spv::ImageFormatRgba8i:
+                    return wgpu::TextureFormat::RGBA8Sint;
+                case spv::ImageFormatRgb10A2:
+                    return wgpu::TextureFormat::RGB10A2Unorm;
+                case spv::ImageFormatR11fG11fB10f:
+                    return wgpu::TextureFormat::RG11B10Float;
+                case spv::ImageFormatRg32f:
+                    return wgpu::TextureFormat::RG32Float;
+                case spv::ImageFormatRg32ui:
+                    return wgpu::TextureFormat::RG32Uint;
+                case spv::ImageFormatRg32i:
+                    return wgpu::TextureFormat::RG32Sint;
+                case spv::ImageFormatRgba16ui:
+                    return wgpu::TextureFormat::RGBA16Uint;
+                case spv::ImageFormatRgba16i:
+                    return wgpu::TextureFormat::RGBA16Sint;
+                case spv::ImageFormatRgba16f:
+                    return wgpu::TextureFormat::RGBA16Float;
+                case spv::ImageFormatRgba32f:
+                    return wgpu::TextureFormat::RGBA32Float;
+                case spv::ImageFormatRgba32ui:
+                    return wgpu::TextureFormat::RGBA32Uint;
+                case spv::ImageFormatRgba32i:
+                    return wgpu::TextureFormat::RGBA32Sint;
+                default:
+                    return wgpu::TextureFormat::Undefined;
+            }
+        }
+
+        wgpu::TextureFormat ToWGPUTextureFormat(shaderc_spvc_storage_texture_format format) {
+            switch (format) {
+                case shaderc_spvc_storage_texture_format_r8unorm:
+                    return wgpu::TextureFormat::R8Unorm;
+                case shaderc_spvc_storage_texture_format_r8snorm:
+                    return wgpu::TextureFormat::R8Snorm;
+                case shaderc_spvc_storage_texture_format_r8uint:
+                    return wgpu::TextureFormat::R8Uint;
+                case shaderc_spvc_storage_texture_format_r8sint:
+                    return wgpu::TextureFormat::R8Sint;
+                case shaderc_spvc_storage_texture_format_r16uint:
+                    return wgpu::TextureFormat::R16Uint;
+                case shaderc_spvc_storage_texture_format_r16sint:
+                    return wgpu::TextureFormat::R16Sint;
+                case shaderc_spvc_storage_texture_format_r16float:
+                    return wgpu::TextureFormat::R16Float;
+                case shaderc_spvc_storage_texture_format_rg8unorm:
+                    return wgpu::TextureFormat::RG8Unorm;
+                case shaderc_spvc_storage_texture_format_rg8snorm:
+                    return wgpu::TextureFormat::RG8Snorm;
+                case shaderc_spvc_storage_texture_format_rg8uint:
+                    return wgpu::TextureFormat::RG8Uint;
+                case shaderc_spvc_storage_texture_format_rg8sint:
+                    return wgpu::TextureFormat::RG8Sint;
+                case shaderc_spvc_storage_texture_format_r32float:
+                    return wgpu::TextureFormat::R32Float;
+                case shaderc_spvc_storage_texture_format_r32uint:
+                    return wgpu::TextureFormat::R32Uint;
+                case shaderc_spvc_storage_texture_format_r32sint:
+                    return wgpu::TextureFormat::R32Sint;
+                case shaderc_spvc_storage_texture_format_rg16uint:
+                    return wgpu::TextureFormat::RG16Uint;
+                case shaderc_spvc_storage_texture_format_rg16sint:
+                    return wgpu::TextureFormat::RG16Sint;
+                case shaderc_spvc_storage_texture_format_rg16float:
+                    return wgpu::TextureFormat::RG16Float;
+                case shaderc_spvc_storage_texture_format_rgba8unorm:
+                    return wgpu::TextureFormat::RGBA8Unorm;
+                case shaderc_spvc_storage_texture_format_rgba8snorm:
+                    return wgpu::TextureFormat::RGBA8Snorm;
+                case shaderc_spvc_storage_texture_format_rgba8uint:
+                    return wgpu::TextureFormat::RGBA8Uint;
+                case shaderc_spvc_storage_texture_format_rgba8sint:
+                    return wgpu::TextureFormat::RGBA8Sint;
+                case shaderc_spvc_storage_texture_format_rgb10a2unorm:
+                    return wgpu::TextureFormat::RGB10A2Unorm;
+                case shaderc_spvc_storage_texture_format_rg11b10float:
+                    return wgpu::TextureFormat::RG11B10Float;
+                case shaderc_spvc_storage_texture_format_rg32float:
+                    return wgpu::TextureFormat::RG32Float;
+                case shaderc_spvc_storage_texture_format_rg32uint:
+                    return wgpu::TextureFormat::RG32Uint;
+                case shaderc_spvc_storage_texture_format_rg32sint:
+                    return wgpu::TextureFormat::RG32Sint;
+                case shaderc_spvc_storage_texture_format_rgba16uint:
+                    return wgpu::TextureFormat::RGBA16Uint;
+                case shaderc_spvc_storage_texture_format_rgba16sint:
+                    return wgpu::TextureFormat::RGBA16Sint;
+                case shaderc_spvc_storage_texture_format_rgba16float:
+                    return wgpu::TextureFormat::RGBA16Float;
+                case shaderc_spvc_storage_texture_format_rgba32float:
+                    return wgpu::TextureFormat::RGBA32Float;
+                case shaderc_spvc_storage_texture_format_rgba32uint:
+                    return wgpu::TextureFormat::RGBA32Uint;
+                case shaderc_spvc_storage_texture_format_rgba32sint:
+                    return wgpu::TextureFormat::RGBA32Sint;
+                default:
+                    return wgpu::TextureFormat::Undefined;
             }
         }
     }  // anonymous namespace
@@ -173,7 +320,7 @@ namespace dawn_native {
         }
 
         return {};
-    }
+    }  // namespace
 
     // ShaderModuleBase
 
@@ -214,8 +361,7 @@ namespace dawn_native {
         shaderc_spvc_execution_model execution_model;
         DAWN_TRY(CheckSpvcSuccess(mSpvcContext.GetExecutionModel(&execution_model),
                                   "Unable to get execution model for shader."));
-
-        DAWN_TRY_ASSIGN(mExecutionModel, ToSingleShaderStage(execution_model));
+        mExecutionModel = ToSingleShaderStage(execution_model);
 
         size_t push_constant_buffers_count;
         DAWN_TRY(
@@ -232,21 +378,54 @@ namespace dawn_native {
         auto ExtractResourcesBinding =
             [this](std::vector<shaderc_spvc_binding_info> bindings) -> MaybeError {
             for (const auto& binding : bindings) {
-                if (binding.binding >= kMaxBindingsPerGroup || binding.set >= kMaxBindGroups) {
-                    return DAWN_VALIDATION_ERROR("Binding over limits in the SPIRV");
+                if (binding.set >= kMaxBindGroups) {
+                    return DAWN_VALIDATION_ERROR("Bind group index over limits in the SPIRV");
                 }
 
-                BindingInfo* info = &mBindingInfo[binding.set][binding.binding];
-                *info = {};
-                info->used = true;
+                const auto& it = mBindingInfo[binding.set].emplace(BindingNumber(binding.binding),
+                                                                   ShaderBindingInfo{});
+                if (!it.second) {
+                    return DAWN_VALIDATION_ERROR("Shader has duplicate bindings");
+                }
+
+                ShaderBindingInfo* info = &it.first->second;
                 info->id = binding.id;
                 info->base_type_id = binding.base_type_id;
-                if (binding.binding_type == shaderc_spvc_binding_type_sampled_texture) {
-                    info->multisampled = binding.multisampled;
-                    info->textureDimension = ToWGPUTextureViewDimension(binding.texture_dimension);
-                    info->textureComponentType = ToDawnFormatType(binding.texture_component_type);
-                }
                 info->type = ToWGPUBindingType(binding.binding_type);
+
+                switch (info->type) {
+                    case wgpu::BindingType::SampledTexture: {
+                        info->multisampled = binding.multisampled;
+                        info->textureDimension =
+                            ToWGPUTextureViewDimension(binding.texture_dimension);
+                        info->textureComponentType =
+                            ToDawnFormatType(binding.texture_component_type);
+                        break;
+                    }
+                    case wgpu::BindingType::StorageTexture:
+                    case wgpu::BindingType::ReadonlyStorageTexture:
+                    case wgpu::BindingType::WriteonlyStorageTexture: {
+                        wgpu::TextureFormat storageTextureFormat =
+                            ToWGPUTextureFormat(binding.storage_texture_format);
+                        if (storageTextureFormat == wgpu::TextureFormat::Undefined) {
+                            return DAWN_VALIDATION_ERROR(
+                                "Invalid image format declaration on storage image");
+                        }
+                        const Format& format =
+                            GetDevice()->GetValidInternalFormat(storageTextureFormat);
+                        if (!format.supportsStorageUsage) {
+                            return DAWN_VALIDATION_ERROR(
+                                "The storage texture format is not supported");
+                        }
+                        info->multisampled = binding.multisampled;
+                        info->storageTextureFormat = storageTextureFormat;
+                        info->textureDimension =
+                            ToWGPUTextureViewDimension(binding.texture_dimension);
+                        break;
+                    }
+                    default:
+                        break;
+                }
             }
             return {};
         };
@@ -275,6 +454,13 @@ namespace dawn_native {
                                       shaderc_spvc_shader_resource_storage_buffers,
                                       shaderc_spvc_binding_type_storage_buffer, &resource_bindings),
                                   "Unable to get binding info for storage buffers from shader"));
+        DAWN_TRY(ExtractResourcesBinding(resource_bindings));
+
+        DAWN_TRY(CheckSpvcSuccess(
+            mSpvcContext.GetBindingInfo(shaderc_spvc_shader_resource_storage_images,
+                                        shaderc_spvc_binding_type_storage_texture,
+                                        &resource_bindings),
+            "Unable to get binding info for storage textures from shader"));
         DAWN_TRY(ExtractResourcesBinding(resource_bindings));
 
         std::vector<shaderc_spvc_resource_location_info> input_stage_locations;
@@ -385,18 +571,23 @@ namespace dawn_native {
                     return DAWN_VALIDATION_ERROR("No Descriptor Decoration set for resource");
                 }
 
-                uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                BindingNumber bindingNumber(
+                    compiler.get_decoration(resource.id, spv::DecorationBinding));
                 uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 
-                if (binding >= kMaxBindingsPerGroup || set >= kMaxBindGroups) {
-                    return DAWN_VALIDATION_ERROR("Binding over limits in the SPIRV");
+                if (set >= kMaxBindGroups) {
+                    return DAWN_VALIDATION_ERROR("Bind group index over limits in the SPIRV");
                 }
 
-                BindingInfo* info = &mBindingInfo[set][binding];
-                *info = {};
-                info->used = true;
+                const auto& it = mBindingInfo[set].emplace(bindingNumber, ShaderBindingInfo{});
+                if (!it.second) {
+                    return DAWN_VALIDATION_ERROR("Shader has duplicate bindings");
+                }
+
+                ShaderBindingInfo* info = &it.first->second;
                 info->id = resource.id;
                 info->base_type_id = resource.base_type_id;
+
                 switch (bindingType) {
                     case wgpu::BindingType::SampledTexture: {
                         spirv_cross::SPIRType::ImageType imageType =
@@ -410,7 +601,8 @@ namespace dawn_native {
                         info->textureComponentType =
                             SpirvCrossBaseTypeToFormatType(textureComponentType);
                         info->type = bindingType;
-                    } break;
+                        break;
+                    }
                     case wgpu::BindingType::StorageBuffer: {
                         // Differentiate between readonly storage bindings and writable ones
                         // based on the NonWritable decoration
@@ -420,7 +612,8 @@ namespace dawn_native {
                         } else {
                             info->type = wgpu::BindingType::StorageBuffer;
                         }
-                    } break;
+                        break;
+                    }
                     case wgpu::BindingType::StorageTexture: {
                         spirv_cross::Bitset flags = compiler.get_decoration_bitset(resource.id);
                         if (flags.get(spv::DecorationNonReadable)) {
@@ -430,10 +623,31 @@ namespace dawn_native {
                         } else {
                             info->type = wgpu::BindingType::StorageTexture;
                         }
-                    } break;
+
+                        spirv_cross::SPIRType::ImageType imageType =
+                            compiler.get_type(info->base_type_id).image;
+                        wgpu::TextureFormat storageTextureFormat =
+                            ToWGPUTextureFormat(imageType.format);
+                        if (storageTextureFormat == wgpu::TextureFormat::Undefined) {
+                            return DAWN_VALIDATION_ERROR(
+                                "Invalid image format declaration on storage image");
+                        }
+                        const Format& format =
+                            GetDevice()->GetValidInternalFormat(storageTextureFormat);
+                        if (!format.supportsStorageUsage) {
+                            return DAWN_VALIDATION_ERROR(
+                                "The storage texture format is not supported");
+                        }
+                        info->multisampled = imageType.ms;
+                        info->storageTextureFormat = storageTextureFormat;
+                        info->textureDimension =
+                            SpirvDimToTextureViewDimension(imageType.dim, imageType.arrayed);
+                        break;
+                    }
                     case wgpu::BindingType::AccelerationContainer: {
                         info->type = wgpu::BindingType::AccelerationContainer;
-                    } break;
+                        break;
+                    }
                     default:
                         info->type = bindingType;
                 }
@@ -545,10 +759,8 @@ namespace dawn_native {
         }
 
         for (uint32_t group : IterateBitSet(~layout->GetBindGroupLayoutsMask())) {
-            for (size_t i = 0; i < kMaxBindingsPerGroup; ++i) {
-                if (mBindingInfo[group][i].used) {
-                    return false;
-                }
+            if (mBindingInfo[group].size() > 0) {
+                return false;
             }
         }
 
@@ -560,42 +772,74 @@ namespace dawn_native {
         const BindGroupLayoutBase* layout) const {
         ASSERT(!IsError());
 
-        const auto& layoutInfo = layout->GetBindingInfo();
-        for (size_t i = 0; i < kMaxBindingsPerGroup; ++i) {
-            const auto& moduleInfo = mBindingInfo[group][i];
-            const auto& layoutBindingType = layoutInfo.types[i];
+        const BindGroupLayoutBase::BindingMap& bindingMap = layout->GetBindingMap();
 
-            if (!moduleInfo.used) {
-                continue;
+        // Iterate over all bindings used by this group in the shader, and find the
+        // corresponding binding in the BindGroupLayout, if it exists.
+        for (const auto& it : mBindingInfo[group]) {
+            BindingNumber bindingNumber = it.first;
+            const ShaderBindingInfo& moduleInfo = it.second;
+
+            const auto& bindingIt = bindingMap.find(bindingNumber);
+            if (bindingIt == bindingMap.end()) {
+                return false;
             }
+            BindingIndex bindingIndex(bindingIt->second);
 
-            if (layoutBindingType != moduleInfo.type) {
+            const BindingInfo& bindingInfo = layout->GetBindingInfo(bindingIndex);
+
+            if (bindingInfo.type != moduleInfo.type) {
                 // Binding mismatch between shader and bind group is invalid. For example, a
                 // writable binding in the shader with a readonly storage buffer in the bind group
                 // layout is invalid. However, a readonly binding in the shader with a writable
                 // storage buffer in the bind group layout is valid.
                 bool validBindingConversion =
-                    layoutBindingType == wgpu::BindingType::StorageBuffer &&
+                    bindingInfo.type == wgpu::BindingType::StorageBuffer &&
                     moduleInfo.type == wgpu::BindingType::ReadonlyStorageBuffer;
                 if (!validBindingConversion) {
                     return false;
                 }
             }
 
-            if ((layoutInfo.visibilities[i] & StageBit(mExecutionModel)) == 0) {
+            if ((bindingInfo.visibility & StageBit(mExecutionModel)) == 0) {
                 return false;
             }
 
-            if (layoutBindingType == wgpu::BindingType::SampledTexture) {
-                Format::Type layoutTextureComponentType =
-                    Format::TextureComponentTypeToFormatType(layoutInfo.textureComponentTypes[i]);
-                if (layoutTextureComponentType != moduleInfo.textureComponentType) {
-                    return false;
+            switch (bindingInfo.type) {
+                case wgpu::BindingType::SampledTexture: {
+                    if (bindingInfo.textureComponentType != moduleInfo.textureComponentType) {
+                        return false;
+                    }
+
+                    if (bindingInfo.textureDimension != moduleInfo.textureDimension) {
+                        return false;
+                    }
+                    break;
                 }
 
-                if (layoutInfo.textureDimensions[i] != moduleInfo.textureDimension) {
-                    return false;
+                case wgpu::BindingType::ReadonlyStorageTexture:
+                case wgpu::BindingType::WriteonlyStorageTexture: {
+                    ASSERT(bindingInfo.storageTextureFormat != wgpu::TextureFormat::Undefined);
+                    ASSERT(moduleInfo.storageTextureFormat != wgpu::TextureFormat::Undefined);
+                    if (bindingInfo.storageTextureFormat != moduleInfo.storageTextureFormat) {
+                        return false;
+                    }
+                    if (bindingInfo.textureDimension != moduleInfo.textureDimension) {
+                        return false;
+                    }
+                    break;
                 }
+
+                case wgpu::BindingType::UniformBuffer:
+                case wgpu::BindingType::ReadonlyStorageBuffer:
+                case wgpu::BindingType::StorageBuffer:
+                case wgpu::BindingType::Sampler:
+                    break;
+
+                case wgpu::BindingType::StorageTexture:
+                default:
+                    UNREACHABLE();
+                    return false;
             }
         }
 
@@ -620,7 +864,7 @@ namespace dawn_native {
     MaybeError ShaderModuleBase::CheckSpvcSuccess(shaderc_spvc_status status,
                                                   const char* error_msg) {
         if (status != shaderc_spvc_status_success) {
-            DAWN_VALIDATION_ERROR(error_msg);
+            return DAWN_VALIDATION_ERROR(error_msg);
         }
         return {};
     }

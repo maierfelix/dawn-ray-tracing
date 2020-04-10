@@ -221,7 +221,7 @@ TEST_P(DynamicBufferOffsetTests, BasicRenderPipeline) {
         commandEncoder.BeginRenderPass(&renderPass.renderPassInfo);
     renderPassEncoder.SetPipeline(pipeline);
     renderPassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -243,7 +243,7 @@ TEST_P(DynamicBufferOffsetTests, SetDynamicOffestsRenderPipeline) {
         commandEncoder.BeginRenderPass(&renderPass.renderPassInfo);
     renderPassEncoder.SetPipeline(pipeline);
     renderPassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -264,7 +264,7 @@ TEST_P(DynamicBufferOffsetTests, BasicComputePipeline) {
     wgpu::ComputePassEncoder computePassEncoder = commandEncoder.BeginComputePass();
     computePassEncoder.SetPipeline(pipeline);
     computePassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -284,7 +284,7 @@ TEST_P(DynamicBufferOffsetTests, SetDynamicOffestsComputePipeline) {
     wgpu::ComputePassEncoder computePassEncoder = commandEncoder.BeginComputePass();
     computePassEncoder.SetPipeline(pipeline);
     computePassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -309,10 +309,10 @@ TEST_P(DynamicBufferOffsetTests, InheritDynamicOffestsRenderPipeline) {
         commandEncoder.BeginRenderPass(&renderPass.renderPassInfo);
     renderPassEncoder.SetPipeline(pipeline);
     renderPassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.SetPipeline(testPipeline);
     renderPassEncoder.SetBindGroup(1, mBindGroups[1]);
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -339,10 +339,10 @@ TEST_P(DynamicBufferOffsetTests, InheritDynamicOffestsComputePipeline) {
     wgpu::ComputePassEncoder computePassEncoder = commandEncoder.BeginComputePass();
     computePassEncoder.SetPipeline(pipeline);
     computePassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.SetPipeline(testPipeline);
     computePassEncoder.SetBindGroup(1, mBindGroups[1]);
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -368,9 +368,9 @@ TEST_P(DynamicBufferOffsetTests, UpdateDynamicOffestsMultipleTimesRenderPipeline
         commandEncoder.BeginRenderPass(&renderPass.renderPassInfo);
     renderPassEncoder.SetPipeline(pipeline);
     renderPassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.SetBindGroup(0, mBindGroups[0], testOffsets.size(), testOffsets.data());
-    renderPassEncoder.Draw(3, 1, 0, 0);
+    renderPassEncoder.Draw(3);
     renderPassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);
@@ -392,9 +392,9 @@ TEST_P(DynamicBufferOffsetTests, UpdateDynamicOffsetsMultipleTimesComputePipelin
     wgpu::ComputePassEncoder computePassEncoder = commandEncoder.BeginComputePass();
     computePassEncoder.SetPipeline(pipeline);
     computePassEncoder.SetBindGroup(0, mBindGroups[0], offsets.size(), offsets.data());
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.SetBindGroup(0, mBindGroups[0], testOffsets.size(), testOffsets.data());
-    computePassEncoder.Dispatch(1, 1, 1);
+    computePassEncoder.Dispatch(1);
     computePassEncoder.EndPass();
     wgpu::CommandBuffer commands = commandEncoder.Finish();
     queue.Submit(1, &commands);

@@ -20,6 +20,7 @@
 #include "common/SwapChainUtils.h"
 #include "dawn_native/d3d12/DeviceD3D12.h"
 #include "dawn_native/d3d12/NativeSwapChainImplD3D12.h"
+#include "dawn_native/d3d12/ResidencyManagerD3D12.h"
 #include "dawn_native/d3d12/TextureD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
@@ -50,11 +51,19 @@ namespace dawn_native { namespace d3d12 {
         : ExternalImageDescriptor(ExternalImageDescriptorType::DXGISharedHandle) {
     }
 
+    uint64_t SetExternalMemoryReservation(WGPUDevice device, uint64_t requestedReservationSize) {
+        Device* backendDevice = reinterpret_cast<Device*>(device);
+
+        return backendDevice->GetResidencyManager()->SetExternalMemoryReservation(
+            requestedReservationSize);
+    }
+
     WGPUTexture WrapSharedHandle(WGPUDevice device,
                                  const ExternalImageDescriptorDXGISharedHandle* descriptor) {
         Device* backendDevice = reinterpret_cast<Device*>(device);
         TextureBase* texture = backendDevice->WrapSharedHandle(descriptor, descriptor->sharedHandle,
-                                                               descriptor->acquireMutexKey);
+                                                               descriptor->acquireMutexKey,
+                                                               descriptor->isSwapChainTexture);
         return reinterpret_cast<WGPUTexture>(texture);
     }
 

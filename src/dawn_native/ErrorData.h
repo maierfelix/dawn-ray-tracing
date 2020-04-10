@@ -15,6 +15,8 @@
 #ifndef DAWNNATIVE_ERRORDATA_H_
 #define DAWNNATIVE_ERRORDATA_H_
 
+#include "common/Compiler.h"
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -32,13 +34,13 @@ namespace dawn {
 namespace dawn_native {
     enum class InternalErrorType : uint32_t;
 
-    class ErrorData {
+    class DAWN_NO_DISCARD ErrorData {
       public:
-        static std::unique_ptr<ErrorData> Create(InternalErrorType type,
-                                                 std::string message,
-                                                 const char* file,
-                                                 const char* function,
-                                                 int line);
+        static DAWN_NO_DISCARD std::unique_ptr<ErrorData> Create(InternalErrorType type,
+                                                                 std::string message,
+                                                                 const char* file,
+                                                                 const char* function,
+                                                                 int line);
         ErrorData(InternalErrorType type, std::string message);
 
         struct BacktraceRecord {
@@ -48,8 +50,7 @@ namespace dawn_native {
         };
         void AppendBacktrace(const char* file, const char* function, int line);
 
-        InternalErrorType GetInternalType() const;
-        wgpu::ErrorType GetType() const;
+        InternalErrorType GetType() const;
         const std::string& GetMessage() const;
         const std::vector<BacktraceRecord>& GetBacktrace() const;
 

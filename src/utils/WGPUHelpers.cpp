@@ -284,11 +284,11 @@ namespace utils {
 
     wgpu::BindGroupLayout MakeBindGroupLayout(
         const wgpu::Device& device,
-        std::initializer_list<wgpu::BindGroupLayoutBinding> bindingsInitializer) {
+        std::initializer_list<wgpu::BindGroupLayoutEntry> bindingsInitializer) {
         constexpr wgpu::ShaderStage kNoStages{};
 
-        std::vector<wgpu::BindGroupLayoutBinding> bindings;
-        for (const wgpu::BindGroupLayoutBinding& binding : bindingsInitializer) {
+        std::vector<wgpu::BindGroupLayoutEntry> bindings;
+        for (const wgpu::BindGroupLayoutEntry& binding : bindingsInitializer) {
             if (binding.visibility != kNoStages) {
                 bindings.push_back(binding);
             }
@@ -317,8 +317,8 @@ namespace utils {
         : binding(binding), buffer(buffer), offset(offset), size(size) {
     }
 
-    wgpu::BindGroupBinding BindingInitializationHelper::GetAsBinding() const {
-        wgpu::BindGroupBinding result;
+    wgpu::BindGroupEntry BindingInitializationHelper::GetAsBinding() const {
+        wgpu::BindGroupEntry result;
 
         result.binding = binding;
         result.sampler = sampler;
@@ -334,7 +334,7 @@ namespace utils {
         const wgpu::Device& device,
         const wgpu::BindGroupLayout& layout,
         std::initializer_list<BindingInitializationHelper> bindingsInitializer) {
-        std::vector<wgpu::BindGroupBinding> bindings;
+        std::vector<wgpu::BindGroupEntry> bindings;
         for (const BindingInitializationHelper& helper : bindingsInitializer) {
             bindings.push_back(helper.GetAsBinding());
         }

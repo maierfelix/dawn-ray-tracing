@@ -40,7 +40,7 @@ namespace dawn_native { namespace vulkan {
     MaybeError Adapter::Initialize() {
         DAWN_TRY_ASSIGN(mDeviceInfo, GatherDeviceInfo(*this));
         if (!mDeviceInfo.maintenance1) {
-            return DAWN_DEVICE_LOST_ERROR(
+            return DAWN_INTERNAL_ERROR(
                 "Dawn requires Vulkan 1.1 or Vulkan 1.0 with KHR_Maintenance1 in order to support "
                 "viewport flipY");
         }
@@ -76,9 +76,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     ResultOrError<DeviceBase*> Adapter::CreateDeviceImpl(const DeviceDescriptor* descriptor) {
-        std::unique_ptr<Device> device = std::make_unique<Device>(this, descriptor);
-        DAWN_TRY(device->Initialize());
-        return device.release();
+        return Device::Create(this, descriptor);
     }
 
 }}  // namespace dawn_native::vulkan

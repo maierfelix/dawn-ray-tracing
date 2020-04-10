@@ -45,6 +45,10 @@ namespace dawn_native { namespace vulkan {
                 return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             case wgpu::BindingType::AccelerationContainer:
                 return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+            case wgpu::BindingType::ReadonlyStorageTexture:
+            case wgpu::BindingType::WriteonlyStorageTexture:
+                return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            case wgpu::BindingType::StorageTexture:
             default:
                 UNREACHABLE();
         }
@@ -54,60 +58,53 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<BindGroupLayout*> BindGroupLayout::Create(
         Device* device,
         const BindGroupLayoutDescriptor* descriptor) {
-        std::unique_ptr<BindGroupLayout> bgl =
-            std::make_unique<BindGroupLayout>(device, descriptor);
+        Ref<BindGroupLayout> bgl = AcquireRef(new BindGroupLayout(device, descriptor));
         DAWN_TRY(bgl->Initialize());
-        return bgl.release();
+        return bgl.Detach();
     }
 
     MaybeError BindGroupLayout::Initialize() {
-        const LayoutBindingInfo& info = GetBindingInfo();
-
         // Compute the bindings that will be chained in the DescriptorSetLayout create info. We add
         // one entry per binding set. This might be optimized by computing continuous ranges of
         // bindings of the same type.
         uint32_t numBindings = 0;
         std::array<VkDescriptorSetLayoutBinding, kMaxBindingsPerGroup> bindings;
-        for (uint32_t bindingIndex : IterateBitSet(info.mask)) {
-            VkDescriptorSetLayoutBinding* binding = &bindings[numBindings];
-            binding->binding = bindingIndex;
-            binding->descriptorType =
-                VulkanDescriptorType(info.types[bindingIndex], info.hasDynamicOffset[bindingIndex]);
-            binding->descriptorCount = 1;
-            binding->stageFlags = ToVulkanShaderStageFlags(info.visibilities[bindingIndex]);
-            binding->pImmutableSamplers = nullptr;
-
+        for (const auto& it : GetBindingMap()) {
+            BindingNumber bindingNumber = it.first;
+            BindingIndex bindingIndex = it.second;
+            const BindingInfo& bindingInfo = GetBindingInfo(bindingIndex);
+            VkDescriptorSetLayoutBinding* vkBinding = &bindings[numBindings];
+            vkBinding->binding = bindingNumber;
+            vkBinding->descriptorType =
+                VulkanDescriptorType(bindingInfo.type, bindingInfo.hasDynamicOffset);
+            vkBinding->descriptorCount = 1;
+            vkBinding->stageFlags = VulkanShaderStageFlags(bindingInfo.visibility);
+            vkBinding->pImmutableSamplers = nullptr;
             numBindings++;
         }
-
         VkDescriptorSetLayoutCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
         createInfo.bindingCount = numBindings;
         createInfo.pBindings = bindings.data();
-
         Device* device = ToBackend(GetDevice());
         DAWN_TRY(CheckVkSuccess(device->fn.CreateDescriptorSetLayout(
                                     device->GetVkDevice(), &createInfo, nullptr, &*mHandle),
                                 "CreateDescriptorSetLayout"));
-
         // Compute the size of descriptor pools used for this layout.
         std::map<VkDescriptorType, uint32_t> descriptorCountPerType;
-
-        for (uint32_t bindingIndex : IterateBitSet(info.mask)) {
+        for (BindingIndex bindingIndex = 0; bindingIndex < GetBindingCount(); ++bindingIndex) {
+            const BindingInfo& bindingInfo = GetBindingInfo(bindingIndex);
             VkDescriptorType vulkanType =
-                VulkanDescriptorType(info.types[bindingIndex], info.hasDynamicOffset[bindingIndex]);
-
+                VulkanDescriptorType(bindingInfo.type, bindingInfo.hasDynamicOffset);
             // map::operator[] will return 0 if the key doesn't exist.
             descriptorCountPerType[vulkanType]++;
         }
-
         mPoolSizes.reserve(descriptorCountPerType.size());
         for (const auto& it : descriptorCountPerType) {
             mPoolSizes.push_back(VkDescriptorPoolSize{it.first, it.second});
         }
-
         return {};
     }
 

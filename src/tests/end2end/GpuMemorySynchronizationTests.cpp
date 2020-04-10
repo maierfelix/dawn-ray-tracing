@@ -111,7 +111,7 @@ TEST_P(GpuMemorySyncTests, ComputePass) {
         wgpu::ComputePassEncoder pass = encoder.BeginComputePass();
         pass.SetPipeline(compute);
         pass.SetBindGroup(0, bindGroup);
-        pass.Dispatch(1, 1, 1);
+        pass.Dispatch(1);
         pass.EndPass();
     }
 
@@ -144,7 +144,7 @@ TEST_P(GpuMemorySyncTests, RenderPass) {
         wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPass.renderPassInfo);
         pass.SetPipeline(render);
         pass.SetBindGroup(0, bindGroup);
-        pass.Draw(1, 1, 0, 0);
+        pass.Draw(1);
         pass.EndPass();
     }
 
@@ -176,14 +176,14 @@ TEST_P(GpuMemorySyncTests, RenderPassToComputePass) {
     wgpu::RenderPassEncoder pass0 = encoder.BeginRenderPass(&renderPass.renderPassInfo);
     pass0.SetPipeline(render);
     pass0.SetBindGroup(0, bindGroup0);
-    pass0.Draw(1, 1, 0, 0);
+    pass0.Draw(1);
     pass0.EndPass();
 
     // Read that data in compute pass.
     wgpu::ComputePassEncoder pass1 = encoder.BeginComputePass();
     pass1.SetPipeline(compute);
     pass1.SetBindGroup(0, bindGroup1);
-    pass1.Dispatch(1, 1, 1);
+    pass1.Dispatch(1);
     pass1.EndPass();
 
     wgpu::CommandBuffer commands = encoder.Finish();
@@ -214,14 +214,14 @@ TEST_P(GpuMemorySyncTests, ComputePassToRenderPass) {
     wgpu::ComputePassEncoder pass0 = encoder.BeginComputePass();
     pass0.SetPipeline(compute);
     pass0.SetBindGroup(0, bindGroup1);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
 
     // Read that data in render pass.
     wgpu::RenderPassEncoder pass1 = encoder.BeginRenderPass(&renderPass.renderPassInfo);
     pass1.SetPipeline(render);
     pass1.SetBindGroup(0, bindGroup0);
-    pass1.Draw(1, 1, 0, 0);
+    pass1.Draw(1);
     pass1.EndPass();
 
     wgpu::CommandBuffer commands = encoder.Finish();
@@ -318,14 +318,14 @@ TEST_P(StorageToUniformSyncTests, ReadAfterWriteWithSameCommandBuffer) {
     wgpu::ComputePassEncoder pass0 = encoder0.BeginComputePass();
     pass0.SetPipeline(compute);
     pass0.SetBindGroup(0, computeBindGroup);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
 
     // Read that data in render pass.
     wgpu::RenderPassEncoder pass1 = encoder0.BeginRenderPass(&renderPass.renderPassInfo);
     pass1.SetPipeline(render);
     pass1.SetBindGroup(0, renderBindGroup);
-    pass1.Draw(1, 1, 0, 0);
+    pass1.Draw(1);
     pass1.EndPass();
 
     wgpu::CommandBuffer commands = encoder0.Finish();
@@ -355,7 +355,7 @@ TEST_P(StorageToUniformSyncTests, ReadAfterWriteWithDifferentCommandBuffers) {
     wgpu::ComputePassEncoder pass0 = encoder0.BeginComputePass();
     pass0.SetPipeline(compute);
     pass0.SetBindGroup(0, computeBindGroup);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
     cb[0] = encoder0.Finish();
 
@@ -364,7 +364,7 @@ TEST_P(StorageToUniformSyncTests, ReadAfterWriteWithDifferentCommandBuffers) {
     wgpu::RenderPassEncoder pass1 = encoder1.BeginRenderPass(&renderPass.renderPassInfo);
     pass1.SetPipeline(render);
     pass1.SetBindGroup(0, renderBindGroup);
-    pass1.Draw(1, 1, 0, 0);
+    pass1.Draw(1);
     pass1.EndPass();
 
     cb[1] = encoder1.Finish();
@@ -394,7 +394,7 @@ TEST_P(StorageToUniformSyncTests, ReadAfterWriteWithDifferentQueueSubmits) {
     wgpu::ComputePassEncoder pass0 = encoder0.BeginComputePass();
     pass0.SetPipeline(compute);
     pass0.SetBindGroup(0, computeBindGroup);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
     cb[0] = encoder0.Finish();
     queue.Submit(1, &cb[0]);
@@ -404,7 +404,7 @@ TEST_P(StorageToUniformSyncTests, ReadAfterWriteWithDifferentQueueSubmits) {
     wgpu::RenderPassEncoder pass1 = encoder1.BeginRenderPass(&renderPass.renderPassInfo);
     pass1.SetPipeline(render);
     pass1.SetBindGroup(0, renderBindGroup);
-    pass1.Draw(1, 1, 0, 0);
+    pass1.Draw(1);
     pass1.EndPass();
 
     cb[1] = encoder1.Finish();
@@ -499,7 +499,7 @@ TEST_P(MultipleWriteThenMultipleReadTests, SeparateBuffers) {
     wgpu::ComputePassEncoder pass0 = encoder.BeginComputePass();
     pass0.SetPipeline(cp);
     pass0.SetBindGroup(0, bindGroup0);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
 
     // Create pipeline, bind group, and reuse buffers in render pass.
@@ -550,7 +550,7 @@ TEST_P(MultipleWriteThenMultipleReadTests, SeparateBuffers) {
     pass1.SetVertexBuffer(0, vertexBuffer);
     pass1.SetIndexBuffer(indexBuffer, 0);
     pass1.SetBindGroup(0, bindGroup1);
-    pass1.DrawIndexed(6, 1, 0, 0, 0);
+    pass1.DrawIndexed(6);
     pass1.EndPass();
 
     wgpu::CommandBuffer commandBuffer = encoder.Finish();
@@ -621,7 +621,7 @@ TEST_P(MultipleWriteThenMultipleReadTests, OneBuffer) {
     wgpu::ComputePassEncoder pass0 = encoder.BeginComputePass();
     pass0.SetPipeline(cp);
     pass0.SetBindGroup(0, bindGroup0);
-    pass0.Dispatch(1, 1, 1);
+    pass0.Dispatch(1);
     pass0.EndPass();
 
     // Create pipeline, bind group, and reuse the buffer in render pass.
@@ -674,7 +674,7 @@ TEST_P(MultipleWriteThenMultipleReadTests, OneBuffer) {
     pass1.SetVertexBuffer(0, buffer);
     pass1.SetIndexBuffer(buffer, offsetof(Data, indices));
     pass1.SetBindGroup(0, bindGroup1);
-    pass1.DrawIndexed(6, 1, 0, 0, 0);
+    pass1.DrawIndexed(6);
     pass1.EndPass();
 
     wgpu::CommandBuffer commandBuffer = encoder.Finish();

@@ -33,7 +33,6 @@ namespace dawn_native {
     class SwapChainBase : public ObjectBase {
       public:
         SwapChainBase(DeviceBase* device);
-        virtual ~SwapChainBase();
 
         static SwapChainBase* MakeError(DeviceBase* device);
 
@@ -47,13 +46,13 @@ namespace dawn_native {
 
       protected:
         SwapChainBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+        ~SwapChainBase() override;
     };
 
     // The base class for implementation-based SwapChains that are deprecated.
     class OldSwapChainBase : public SwapChainBase {
       public:
         OldSwapChainBase(DeviceBase* device, const SwapChainDescriptor* descriptor);
-        ~OldSwapChainBase();
 
         static SwapChainBase* MakeError(DeviceBase* device);
 
@@ -66,6 +65,7 @@ namespace dawn_native {
         void Present() override;
 
       protected:
+        ~OldSwapChainBase() override;
         const DawnSwapChainImplementation& GetImplementation();
         virtual TextureBase* GetNextTextureImpl(const TextureDescriptor*) = 0;
         virtual MaybeError OnBeforePresent(TextureBase* texture) = 0;
@@ -93,7 +93,6 @@ namespace dawn_native {
         NewSwapChainBase(DeviceBase* device,
                          Surface* surface,
                          const SwapChainDescriptor* descriptor);
-        ~NewSwapChainBase() override;
 
         // This is called when the swapchain is detached for any reason:
         //
@@ -122,9 +121,13 @@ namespace dawn_native {
         uint32_t GetHeight() const;
         wgpu::TextureFormat GetFormat() const;
         wgpu::TextureUsage GetUsage() const;
-        Surface* GetSurface();
+        wgpu::PresentMode GetPresentMode() const;
+        Surface* GetSurface() const;
         bool IsAttached() const;
         wgpu::BackendType GetBackendType() const;
+
+      protected:
+        ~NewSwapChainBase() override;
 
       private:
         bool mAttached;
@@ -132,6 +135,7 @@ namespace dawn_native {
         uint32_t mHeight;
         wgpu::TextureFormat mFormat;
         wgpu::TextureUsage mUsage;
+        wgpu::PresentMode mPresentMode;
 
         // This is a weak reference to the surface. If the surface is destroyed it will call
         // DetachFromSurface and mSurface will be updated to nullptr.

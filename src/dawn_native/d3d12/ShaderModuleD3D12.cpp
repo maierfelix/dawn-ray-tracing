@@ -27,11 +27,9 @@ namespace dawn_native { namespace d3d12 {
     // static
     ResultOrError<ShaderModule*> ShaderModule::Create(Device* device,
                                                       const ShaderModuleDescriptor* descriptor) {
-        std::unique_ptr<ShaderModule> module(new ShaderModule(device, descriptor));
-        if (!module)
-            return DAWN_VALIDATION_ERROR("Unable to create ShaderModule");
+        Ref<ShaderModule> module = AcquireRef(new ShaderModule(device, descriptor));
         DAWN_TRY(module->Initialize(descriptor));
-        return module.release();
+        return module.Detach();
     }
 
     ShaderModule::ShaderModule(Device* device, const ShaderModuleDescriptor* descriptor)
@@ -43,6 +41,7 @@ namespace dawn_native { namespace d3d12 {
         if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
             shaderc_spvc::CompileOptions options = GetCompileOptions();
 
+            options.SetForceZeroInitializedVariables(true);
             options.SetHLSLShaderModel(51);
             // PointCoord and PointSize are not supported in HLSL
             // TODO (hao.x.li@intel.com): The point_coord_compat and point_size_compat are
@@ -74,6 +73,9 @@ namespace dawn_native { namespace d3d12 {
             // If these options are changed, the values in DawnSPIRVCrossHLSLFastFuzzer.cpp need to
             // be updated.
             spirv_cross::CompilerGLSL::Options options_glsl;
+            // Force all uninitialized variables to be 0, otherwise they will fail to compile
+            // by FXC.
+            options_glsl.force_zero_initialized_variables = true;
 
             spirv_cross::CompilerHLSL::Options options_hlsl;
             options_hlsl.shader_model = 51;
@@ -93,23 +95,23 @@ namespace dawn_native { namespace d3d12 {
 
         const ModuleBindingInfo& moduleBindingInfo = GetBindingInfo();
         for (uint32_t group : IterateBitSet(layout->GetBindGroupLayoutsMask())) {
-            const auto& bindingOffsets =
-                ToBackend(layout->GetBindGroupLayout(group))->GetBindingOffsets();
+            const BindGroupLayout* bgl = ToBackend(layout->GetBindGroupLayout(group));
+            const auto& bindingOffsets = bgl->GetBindingOffsets();
             const auto& groupBindingInfo = moduleBindingInfo[group];
-            for (uint32_t binding = 0; binding < groupBindingInfo.size(); ++binding) {
-                const BindingInfo& bindingInfo = groupBindingInfo[binding];
-                if (bindingInfo.used) {
-                    uint32_t bindingOffset = bindingOffsets[binding];
-                    if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
-                        DAWN_TRY(CheckSpvcSuccess(
-                            mSpvcContext.SetDecoration(
-                                bindingInfo.id, SHADERC_SPVC_DECORATION_BINDING, bindingOffset),
-                            "Unable to set decorating binding before generating HLSL shader w/ "
-                            "spvc"));
-                    } else {
-                        compiler->set_decoration(bindingInfo.id, spv::DecorationBinding,
-                                                 bindingOffset);
-                    }
+            for (const auto& it : groupBindingInfo) {
+                const ShaderBindingInfo& bindingInfo = it.second;
+                BindingNumber bindingNumber = it.first;
+                BindingIndex bindingIndex = bgl->GetBindingIndex(bindingNumber);
+
+                uint32_t bindingOffset = bindingOffsets[bindingIndex];
+                if (GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {
+                    DAWN_TRY(CheckSpvcSuccess(
+                        mSpvcContext.SetDecoration(bindingInfo.id, SHADERC_SPVC_DECORATION_BINDING,
+                                                   bindingOffset),
+                        "Unable to set decorating binding before generating HLSL shader w/ "
+                        "spvc"));
+                } else {
+                    compiler->set_decoration(bindingInfo.id, spv::DecorationBinding, bindingOffset);
                 }
             }
         }

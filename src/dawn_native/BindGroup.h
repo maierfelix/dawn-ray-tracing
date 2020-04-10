@@ -41,15 +41,14 @@ namespace dawn_native {
 
     class BindGroupBase : public ObjectBase {
       public:
-        ~BindGroupBase() override;
-
         static BindGroupBase* MakeError(DeviceBase* device);
 
         BindGroupLayoutBase* GetLayout();
-        BufferBinding GetBindingAsBufferBinding(size_t binding);
-        SamplerBase* GetBindingAsSampler(size_t binding);
-        TextureViewBase* GetBindingAsTextureView(size_t binding);
-        RayTracingAccelerationContainerBase* GetBindingAsRayTracingAccelerationContainer(size_t binding);
+
+        BufferBinding GetBindingAsBufferBinding(BindingIndex bindingIndex);
+        SamplerBase* GetBindingAsSampler(BindingIndex bindingIndex);
+        TextureViewBase* GetBindingAsTextureView(BindingIndex bindingIndex);
+        RayTracingAccelerationContainerBase* GetBindingAsRayTracingAccelerationContainer(BindingIndex bindingIndex);
 
       protected:
         // To save memory, the size of a bind group is dynamically determined and the bind group is
@@ -71,8 +70,12 @@ namespace dawn_native {
             static_assert(std::is_base_of<BindGroupBase, Derived>::value, "");
         }
 
+      protected:
+        ~BindGroupBase() override;
+
       private:
         BindGroupBase(DeviceBase* device, ObjectBase::ErrorTag tag);
+        void DeleteThis() override;
 
         Ref<BindGroupLayoutBase> mLayout;
         BindGroupLayoutBase::BindingDataPointers mBindingData;

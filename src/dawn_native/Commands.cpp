@@ -35,83 +35,102 @@ namespace dawn_native {
                 case Command::BeginComputePass: {
                     BeginComputePassCmd* begin = commands->NextCommand<BeginComputePassCmd>();
                     begin->~BeginComputePassCmd();
-                } break;
+                    break;
+                }
                 case Command::BeginRayTracingPass: {
                     BeginRayTracingPassCmd* begin = commands->NextCommand<BeginRayTracingPassCmd>();
                     begin->~BeginRayTracingPassCmd();
-                } break;
+                    break;
+                }
                 case Command::BeginRenderPass: {
                     BeginRenderPassCmd* begin = commands->NextCommand<BeginRenderPassCmd>();
                     begin->~BeginRenderPassCmd();
-                } break;
+                    break;
+                }
                 case Command::BuildRayTracingAccelerationContainer: {
                     BuildRayTracingAccelerationContainerCmd* build =
                         commands->NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     build->~BuildRayTracingAccelerationContainerCmd();
-                } break;
+                    break;
+                }
                 case Command::CopyRayTracingAccelerationContainer: {
                     CopyRayTracingAccelerationContainerCmd* build =
                         commands->NextCommand<CopyRayTracingAccelerationContainerCmd>();
                     build->~CopyRayTracingAccelerationContainerCmd();
-                } break;
+                    break;
+                }
                 case Command::UpdateRayTracingAccelerationContainer: {
                     UpdateRayTracingAccelerationContainerCmd* update =
                         commands->NextCommand<UpdateRayTracingAccelerationContainerCmd>();
                     update->~UpdateRayTracingAccelerationContainerCmd();
-                } break;
+                    break;
+                }
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = commands->NextCommand<CopyBufferToBufferCmd>();
                     copy->~CopyBufferToBufferCmd();
-                } break;
+                    break;
+                }
                 case Command::CopyBufferToTexture: {
                     CopyBufferToTextureCmd* copy = commands->NextCommand<CopyBufferToTextureCmd>();
                     copy->~CopyBufferToTextureCmd();
-                } break;
+                    break;
+                }
                 case Command::CopyTextureToBuffer: {
                     CopyTextureToBufferCmd* copy = commands->NextCommand<CopyTextureToBufferCmd>();
                     copy->~CopyTextureToBufferCmd();
-                } break;
+                    break;
+                }
                 case Command::CopyTextureToTexture: {
                     CopyTextureToTextureCmd* copy =
                         commands->NextCommand<CopyTextureToTextureCmd>();
                     copy->~CopyTextureToTextureCmd();
-                } break;
+                    break;
+                }
                 case Command::Dispatch: {
                     DispatchCmd* dispatch = commands->NextCommand<DispatchCmd>();
                     dispatch->~DispatchCmd();
-                } break;
+                    break;
+                }
                 case Command::DispatchIndirect: {
                     DispatchIndirectCmd* dispatch = commands->NextCommand<DispatchIndirectCmd>();
                     dispatch->~DispatchIndirectCmd();
-                } break;
+                    break;
+                }
                 case Command::Draw: {
                     DrawCmd* draw = commands->NextCommand<DrawCmd>();
                     draw->~DrawCmd();
-                } break;
+                    break;
+                }
                 case Command::DrawIndexed: {
                     DrawIndexedCmd* draw = commands->NextCommand<DrawIndexedCmd>();
                     draw->~DrawIndexedCmd();
-                } break;
+                    break;
+                }
                 case Command::DrawIndirect: {
                     DrawIndirectCmd* draw = commands->NextCommand<DrawIndirectCmd>();
                     draw->~DrawIndirectCmd();
-                } break;
+                    break;
+                }
                 case Command::DrawIndexedIndirect: {
                     DrawIndexedIndirectCmd* draw = commands->NextCommand<DrawIndexedIndirectCmd>();
                     draw->~DrawIndexedIndirectCmd();
-                } break;
+                    break;
+                }
                 case Command::EndComputePass: {
                     EndComputePassCmd* cmd = commands->NextCommand<EndComputePassCmd>();
                     cmd->~EndComputePassCmd();
-                } break;
+                    break;
+                }
                 case Command::EndRayTracingPass: {
                     EndRayTracingPassCmd* cmd = commands->NextCommand<EndRayTracingPassCmd>();
                     cmd->~EndRayTracingPassCmd();
-                } break;
+                    break;
+                }
                 case Command::EndRenderPass: {
                     EndRenderPassCmd* cmd = commands->NextCommand<EndRenderPassCmd>();
                     cmd->~EndRenderPassCmd();
-                } break;
+                    break;
+                }
                 case Command::ExecuteBundles: {
                     ExecuteBundlesCmd* cmd = commands->NextCommand<ExecuteBundlesCmd>();
                     auto bundles = commands->NextData<Ref<RenderBundleBase>>(cmd->count);
@@ -119,69 +138,84 @@ namespace dawn_native {
                         (&bundles[i])->~Ref<RenderBundleBase>();
                     }
                     cmd->~ExecuteBundlesCmd();
-                } break;
+                    break;
+                }
                 case Command::InsertDebugMarker: {
                     InsertDebugMarkerCmd* cmd = commands->NextCommand<InsertDebugMarkerCmd>();
                     commands->NextData<char>(cmd->length + 1);
                     cmd->~InsertDebugMarkerCmd();
-                } break;
+                    break;
+                }
                 case Command::PopDebugGroup: {
                     PopDebugGroupCmd* cmd = commands->NextCommand<PopDebugGroupCmd>();
                     cmd->~PopDebugGroupCmd();
-                } break;
+                    break;
+                }
                 case Command::PushDebugGroup: {
                     PushDebugGroupCmd* cmd = commands->NextCommand<PushDebugGroupCmd>();
                     commands->NextData<char>(cmd->length + 1);
                     cmd->~PushDebugGroupCmd();
-                } break;
+                    break;
+                }
                 case Command::SetComputePipeline: {
                     SetComputePipelineCmd* cmd = commands->NextCommand<SetComputePipelineCmd>();
                     cmd->~SetComputePipelineCmd();
-                } break;
+                    break;
+                }
                 case Command::SetRayTracingPipeline: {
                     SetRayTracingPipelineCmd* cmd =
                         commands->NextCommand<SetRayTracingPipelineCmd>();
                     cmd->~SetRayTracingPipelineCmd();
-                } break;
+                    break;
+                }
                 case Command::SetRenderPipeline: {
                     SetRenderPipelineCmd* cmd = commands->NextCommand<SetRenderPipelineCmd>();
                     cmd->~SetRenderPipelineCmd();
-                } break;
+                    break;
+                }
                 case Command::SetStencilReference: {
                     SetStencilReferenceCmd* cmd = commands->NextCommand<SetStencilReferenceCmd>();
                     cmd->~SetStencilReferenceCmd();
-                } break;
+                    break;
+                }
                 case Command::SetViewport: {
                     SetViewportCmd* cmd = commands->NextCommand<SetViewportCmd>();
                     cmd->~SetViewportCmd();
-                } break;
+                    break;
+                }
                 case Command::SetScissorRect: {
                     SetScissorRectCmd* cmd = commands->NextCommand<SetScissorRectCmd>();
                     cmd->~SetScissorRectCmd();
-                } break;
+                    break;
+                }
                 case Command::SetBlendColor: {
                     SetBlendColorCmd* cmd = commands->NextCommand<SetBlendColorCmd>();
                     cmd->~SetBlendColorCmd();
-                } break;
+                    break;
+                }
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = commands->NextCommand<SetBindGroupCmd>();
                     if (cmd->dynamicOffsetCount > 0) {
                         commands->NextData<uint32_t>(cmd->dynamicOffsetCount);
                     }
                     cmd->~SetBindGroupCmd();
-                } break;
+                    break;
+                }
                 case Command::SetIndexBuffer: {
                     SetIndexBufferCmd* cmd = commands->NextCommand<SetIndexBufferCmd>();
                     cmd->~SetIndexBufferCmd();
-                } break;
+                    break;
+                }
                 case Command::SetVertexBuffer: {
                     SetVertexBufferCmd* cmd = commands->NextCommand<SetVertexBufferCmd>();
                     cmd->~SetVertexBufferCmd();
-                } break;
+                    break;
+                }
                 case Command::TraceRays: {
                     TraceRaysCmd* cmd = commands->NextCommand<TraceRaysCmd>();
                     cmd->~TraceRaysCmd();
-                } break;
+                    break;
+                }
             }
         }
         commands->DataWasDestroyed();
@@ -268,12 +302,14 @@ namespace dawn_native {
             case Command::ExecuteBundles: {
                 auto* cmd = commands->NextCommand<ExecuteBundlesCmd>();
                 commands->NextData<Ref<RenderBundleBase>>(cmd->count);
-            } break;
+                break;
+            }
 
             case Command::InsertDebugMarker: {
                 InsertDebugMarkerCmd* cmd = commands->NextCommand<InsertDebugMarkerCmd>();
                 commands->NextData<char>(cmd->length + 1);
-            } break;
+                break;
+            }
 
             case Command::PopDebugGroup:
                 commands->NextCommand<PopDebugGroupCmd>();
@@ -282,7 +318,8 @@ namespace dawn_native {
             case Command::PushDebugGroup: {
                 PushDebugGroupCmd* cmd = commands->NextCommand<PushDebugGroupCmd>();
                 commands->NextData<char>(cmd->length + 1);
-            } break;
+                break;
+            }
 
             case Command::SetComputePipeline:
                 commands->NextCommand<SetComputePipelineCmd>();
@@ -317,19 +354,20 @@ namespace dawn_native {
                 if (cmd->dynamicOffsetCount > 0) {
                     commands->NextData<uint32_t>(cmd->dynamicOffsetCount);
                 }
-            } break;
+                break;
+            }
 
             case Command::SetIndexBuffer:
                 commands->NextCommand<SetIndexBufferCmd>();
                 break;
 
-            case Command::SetVertexBuffer: {
+            case Command::SetVertexBuffer:
                 commands->NextCommand<SetVertexBufferCmd>();
-            } break;
+                break;
 
-            case Command::TraceRays: {
+            case Command::TraceRays:
                 commands->NextCommand<TraceRaysCmd>();
-            } break;
+                break;
         }
     }
 

@@ -105,8 +105,8 @@ TEST_P(DeviceLostTest, SubmitFails) {
 TEST_P(DeviceLostTest, CreateBindGroupLayoutFails) {
     SetCallbackAndLoseForTesting();
 
-    wgpu::BindGroupLayoutBinding binding = {0, wgpu::ShaderStage::None,
-                                            wgpu::BindingType::UniformBuffer};
+    wgpu::BindGroupLayoutEntry binding = {0, wgpu::ShaderStage::None,
+                                          wgpu::BindingType::UniformBuffer};
     wgpu::BindGroupLayoutDescriptor descriptor;
     descriptor.bindingCount = 1;
     descriptor.bindings = &binding;
@@ -139,7 +139,7 @@ TEST_P(DeviceLostTest, GetBindGroupLayoutFails) {
 TEST_P(DeviceLostTest, CreateBindGroupFails) {
     SetCallbackAndLoseForTesting();
 
-    wgpu::BindGroupBinding binding;
+    wgpu::BindGroupEntry binding;
     binding.binding = 0;
     binding.sampler = nullptr;
     binding.textureView = nullptr;
@@ -459,4 +459,16 @@ TEST_P(DeviceLostTest, FenceSignalTickOnCompletion) {
     EXPECT_EQ(fence.GetCompletedValue(), 2u);
 }
 
-DAWN_INSTANTIATE_TEST(DeviceLostTest, D3D12Backend(), VulkanBackend());
+// Test that LostForTesting can only be called on one time
+TEST_P(DeviceLostTest, LoseForTestingOnce) {
+    // First LoseForTesting call should occur normally
+    SetCallbackAndLoseForTesting();
+
+    // Second LoseForTesting call should result in no callbacks. The LoseForTesting will return
+    // without doing anything when it sees that device has already been lost.
+    device.SetDeviceLostCallback(ToMockDeviceLostCallback, this);
+    EXPECT_CALL(*mockDeviceLostCallback, Call(_, this)).Times(0);
+    device.LoseForTesting();
+}
+
+DAWN_INSTANTIATE_TEST(DeviceLostTest, D3D12Backend(), MetalBackend(), VulkanBackend());

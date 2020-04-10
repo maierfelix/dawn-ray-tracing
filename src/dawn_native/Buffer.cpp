@@ -28,7 +28,7 @@ namespace dawn_native {
 
     namespace {
 
-        class ErrorBuffer : public BufferBase {
+        class ErrorBuffer final : public BufferBase {
           public:
             ErrorBuffer(DeviceBase* device) : BufferBase(device, ObjectBase::kError) {
             }
@@ -461,6 +461,10 @@ namespace dawn_native {
             DestroyImpl();
         }
         mState = BufferState::Destroyed;
+    }
+
+    bool BufferBase::IsMapped() const {
+        return mState == BufferState::Mapped;
     }
 
 }  // namespace dawn_native

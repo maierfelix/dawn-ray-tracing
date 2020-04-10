@@ -493,17 +493,22 @@ namespace dawn_native { namespace metal {
                                     uint32_t dynamicOffsetCount,
                                     uint64_t* dynamicOffsets,
                                     PipelineLayout* pipelineLayout) {
-                const auto& layout = group->GetLayout()->GetBindingInfo();
                 uint32_t currentDynamicBufferIndex = 0;
 
                 // TODO(kainino@chromium.org): Maintain buffers and offsets arrays in BindGroup
                 // so that we only have to do one setVertexBuffers and one setFragmentBuffers
                 // call here.
-                for (uint32_t bindingIndex : IterateBitSet(layout.mask)) {
-                    auto stage = layout.visibilities[bindingIndex];
-                    bool hasVertStage = stage & wgpu::ShaderStage::Vertex && render != nil;
-                    bool hasFragStage = stage & wgpu::ShaderStage::Fragment && render != nil;
-                    bool hasComputeStage = stage & wgpu::ShaderStage::Compute && compute != nil;
+                for (BindingIndex bindingIndex = 0;
+                     bindingIndex < group->GetLayout()->GetBindingCount(); ++bindingIndex) {
+                    const BindingInfo& bindingInfo =
+                        group->GetLayout()->GetBindingInfo(bindingIndex);
+
+                    bool hasVertStage =
+                        bindingInfo.visibility & wgpu::ShaderStage::Vertex && render != nil;
+                    bool hasFragStage =
+                        bindingInfo.visibility & wgpu::ShaderStage::Fragment && render != nil;
+                    bool hasComputeStage =
+                        bindingInfo.visibility & wgpu::ShaderStage::Compute && compute != nil;
 
                     uint32_t vertIndex = 0;
                     uint32_t fragIndex = 0;
@@ -522,7 +527,7 @@ namespace dawn_native { namespace metal {
                             SingleShaderStage::Compute)[index][bindingIndex];
                     }
 
-                    switch (layout.types[bindingIndex]) {
+                    switch (bindingInfo.type) {
                         case wgpu::BindingType::UniformBuffer:
                         case wgpu::BindingType::StorageBuffer:
                         case wgpu::BindingType::ReadonlyStorageBuffer: {
@@ -533,7 +538,7 @@ namespace dawn_native { namespace metal {
 
                             // TODO(shaobo.yan@intel.com): Record bound buffer status to use
                             // setBufferOffset to achieve better performance.
-                            if (layout.hasDynamicOffset[bindingIndex]) {
+                            if (bindingInfo.hasDynamicOffset) {
                                 offset += dynamicOffsets[currentDynamicBufferIndex];
                                 currentDynamicBufferIndex++;
                             }
@@ -563,7 +568,8 @@ namespace dawn_native { namespace metal {
                                           withRange:NSMakeRange(computeIndex, 1)];
                             }
 
-                        } break;
+                            break;
+                        }
 
                         case wgpu::BindingType::Sampler: {
                             auto sampler = ToBackend(group->GetBindingAsSampler(bindingIndex));
@@ -579,7 +585,8 @@ namespace dawn_native { namespace metal {
                                 [compute setSamplerState:sampler->GetMTLSamplerState()
                                                  atIndex:computeIndex];
                             }
-                        } break;
+                            break;
+                        }
 
                         case wgpu::BindingType::SampledTexture: {
                             auto textureView =
@@ -596,7 +603,8 @@ namespace dawn_native { namespace metal {
                                 [compute setTexture:textureView->GetMTLTexture()
                                             atIndex:computeIndex];
                             }
-                        } break;
+                            break;
+                        }
 
                         case wgpu::BindingType::AccelerationContainer:
                             UNREACHABLE();
@@ -705,7 +713,8 @@ namespace dawn_native { namespace metal {
                     EncodeComputePass(commandContext);
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BeginRenderPass: {
                     BeginRenderPassCmd* cmd = mCommands.NextCommand<BeginRenderPassCmd>();
@@ -718,7 +727,8 @@ namespace dawn_native { namespace metal {
                     EncodeRenderPass(commandContext, descriptor, cmd->width, cmd->height);
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
@@ -729,7 +739,8 @@ namespace dawn_native { namespace metal {
                                  toBuffer:ToBackend(copy->destination)->GetMTLBuffer()
                         destinationOffset:copy->destinationOffset
                                      size:copy->size];
-                } break;
+                    break;
+                }
 
                 case Command::CopyBufferToTexture: {
                     CopyBufferToTextureCmd* copy = mCommands.NextCommand<CopyBufferToTextureCmd>();
@@ -758,7 +769,8 @@ namespace dawn_native { namespace metal {
                                                     destinationLevel:dst.mipLevel
                                                    destinationOrigin:copyInfo.textureOrigin];
                     }
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToBuffer: {
                     CopyTextureToBufferCmd* copy = mCommands.NextCommand<CopyTextureToBufferCmd>();
@@ -787,7 +799,8 @@ namespace dawn_native { namespace metal {
                                                destinationBytesPerRow:copyInfo.bytesPerRow
                                              destinationBytesPerImage:copyInfo.bytesPerImage];
                     }
-                } break;
+                    break;
+                }
 
                 case Command::CopyTextureToTexture: {
                     CopyTextureToTextureCmd* copy =
@@ -809,9 +822,13 @@ namespace dawn_native { namespace metal {
                          destinationSlice:copy->destination.arrayLayer
                          destinationLevel:copy->destination.mipLevel
                         destinationOrigin:MakeMTLOrigin(copy->destination.origin)];
-                } break;
+                    break;
+                }
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
             }
         }
 
@@ -832,7 +849,7 @@ namespace dawn_native { namespace metal {
                     mCommands.NextCommand<EndComputePassCmd>();
                     commandContext->EndCompute();
                     return;
-                } break;
+                }
 
                 case Command::Dispatch: {
                     DispatchCmd* dispatch = mCommands.NextCommand<DispatchCmd>();
@@ -842,7 +859,8 @@ namespace dawn_native { namespace metal {
 
                     [encoder dispatchThreadgroups:MTLSizeMake(dispatch->x, dispatch->y, dispatch->z)
                             threadsPerThreadgroup:lastPipeline->GetLocalWorkGroupSize()];
-                } break;
+                    break;
+                }
 
                 case Command::DispatchIndirect: {
                     DispatchIndirectCmd* dispatch = mCommands.NextCommand<DispatchIndirectCmd>();
@@ -856,7 +874,8 @@ namespace dawn_native { namespace metal {
                                                indirectBufferOffset:dispatch->indirectOffset
                                               threadsPerThreadgroup:lastPipeline
                                                                         ->GetLocalWorkGroupSize()];
-                } break;
+                    break;
+                }
 
                 case Command::SetComputePipeline: {
                     SetComputePipelineCmd* cmd = mCommands.NextCommand<SetComputePipelineCmd>();
@@ -865,7 +884,8 @@ namespace dawn_native { namespace metal {
                     bindGroups.OnSetPipeline(lastPipeline);
 
                     lastPipeline->Encode(encoder);
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = mCommands.NextCommand<SetBindGroupCmd>();
@@ -876,7 +896,8 @@ namespace dawn_native { namespace metal {
 
                     bindGroups.OnSetBindGroup(cmd->index, ToBackend(cmd->group.Get()),
                                               cmd->dynamicOffsetCount, dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     InsertDebugMarkerCmd* cmd = mCommands.NextCommand<InsertDebugMarkerCmd>();
@@ -885,13 +906,15 @@ namespace dawn_native { namespace metal {
 
                     [encoder insertDebugSignpost:mtlLabel];
                     [mtlLabel release];
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     mCommands.NextCommand<PopDebugGroupCmd>();
 
                     [encoder popDebugGroup];
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     PushDebugGroupCmd* cmd = mCommands.NextCommand<PushDebugGroupCmd>();
@@ -900,9 +923,13 @@ namespace dawn_native { namespace metal {
 
                     [encoder pushDebugGroup:mtlLabel];
                     [mtlLabel release];
-                } break;
+                    break;
+                }
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                    break;
+                }
             }
         }
 
@@ -1038,7 +1065,8 @@ namespace dawn_native { namespace metal {
                                        baseInstance:draw->firstInstance];
                         }
                     }
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexed: {
                     DrawIndexedCmd* draw = iter->NextCommand<DrawIndexedCmd>();
@@ -1073,7 +1101,8 @@ namespace dawn_native { namespace metal {
                                               baseInstance:draw->firstInstance];
                         }
                     }
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndirect: {
                     DrawIndirectCmd* draw = iter->NextCommand<DrawIndirectCmd>();
@@ -1087,7 +1116,8 @@ namespace dawn_native { namespace metal {
                     [encoder drawPrimitives:lastPipeline->GetMTLPrimitiveTopology()
                               indirectBuffer:indirectBuffer
                         indirectBufferOffset:draw->indirectOffset];
-                } break;
+                    break;
+                }
 
                 case Command::DrawIndexedIndirect: {
                     DrawIndirectCmd* draw = iter->NextCommand<DrawIndirectCmd>();
@@ -1104,7 +1134,8 @@ namespace dawn_native { namespace metal {
                                  indexBufferOffset:indexBufferBaseOffset
                                     indirectBuffer:indirectBuffer
                               indirectBufferOffset:draw->indirectOffset];
-                } break;
+                    break;
+                }
 
                 case Command::InsertDebugMarker: {
                     InsertDebugMarkerCmd* cmd = iter->NextCommand<InsertDebugMarkerCmd>();
@@ -1113,13 +1144,15 @@ namespace dawn_native { namespace metal {
 
                     [encoder insertDebugSignpost:mtlLabel];
                     [mtlLabel release];
-                } break;
+                    break;
+                }
 
                 case Command::PopDebugGroup: {
                     iter->NextCommand<PopDebugGroupCmd>();
 
                     [encoder popDebugGroup];
-                } break;
+                    break;
+                }
 
                 case Command::PushDebugGroup: {
                     PushDebugGroupCmd* cmd = iter->NextCommand<PushDebugGroupCmd>();
@@ -1128,7 +1161,8 @@ namespace dawn_native { namespace metal {
 
                     [encoder pushDebugGroup:mtlLabel];
                     [mtlLabel release];
-                } break;
+                    break;
+                }
 
                 case Command::SetRenderPipeline: {
                     SetRenderPipelineCmd* cmd = iter->NextCommand<SetRenderPipelineCmd>();
@@ -1143,7 +1177,8 @@ namespace dawn_native { namespace metal {
                     newPipeline->Encode(encoder);
 
                     lastPipeline = newPipeline;
-                } break;
+                    break;
+                }
 
                 case Command::SetBindGroup: {
                     SetBindGroupCmd* cmd = iter->NextCommand<SetBindGroupCmd>();
@@ -1154,21 +1189,24 @@ namespace dawn_native { namespace metal {
 
                     bindGroups.OnSetBindGroup(cmd->index, ToBackend(cmd->group.Get()),
                                               cmd->dynamicOffsetCount, dynamicOffsets);
-                } break;
+                    break;
+                }
 
                 case Command::SetIndexBuffer: {
                     SetIndexBufferCmd* cmd = iter->NextCommand<SetIndexBufferCmd>();
                     auto b = ToBackend(cmd->buffer.Get());
                     indexBuffer = b->GetMTLBuffer();
                     indexBufferBaseOffset = cmd->offset;
-                } break;
+                    break;
+                }
 
                 case Command::SetVertexBuffer: {
                     SetVertexBufferCmd* cmd = iter->NextCommand<SetVertexBufferCmd>();
 
                     vertexBuffers.OnSetVertexBuffer(cmd->slot, ToBackend(cmd->buffer.Get()),
                                                     cmd->offset);
-                } break;
+                    break;
+                }
 
                 default:
                     UNREACHABLE();
@@ -1183,12 +1221,13 @@ namespace dawn_native { namespace metal {
                     mCommands.NextCommand<EndRenderPassCmd>();
                     commandContext->EndRender();
                     return;
-                } break;
+                }
 
                 case Command::SetStencilReference: {
                     SetStencilReferenceCmd* cmd = mCommands.NextCommand<SetStencilReferenceCmd>();
                     [encoder setStencilReferenceValue:cmd->reference];
-                } break;
+                    break;
+                }
 
                 case Command::SetViewport: {
                     SetViewportCmd* cmd = mCommands.NextCommand<SetViewportCmd>();
@@ -1201,7 +1240,8 @@ namespace dawn_native { namespace metal {
                     viewport.zfar = cmd->maxDepth;
 
                     [encoder setViewport:viewport];
-                } break;
+                    break;
+                }
 
                 case Command::SetScissorRect: {
                     SetScissorRectCmd* cmd = mCommands.NextCommand<SetScissorRectCmd>();
@@ -1221,7 +1261,8 @@ namespace dawn_native { namespace metal {
                     }
 
                     [encoder setScissorRect:rect];
-                } break;
+                    break;
+                }
 
                 case Command::SetBlendColor: {
                     SetBlendColorCmd* cmd = mCommands.NextCommand<SetBlendColorCmd>();
@@ -1229,7 +1270,8 @@ namespace dawn_native { namespace metal {
                                         green:cmd->color.g
                                          blue:cmd->color.b
                                         alpha:cmd->color.a];
-                } break;
+                    break;
+                }
 
                 case Command::ExecuteBundles: {
                     ExecuteBundlesCmd* cmd = mCommands.NextCommand<ExecuteBundlesCmd>();
@@ -1242,9 +1284,13 @@ namespace dawn_native { namespace metal {
                             EncodeRenderBundleCommand(iter, type);
                         }
                     }
-                } break;
+                    break;
+                }
 
-                default: { EncodeRenderBundleCommand(&mCommands, type); } break;
+                default: {
+                    EncodeRenderBundleCommand(&mCommands, type);
+                    break;
+                }
             }
         }
 

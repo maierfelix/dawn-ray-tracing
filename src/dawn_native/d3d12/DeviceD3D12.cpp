@@ -16,7 +16,6 @@
 
 #include "common/Assert.h"
 #include "dawn_native/BackendConnection.h"
-#include "dawn_native/DynamicUploader.h"
 #include "dawn_native/ErrorData.h"
 #include "dawn_native/d3d12/AdapterD3D12.h"
 #include "dawn_native/d3d12/BackendD3D12.h"
@@ -35,6 +34,7 @@
 #include "dawn_native/d3d12/RayTracingPipelineD3D12.h"
 #include "dawn_native/d3d12/RayTracingShaderBindingTableD3D12.h"
 #include "dawn_native/d3d12/RenderPipelineD3D12.h"
+#include "dawn_native/d3d12/ResidencyManagerD3D12.h"
 #include "dawn_native/d3d12/ResourceAllocatorManagerD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
 #include "dawn_native/d3d12/ShaderModuleD3D12.h"
@@ -45,15 +45,16 @@
 
 namespace dawn_native { namespace d3d12 {
 
-    Device::Device(Adapter* adapter, const DeviceDescriptor* descriptor)
-        : DeviceBase(adapter, descriptor) {
-        InitTogglesFromDriver();
-        if (descriptor != nullptr) {
-            ApplyToggleOverrides(descriptor);
-        }
+    // static
+    ResultOrError<Device*> Device::Create(Adapter* adapter, const DeviceDescriptor* descriptor) {
+        Ref<Device> device = AcquireRef(new Device(adapter, descriptor));
+        DAWN_TRY(device->Initialize());
+        return device.Detach();
     }
 
     MaybeError Device::Initialize() {
+        InitTogglesFromDriver();
+
         mD3d12Device = ToBackend(GetAdapter())->GetDevice();
         ASSERT(mD3d12Device != nullptr);
 
@@ -67,6 +68,10 @@ namespace dawn_native { namespace d3d12 {
         DAWN_TRY(
             CheckHRESULT(mD3d12Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)),
                          "D3D12 create command queue"));
+
+        // If PIX is not attached, the QueryInterface fails. Hence, no need to check the return
+        // value.
+        mCommandQueue.As(&mD3d12SharingContract);
 
         DAWN_TRY(CheckHRESULT(mD3d12Device->CreateFence(mLastSubmittedSerial, D3D12_FENCE_FLAG_NONE,
                                                         IID_PPV_ARGS(&mFence)),
@@ -84,6 +89,7 @@ namespace dawn_native { namespace d3d12 {
         DAWN_TRY(mShaderVisibleDescriptorAllocator->Initialize());
 
         mMapRequestTracker = std::make_unique<MapRequestTracker>(this);
+        mResidencyManager = std::make_unique<ResidencyManager>(this);
         mResourceAllocatorManager = std::make_unique<ResourceAllocatorManager>(this);
 
         DAWN_TRY(NextSerial());
@@ -112,11 +118,11 @@ namespace dawn_native { namespace d3d12 {
         GetD3D12Device()->CreateCommandSignature(&programDesc, NULL,
                                                  IID_PPV_ARGS(&mDrawIndexedIndirectSignature));
 
-        return {};
+        return DeviceBase::Initialize();
     }
 
     Device::~Device() {
-        BaseDestructor();
+        ShutDownBase();
     }
 
     ComPtr<ID3D12Device> Device::GetD3D12Device() const {
@@ -129,6 +135,10 @@ namespace dawn_native { namespace d3d12 {
 
     ComPtr<ID3D12CommandQueue> Device::GetCommandQueue() const {
         return mCommandQueue;
+    }
+
+    ID3D12SharingContract* Device::GetSharingContract() const {
+        return mD3d12SharingContract.Get();
     }
 
     ComPtr<ID3D12CommandSignature> Device::GetDispatchIndirectSignature() const {
@@ -163,6 +173,10 @@ namespace dawn_native { namespace d3d12 {
         return mCommandAllocatorManager.get();
     }
 
+    ResidencyManager* Device::GetResidencyManager() const {
+        return mResidencyManager.get();
+    }
+
     ResultOrError<CommandRecordingContext*> Device::GetPendingCommandContext() {
         // Callers of GetPendingCommandList do so to record commands. Only reserve a command
         // allocator when it is needed so we don't submit empty command lists
@@ -187,10 +201,6 @@ namespace dawn_native { namespace d3d12 {
     MaybeError Device::TickImpl() {
         // Perform cleanup operations to free unused objects
         mCompletedSerial = mFence->GetCompletedValue();
-
-        // Uploader should tick before the resource allocator
-        // as it enqueued resources to be released.
-        mDynamicUploader->Deallocate(mCompletedSerial);
 
         mResourceAllocatorManager->Tick(mCompletedSerial);
         DAWN_TRY(mCommandAllocatorManager->Tick(mCompletedSerial));
@@ -223,7 +233,7 @@ namespace dawn_native { namespace d3d12 {
     }
 
     MaybeError Device::ExecutePendingCommandContext() {
-        return mPendingCommands.ExecuteCommandList(mCommandQueue.Get());
+        return mPendingCommands.ExecuteCommandList(this);
     }
 
     ResultOrError<RayTracingAccelerationContainerBase*>
@@ -248,9 +258,9 @@ namespace dawn_native { namespace d3d12 {
         return new BindGroupLayout(this, descriptor);
     }
     ResultOrError<BufferBase*> Device::CreateBufferImpl(const BufferDescriptor* descriptor) {
-        std::unique_ptr<Buffer> buffer = std::make_unique<Buffer>(this, descriptor);
+        Ref<Buffer> buffer = AcquireRef(new Buffer(this, descriptor));
         DAWN_TRY(buffer->Initialize());
-        return buffer.release();
+        return buffer.Detach();
     }
     CommandBufferBase* Device::CreateCommandBuffer(CommandEncoder* encoder,
                                                    const CommandBufferDescriptor* descriptor) {
@@ -315,7 +325,6 @@ namespace dawn_native { namespace d3d12 {
         Buffer* dstBuffer = ToBackend(destination);
         StagingBuffer* srcBuffer = ToBackend(source);
         dstBuffer->TrackUsageAndTransitionNow(commandRecordingContext, wgpu::BufferUsage::CopyDst);
-        srcBuffer->TrackUsage(commandRecordingContext);
 
         commandRecordingContext->GetCommandList()->CopyBufferRegion(
             dstBuffer->GetD3D12Resource().Get(), destinationOffset, srcBuffer->GetResource(),
@@ -338,9 +347,11 @@ namespace dawn_native { namespace d3d12 {
 
     TextureBase* Device::WrapSharedHandle(const ExternalImageDescriptor* descriptor,
                                           HANDLE sharedHandle,
-                                          uint64_t acquireMutexKey) {
+                                          uint64_t acquireMutexKey,
+                                          bool isSwapChainTexture) {
         TextureBase* dawnTexture;
-        if (ConsumedError(Texture::Create(this, descriptor, sharedHandle, acquireMutexKey),
+        if (ConsumedError(Texture::Create(this, descriptor, sharedHandle, acquireMutexKey,
+                                          isSwapChainTexture),
                           &dawnTexture))
             return nullptr;
 
@@ -426,9 +437,15 @@ namespace dawn_native { namespace d3d12 {
         SetToggle(Toggle::UseD3D12ResourceHeapTier2, useResourceHeapTier2);
         SetToggle(Toggle::UseD3D12RenderPass, GetDeviceInfo().supportsRenderPass);
         SetToggle(Toggle::UseD3D12RayTracing, GetDeviceInfo().supportsRayTracing);
+        SetToggle(Toggle::UseD3D12ResidencyManagement, true);
+        // By default use the maximum shader-visible heap size allowed.
+        SetToggle(Toggle::UseD3D12SmallShaderVisibleHeapForTesting, false);
     }
 
     MaybeError Device::WaitForIdleForDestruction() {
+        // Immediately forget about all pending commands
+        mPendingCommands.Release();
+
         DAWN_TRY(NextSerial());
         // Wait for all in-flight commands to finish executing
         DAWN_TRY(WaitForSerial(mLastSubmittedSerial));
@@ -439,15 +456,11 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    void Device::Destroy() {
-        ASSERT(mLossStatus != LossStatus::AlreadyLost);
+    void Device::ShutDownImpl() {
+        ASSERT(GetState() == State::Disconnected);
 
         // Immediately forget about all pending commands
         mPendingCommands.Release();
-
-        // Free services explicitly so that they can free D3D12 resources before destruction of the
-        // device.
-        mDynamicUploader = nullptr;
 
         // GPU is no longer executing commands. Existing objects do not get freed until the device
         // is destroyed. To ensure objects are always released, force the completed serial to be

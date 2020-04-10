@@ -34,7 +34,7 @@ namespace dawn_native { namespace d3d12 {
         }
     };
 
-    Adapter::Adapter(Backend* backend, ComPtr<IDXGIAdapter1> hardwareAdapter)
+    Adapter::Adapter(Backend* backend, ComPtr<IDXGIAdapter3> hardwareAdapter)
         : AdapterBase(backend->GetInstance(), wgpu::BackendType::D3D12),
           mHardwareAdapter(hardwareAdapter),
           mBackend(backend) {
@@ -44,7 +44,7 @@ namespace dawn_native { namespace d3d12 {
         return mDeviceInfo;
     }
 
-    IDXGIAdapter1* Adapter::GetHardwareAdapter() const {
+    IDXGIAdapter3* Adapter::GetHardwareAdapter() const {
         return mHardwareAdapter.Get();
     }
 
@@ -63,7 +63,7 @@ namespace dawn_native { namespace d3d12 {
         const PlatformFunctions* functions = GetBackend()->GetFunctions();
         if (FAILED(functions->d3d12CreateDevice(GetHardwareAdapter(), D3D_FEATURE_LEVEL_11_0,
                                                 _uuidof(ID3D12Device), &mD3d12Device))) {
-            return DAWN_DEVICE_LOST_ERROR("D3D12CreateDevice failed");
+            return DAWN_INTERNAL_ERROR("D3D12CreateDevice failed");
         }
 
         DXGI_ADAPTER_DESC1 adapterDesc;
@@ -95,9 +95,7 @@ namespace dawn_native { namespace d3d12 {
     }
 
     ResultOrError<DeviceBase*> Adapter::CreateDeviceImpl(const DeviceDescriptor* descriptor) {
-        std::unique_ptr<Device> device = std::make_unique<Device>(this, descriptor);
-        DAWN_TRY(device->Initialize());
-        return device.release();
+        return Device::Create(this, descriptor);
     }
 
 }}  // namespace dawn_native::d3d12
