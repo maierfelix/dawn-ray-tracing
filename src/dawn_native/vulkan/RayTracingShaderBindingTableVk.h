@@ -28,7 +28,7 @@ namespace dawn_native { namespace vulkan {
     class RayTracingShaderBindingTable : public RayTracingShaderBindingTableBase {
       public:
         static ResultOrError<RayTracingShaderBindingTable*> Create(Device* device, const RayTracingShaderBindingTableDescriptor* descriptor);
-        ~RayTracingShaderBindingTable();
+        ~RayTracingShaderBindingTable() override;
 
         std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
         std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();

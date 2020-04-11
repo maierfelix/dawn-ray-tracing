@@ -28,7 +28,7 @@ namespace dawn_native { namespace d3d12 {
         static ResultOrError<RayTracingPipeline*> Create(
             Device* device,
             const RayTracingPipelineDescriptor* descriptor);
-        ~RayTracingPipeline();
+        ~RayTracingPipeline() override;
 
         ComPtr<ID3D12PipelineState> GetPipelineState();
 

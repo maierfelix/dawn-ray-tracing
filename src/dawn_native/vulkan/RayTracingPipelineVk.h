@@ -33,7 +33,7 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingPipeline*> Create(
             Device* device,
             const RayTracingPipelineDescriptor* descriptor);
-        ~RayTracingPipeline();
+        ~RayTracingPipeline() override;
 
         VkPipeline GetHandle() const;
 

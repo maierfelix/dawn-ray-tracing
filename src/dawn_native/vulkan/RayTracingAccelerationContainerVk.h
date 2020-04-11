@@ -45,7 +45,7 @@ namespace dawn_native { namespace vulkan {
         static ResultOrError<RayTracingAccelerationContainer*> Create(
             Device* device,
             const RayTracingAccelerationContainerDescriptor* descriptor);
-        ~RayTracingAccelerationContainer();
+        ~RayTracingAccelerationContainer() override;
 
         uint64_t GetHandle() const;
         VkAccelerationStructureNV GetAccelerationStructure() const;

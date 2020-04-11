@@ -31,7 +31,7 @@ namespace dawn_native { namespace d3d12 {
         static ResultOrError<RayTracingShaderBindingTable*> Create(
             Device* device,
             const RayTracingShaderBindingTableDescriptor* descriptor);
-        ~RayTracingShaderBindingTable();
+        ~RayTracingShaderBindingTable() override;
 
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
