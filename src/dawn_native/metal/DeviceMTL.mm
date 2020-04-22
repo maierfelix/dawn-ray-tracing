@@ -64,7 +64,7 @@ namespace dawn_native { namespace metal {
         InitTogglesFromDriver();
         mCommandQueue = [mMtlDevice newCommandQueue];
 
-        return DeviceBase::Initialize();
+        return DeviceBase::Initialize(new Queue(this));
     }
 
     void Device::InitTogglesFromDriver() {
@@ -122,9 +122,6 @@ namespace dawn_native { namespace metal {
     ResultOrError<PipelineLayoutBase*> Device::CreatePipelineLayoutImpl(
         const PipelineLayoutDescriptor* descriptor) {
         return new PipelineLayout(this, descriptor);
-    }
-    ResultOrError<QueueBase*> Device::CreateQueueImpl() {
-        return new Queue(this);
     }
     ResultOrError<RenderPipelineBase*> Device::CreateRenderPipelineImpl(
         const RenderPipelineDescriptor* descriptor) {
@@ -212,10 +209,6 @@ namespace dawn_native { namespace metal {
 
         mLastSubmittedSerial++;
 
-        // Ensure the blit encoder is ended. It may have been opened to perform a lazy clear or
-        // buffer upload.
-        mCommandContext.EndBlit();
-
         // Acquire the pending command buffer, which is retained. It must be released later.
         id<MTLCommandBuffer> pendingCommands = mCommandContext.AcquireCommands();
 
@@ -267,6 +260,11 @@ namespace dawn_native { namespace metal {
                                                BufferBase* destination,
                                                uint64_t destinationOffset,
                                                uint64_t size) {
+        // Metal validation layers forbid  0-sized copies, skip it since it is a noop.
+        if (size == 0) {
+            return {};
+        }
+
         id<MTLBuffer> uploadBuffer = ToBackend(source)->GetBufferHandle();
         id<MTLBuffer> buffer = ToBackend(destination)->GetMTLBuffer();
         [GetPendingCommandContext()->EnsureBlit() copyFromBuffer:uploadBuffer

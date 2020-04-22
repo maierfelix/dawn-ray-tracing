@@ -20,7 +20,7 @@ using namespace testing;
 
 class MockDevicePopErrorScopeCallback {
   public:
-    MOCK_METHOD3(Call, void(WGPUErrorType type, const char* message, void* userdata));
+    MOCK_METHOD(void, Call, (WGPUErrorType type, const char* message, void* userdata));
 };
 
 static std::unique_ptr<MockDevicePopErrorScopeCallback> mockDevicePopErrorScopeCallback;
@@ -134,7 +134,7 @@ TEST_F(ErrorScopeValidationTest, PushPopBalanced) {
 // Test that error scopes do not call their callbacks until after an enclosed Queue::Submit
 // completes
 TEST_F(ErrorScopeValidationTest, CallbackAfterQueueSubmit) {
-    wgpu::Queue queue = device.CreateQueue();
+    wgpu::Queue queue = device.GetDefaultQueue();
 
     device.PushErrorScope(wgpu::ErrorFilter::OutOfMemory);
     queue.Submit(0, nullptr);
@@ -149,7 +149,7 @@ TEST_F(ErrorScopeValidationTest, CallbackAfterQueueSubmit) {
 // Test that parent error scopes do not call their callbacks until after an enclosed Queue::Submit
 // completes
 TEST_F(ErrorScopeValidationTest, CallbackAfterQueueSubmitNested) {
-    wgpu::Queue queue = device.CreateQueue();
+    wgpu::Queue queue = device.GetDefaultQueue();
 
     device.PushErrorScope(wgpu::ErrorFilter::OutOfMemory);
     device.PushErrorScope(wgpu::ErrorFilter::OutOfMemory);
@@ -167,7 +167,7 @@ TEST_F(ErrorScopeValidationTest, CallbackAfterQueueSubmitNested) {
 
 // Test a callback that returns asynchronously followed by a synchronous one
 TEST_F(ErrorScopeValidationTest, AsynchronousThenSynchronous) {
-    wgpu::Queue queue = device.CreateQueue();
+    wgpu::Queue queue = device.GetDefaultQueue();
 
     device.PushErrorScope(wgpu::ErrorFilter::OutOfMemory);
     queue.Submit(0, nullptr);
@@ -184,14 +184,15 @@ TEST_F(ErrorScopeValidationTest, AsynchronousThenSynchronous) {
     device.Tick();
 }
 
-// Test that if the device is destroyed before the callback occurs, it is called with UNKNOWN.
+// Test that if the device is destroyed before the callback occurs, it is called with NoError
+// because all previous operations are waited upon before the destruction returns.
 TEST_F(ErrorScopeValidationTest, DeviceDestroyedBeforeCallback) {
-    wgpu::Queue queue = device.CreateQueue();
+    wgpu::Queue queue = device.GetDefaultQueue();
 
     device.PushErrorScope(wgpu::ErrorFilter::OutOfMemory);
     queue.Submit(0, nullptr);
     device.PopErrorScope(ToMockDevicePopErrorScopeCallback, this);
 
-    EXPECT_CALL(*mockDevicePopErrorScopeCallback, Call(WGPUErrorType_Unknown, _, this)).Times(1);
+    EXPECT_CALL(*mockDevicePopErrorScopeCallback, Call(WGPUErrorType_NoError, _, this)).Times(1);
     device = nullptr;
 }

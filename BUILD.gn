@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import("//build_overrides/build.gni")
-import("scripts/dawn_features.gni")
+
 import("scripts/dawn_overrides_with_defaults.gni")
+
 group("all") {
   testonly = true
   deps = [
@@ -23,70 +23,4 @@ group("all") {
   if (dawn_standalone) {
     deps += [ "examples:dawn_samples" ]
   }
-}
-###############################################################################
-# Temporary Dawn end2end test target
-###############################################################################
-# It is not possible to move a target around with a proxy group without
-# breaking swarming tests. This is a temporary target that is a duplicate of
-# //src/tests:dawn_end2end_tests that's used temporarily so that we can land
-# the split of src/tests/BUILD.gn in a Chromium roll and switch which targets
-# the swarmed tests use.
-import("//testing/test.gni")
-test("dawn_end2end_tests") {
-  configs += [ "src/common:dawn_internal" ]
-  deps = [
-    "src/common",
-    "src/dawn:dawncpp",
-    "src/dawn:libdawn_proc",
-    "src/dawn_native",
-    "src/dawn_wire",
-    "src/tests:dawn_end2end_tests_sources",
-    "src/tests:dawn_white_box_tests_sources",
-    "src/tests:gmock_and_gtest",
-    "src/utils:dawn_utils",
-  ]
-  sources = [
-    "src/tests/DawnTest.cpp",
-    "src/tests/DawnTest.h",
-  ]
-  libs = []
-  # When building inside Chromium, use their gtest main function because it is
-  # needed to run in swarming correctly.
-  if (build_with_chromium) {
-    sources += [ "//gpu/dawn_end2end_tests_main.cc" ]
-  } else {
-    sources += [ "src/tests/End2EndTestsMain.cpp" ]
-  }
-  if (dawn_enable_opengl) {
-    deps += [ "src/utils:dawn_glfw" ]
-  }
-  if (is_chromeos) {
-    libs += [ "gbm" ]
-  }
-}
-###############################################################################
-# Temporary groups
-###############################################################################
-# Temporary groups to make a 5-way patch to fix crbug.com/913171
-group("dawn_unittests_temp_group") {
-  testonly = true
-  public_deps = [
-    "src/tests:dawn_unittests",
-  ]
-}
-group("dawn_end2end_tests_temp_group") {
-  testonly = true
-  public_deps = [
-    ":dawn_end2end_tests",
-  ]
-}
-group("dawn_perf_tests_temp_group") {
-  testonly = true
-  public_deps = [
-    "src/tests:dawn_perf_tests",
-  ]
-  data_deps = [
-    "src/tests:dawn_perf_tests",
-  ]
 }

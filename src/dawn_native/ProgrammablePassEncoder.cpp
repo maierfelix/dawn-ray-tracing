@@ -14,6 +14,8 @@
 
 #include "dawn_native/ProgrammablePassEncoder.h"
 
+#include <cstring>
+
 #include "common/BitSetIterator.h"
 #include "dawn_native/BindGroup.h"
 #include "dawn_native/Buffer.h"
@@ -21,8 +23,6 @@
 #include "dawn_native/Commands.h"
 #include "dawn_native/Device.h"
 #include "dawn_native/ValidationUtils_autogen.h"
-
-#include <cstring>
 
 namespace dawn_native {
 
@@ -55,19 +55,32 @@ namespace dawn_native {
 
                     case wgpu::BindingType::ReadonlyStorageBuffer: {
                         BufferBase* buffer = group->GetBindingAsBufferBinding(bindingIndex).buffer;
-                        usageTracker->BufferUsedAs(buffer, kReadOnlyStorage);
+                        usageTracker->BufferUsedAs(buffer, kReadOnlyStorageBuffer);
                         break;
                     }
 
                     case wgpu::BindingType::Sampler:
+                    case wgpu::BindingType::ComparisonSampler:
                         break;
+
+                    case wgpu::BindingType::ReadonlyStorageTexture: {
+                        TextureBase* texture =
+                            group->GetBindingAsTextureView(bindingIndex)->GetTexture();
+                        usageTracker->TextureUsedAs(texture, kReadonlyStorageTexture);
+                        break;
+                    }
+
+                    case wgpu::BindingType::WriteonlyStorageTexture: {
+                        TextureBase* texture =
+                            group->GetBindingAsTextureView(bindingIndex)->GetTexture();
+                        usageTracker->TextureUsedAs(texture, wgpu::TextureUsage::Storage);
+                        break;
+                    }
 
                     case wgpu::BindingType::AccelerationContainer:
                         break;
 
                     case wgpu::BindingType::StorageTexture:
-                    case wgpu::BindingType::ReadonlyStorageTexture:
-                    case wgpu::BindingType::WriteonlyStorageTexture:
                         UNREACHABLE();
                         break;
                 }
@@ -76,14 +89,16 @@ namespace dawn_native {
     }  // namespace
 
     ProgrammablePassEncoder::ProgrammablePassEncoder(DeviceBase* device,
-                                                     EncodingContext* encodingContext)
-        : ObjectBase(device), mEncodingContext(encodingContext) {
+                                                     EncodingContext* encodingContext,
+                                                     PassType passType)
+        : ObjectBase(device), mEncodingContext(encodingContext), mUsageTracker(passType) {
     }
 
     ProgrammablePassEncoder::ProgrammablePassEncoder(DeviceBase* device,
                                                      EncodingContext* encodingContext,
-                                                     ErrorTag errorTag)
-        : ObjectBase(device, errorTag), mEncodingContext(encodingContext) {
+                                                     ErrorTag errorTag,
+                                                     PassType passType)
+        : ObjectBase(device, errorTag), mEncodingContext(encodingContext), mUsageTracker(passType) {
     }
 
     void ProgrammablePassEncoder::InsertDebugMarker(const char* groupLabel) {

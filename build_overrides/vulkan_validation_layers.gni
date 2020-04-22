@@ -22,3 +22,7 @@ vvl_glslang_dir = "//third_party/glslang"
 # Subdirectories for generated files
 vulkan_data_subdir = "vulkandata"
 vulkan_gen_subdir = ""
+
+# Fake the use_x11 when inside Dawn's repository
+import("../scripts/dawn_features.gni")
+use_x11 = dawn_use_x11

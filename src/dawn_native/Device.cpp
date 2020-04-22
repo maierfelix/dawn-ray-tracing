@@ -48,7 +48,7 @@
 
 namespace dawn_native {
 
-    // DeviceBase::Caches
+    // DeviceBase sub-structures
 
     // The caches are unordered_sets of pointers with special hash and compare functions
     // to compare the value of the objects, instead of the pointers.
@@ -76,6 +76,11 @@ namespace dawn_native {
         ContentLessObjectCache<ShaderModuleBase> shaderModules;
     };
 
+    struct DeviceBase::DeprecationWarnings {
+        std::unordered_set<const char*> emitted;
+        size_t count = 0;
+    };
+
     // DeviceBase
 
     DeviceBase::DeviceBase(AdapterBase* adapter, const DeviceDescriptor* descriptor)
@@ -90,10 +95,10 @@ namespace dawn_native {
     }
 
     DeviceBase::~DeviceBase() {
-        ASSERT(mDeferredCreateBufferMappedAsyncResults.empty());
     }
 
-    MaybeError DeviceBase::Initialize() {
+    MaybeError DeviceBase::Initialize(QueueBase* defaultQueue) {
+        mDefaultQueue = AcquireRef(defaultQueue);
         mRootErrorScope = AcquireRef(new ErrorScope());
         mCurrentErrorScope = mRootErrorScope.Get();
 
@@ -101,6 +106,7 @@ namespace dawn_native {
         mErrorScopeTracker = std::make_unique<ErrorScopeTracker>(this);
         mFenceSignalTracker = std::make_unique<FenceSignalTracker>(this);
         mDynamicUploader = std::make_unique<DynamicUploader>(this);
+        mDeprecationWarnings = std::make_unique<DeprecationWarnings>();
 
         // Starting from now the backend can start doing reentrant calls so the device is marked as
         // alive.
@@ -114,7 +120,6 @@ namespace dawn_native {
         switch (mState) {
             case State::BeingCreated:
                 // The GPU timeline was never started so we don't have to wait.
-                mState = State::Disconnected;
                 break;
 
             case State::Alive:
@@ -122,7 +127,6 @@ namespace dawn_native {
                 // complete before proceeding with destruction.
                 // Assert that errors are device loss so that we can continue with destruction
                 AssertAndIgnoreDeviceLossError(WaitForIdleForDestruction());
-                mState = State::Disconnected;
                 break;
 
             case State::BeingDisconnected:
@@ -136,13 +140,20 @@ namespace dawn_native {
                 break;
         }
 
-        // The GPU timeline is finished so all services can be freed immediately. They need to be
-        // freed before ShutDownImpl() because they might relinquish resources that will be freed by
-        // backends in the ShutDownImpl() call.
-        // Still tick the ones that might have pending callbacks.
-        mErrorScopeTracker->Tick(GetCompletedCommandSerial());
+        // Skip handling device facilities if they haven't even been created (or failed doing so)
+        if (mState != State::BeingCreated) {
+            // The GPU timeline is finished so all services can be freed immediately. They need to
+            // be freed before ShutDownImpl() because they might relinquish resources that will be
+            // freed by backends in the ShutDownImpl() call. Still tick the ones that might have
+            // pending callbacks.
+            mErrorScopeTracker->Tick(GetCompletedCommandSerial());
+            mFenceSignalTracker->Tick(GetCompletedCommandSerial());
+        }
+
+        // At this point GPU operations are always finished, so we are in the disconnected state.
+        mState = State::Disconnected;
+
         mErrorScopeTracker = nullptr;
-        mFenceSignalTracker->Tick(GetCompletedCommandSerial());
         mFenceSignalTracker = nullptr;
         mDynamicUploader = nullptr;
 
@@ -572,27 +583,6 @@ namespace dawn_native {
 
         return result;
     }
-    void DeviceBase::CreateBufferMappedAsync(const BufferDescriptor* descriptor,
-                                             wgpu::BufferCreateMappedCallback callback,
-                                             void* userdata) {
-        WGPUCreateBufferMappedResult result = CreateBufferMapped(descriptor);
-
-        WGPUBufferMapAsyncStatus status = WGPUBufferMapAsyncStatus_Success;
-        if (IsLost()) {
-            status = WGPUBufferMapAsyncStatus_DeviceLost;
-        } else if (result.data == nullptr || result.dataLength != descriptor->size) {
-            status = WGPUBufferMapAsyncStatus_Error;
-        }
-
-        DeferredCreateBufferMappedAsync deferred_info;
-        deferred_info.callback = callback;
-        deferred_info.status = status;
-        deferred_info.result = result;
-        deferred_info.userdata = userdata;
-
-        // The callback is deferred so it matches the async behavior of WebGPU.
-        mDeferredCreateBufferMappedAsyncResults.push_back(deferred_info);
-    }
     CommandEncoder* DeviceBase::CreateCommandEncoder(const CommandEncoderDescriptor* descriptor) {
         return new CommandEncoder(this, descriptor);
     }
@@ -617,13 +607,10 @@ namespace dawn_native {
         return result;
     }
     QueueBase* DeviceBase::CreateQueue() {
-        QueueBase* result = nullptr;
-
-        if (ConsumedError(CreateQueueInternal(&result))) {
-            return QueueBase::MakeError(this);
-        }
-
-        return result;
+        // TODO(dawn:22): Remove this once users use GetDefaultQueue
+        EmitDeprecationWarning(
+            "Device::CreateQueue is deprecated, use Device::GetDefaultQueue instead");
+        return GetDefaultQueue();
     }
     SamplerBase* DeviceBase::CreateSampler(const SamplerDescriptor* descriptor) {
         SamplerBase* result = nullptr;
@@ -696,14 +683,6 @@ namespace dawn_native {
     // Other Device API methods
 
     void DeviceBase::Tick() {
-        // We need to do the deferred callback even if Device is lost since Buffer Map Async will
-        // send callback with device lost status when device is lost.
-        {
-            auto deferredResults = std::move(mDeferredCreateBufferMappedAsyncResults);
-            for (const auto& deferred : deferredResults) {
-                deferred.callback(deferred.status, deferred.result, deferred.userdata);
-            }
-        }
         if (ConsumedError(ValidateIsAlive())) {
             return;
         }
@@ -730,6 +709,15 @@ namespace dawn_native {
         if (mRefCount == 0) {
             delete this;
         }
+    }
+
+    QueueBase* DeviceBase::GetDefaultQueue() {
+        // Backends gave the default queue during initialization.
+        ASSERT(mDefaultQueue.Get() != nullptr);
+
+        // Returns a new reference to the queue.
+        mDefaultQueue->Reference();
+        return mDefaultQueue.Get();
     }
 
     void DeviceBase::ApplyExtensions(const DeviceDescriptor* deviceDescriptor) {
@@ -760,14 +748,40 @@ namespace dawn_native {
         ++mLazyClearCountForTesting;
     }
 
+    size_t DeviceBase::GetDeprecationWarningCountForTesting() {
+        return mDeprecationWarnings->count;
+    }
+
+    void DeviceBase::EmitDeprecationWarning(const char* warning) {
+        mDeprecationWarnings->count++;
+        if (mDeprecationWarnings->emitted.insert(warning).second) {
+            dawn::WarningLog() << warning;
+        }
+    }
+
     // Implementation details of object creation
     MaybeError DeviceBase::CreateBindGroupInternal(BindGroupBase** result,
                                                    const BindGroupDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
-        if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateBindGroupDescriptor(this, descriptor));
+
+        // TODO(dawn:22): Remove this once users use entries/entryCount
+        BindGroupDescriptor fixedDescriptor = *descriptor;
+        if (fixedDescriptor.bindingCount != 0) {
+            if (fixedDescriptor.entryCount != 0) {
+                return DAWN_VALIDATION_ERROR("Cannot use bindings and entries at the same time");
+            } else {
+                EmitDeprecationWarning(
+                    "BindGroupEntry::bindings/bindingCount is deprecated, use entries/entryCount "
+                    "instead");
+                fixedDescriptor.entryCount = fixedDescriptor.bindingCount;
+                fixedDescriptor.entries = fixedDescriptor.bindings;
+            }
         }
-        DAWN_TRY_ASSIGN(*result, CreateBindGroupImpl(descriptor));
+
+        if (IsValidationEnabled()) {
+            DAWN_TRY(ValidateBindGroupDescriptor(this, &fixedDescriptor));
+        }
+        DAWN_TRY_ASSIGN(*result, CreateBindGroupImpl(&fixedDescriptor));
         return {};
     }
 
@@ -775,10 +789,25 @@ namespace dawn_native {
         BindGroupLayoutBase** result,
         const BindGroupLayoutDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
-        if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateBindGroupLayoutDescriptor(this, descriptor));
+
+        // TODO(dawn:22): Remove this once users use entries/entryCount
+        BindGroupLayoutDescriptor fixedDescriptor = *descriptor;
+        if (fixedDescriptor.bindingCount != 0) {
+            if (fixedDescriptor.entryCount != 0) {
+                return DAWN_VALIDATION_ERROR("Cannot use bindings and entries at the same time");
+            } else {
+                EmitDeprecationWarning(
+                    "BindGroupLayoutEntry::bindings/bindingCount is deprecated, use "
+                    "entries/entryCount instead");
+                fixedDescriptor.entryCount = fixedDescriptor.bindingCount;
+                fixedDescriptor.entries = fixedDescriptor.bindings;
+            }
         }
-        DAWN_TRY_ASSIGN(*result, GetOrCreateBindGroupLayout(descriptor));
+
+        if (IsValidationEnabled()) {
+            DAWN_TRY(ValidateBindGroupLayoutDescriptor(this, &fixedDescriptor));
+        }
+        DAWN_TRY_ASSIGN(*result, GetOrCreateBindGroupLayout(&fixedDescriptor));
         return {};
     }
 

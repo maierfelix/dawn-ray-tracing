@@ -17,7 +17,7 @@
 #include "common/BitSetIterator.h"
 #include "dawn_native/d3d12/BindGroupD3D12.h"
 #include "dawn_native/d3d12/DeviceD3D12.h"
-#include "dawn_native/d3d12/NonShaderVisibleDescriptorAllocatorD3D12.h"
+#include "dawn_native/d3d12/StagingDescriptorAllocatorD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
     namespace {
@@ -35,6 +35,7 @@ namespace dawn_native { namespace d3d12 {
                 case wgpu::BindingType::AccelerationContainer:
                     return BindGroupLayout::DescriptorType::SRV;
                 case wgpu::BindingType::Sampler:
+                case wgpu::BindingType::ComparisonSampler:
                     return BindGroupLayout::DescriptorType::Sampler;
                 case wgpu::BindingType::StorageTexture:
                     UNREACHABLE();
@@ -42,9 +43,6 @@ namespace dawn_native { namespace d3d12 {
             }
         }
     }  // anonymous namespace
-
-    // TODO(dawn:155): Figure out this value.
-    static constexpr uint16_t kDescriptorHeapSize = 1024;
 
     BindGroupLayout::BindGroupLayout(Device* device, const BindGroupLayoutDescriptor* descriptor)
         : BindGroupLayoutBase(device, descriptor),
@@ -120,6 +118,7 @@ namespace dawn_native { namespace d3d12 {
                         break;
                     case wgpu::BindingType::SampledTexture:
                     case wgpu::BindingType::Sampler:
+                    case wgpu::BindingType::ComparisonSampler:
                     case wgpu::BindingType::StorageTexture:
                     case wgpu::BindingType::ReadonlyStorageTexture:
                     case wgpu::BindingType::WriteonlyStorageTexture:
@@ -135,19 +134,9 @@ namespace dawn_native { namespace d3d12 {
             mBindingOffsets[bindingIndex] += descriptorOffsets[descriptorType];
         }
 
-        const uint32_t viewDescriptorCount = GetCbvUavSrvDescriptorCount();
-        if (viewDescriptorCount > 0) {
-            mViewAllocator = std::make_unique<NonShaderVisibleDescriptorAllocator>(
-                device, viewDescriptorCount, kDescriptorHeapSize,
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        }
-
-        const uint32_t samplerDescriptorCount = GetSamplerDescriptorCount();
-        if (samplerDescriptorCount > 0) {
-            mSamplerAllocator = std::make_unique<NonShaderVisibleDescriptorAllocator>(
-                device, samplerDescriptorCount, kDescriptorHeapSize,
-                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-        }
+        mViewAllocator = device->GetViewStagingDescriptorAllocator(GetCbvUavSrvDescriptorCount());
+        mSamplerAllocator =
+            device->GetSamplerStagingDescriptorAllocator(GetSamplerDescriptorCount());
     }
 
     ResultOrError<BindGroup*> BindGroupLayout::AllocateBindGroup(

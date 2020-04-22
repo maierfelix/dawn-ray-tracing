@@ -42,10 +42,10 @@ constexpr char kVulkanLibName[] = "libvulkan.so.1";
 #    endif
 #elif defined(DAWN_PLATFORM_WINDOWS)
 constexpr char kVulkanLibName[] = "vulkan-1.dll";
+#elif defined(DAWN_PLATFORM_MACOS)
+constexpr char kVulkanLibName[] = "libvulkan.dylib";
 #elif defined(DAWN_PLATFORM_FUCHSIA)
 constexpr char kVulkanLibName[] = "libvulkan.so";
-#elif defined(DAWN_ENABLE_SWIFTSHADER)
-const char* kVulkanLibName = kSwiftshaderLibName;
 #else
 #    error "Unimplemented Vulkan backend platform"
 #endif
@@ -180,9 +180,9 @@ namespace dawn_native { namespace vulkan {
 #endif
 
         if (GetInstance()->IsBackendValidationEnabled()) {
-            if (mGlobalInfo.standardValidation) {
-                layersToRequest.push_back(kLayerNameLunargStandardValidation);
-                usedKnobs.standardValidation = true;
+            if (mGlobalInfo.validation) {
+                layersToRequest.push_back(kLayerNameKhronosValidation);
+                usedKnobs.validation = true;
             }
             if (mGlobalInfo.debugReport) {
                 extensionsToRequest.push_back(kExtensionNameExtDebugReport);

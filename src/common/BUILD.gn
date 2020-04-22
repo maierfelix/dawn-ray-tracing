@@ -95,6 +95,11 @@ config("dawn_internal") {
       "-Wshadow-field",
       "-Wmissing-field-initializers",
       "-Wcstring-format-directive",
+      "-Wtautological-unsigned-zero-compare",
+      "-Wreturn-std-move-in-c++11",
+      "-Wconditional-uninitialized",
+      "-Wc++11-narrowing",
+      "-Wextra-semi-stmt",
     ]
   }
 }
@@ -126,6 +131,8 @@ if (is_win || is_linux || is_mac || is_fuchsia || is_android) {
       "Math.h",
       "PlacementAllocated.h",
       "Platform.h",
+      "RefCounted.cpp",
+      "RefCounted.h",
       "Result.cpp",
       "Result.h",
       "Serial.h",
@@ -143,13 +150,9 @@ if (is_win || is_linux || is_mac || is_fuchsia || is_android) {
     ]
 
     public_configs = [ ":dawn_internal" ]
-    deps = [
-      "${dawn_root}/src/dawn:dawn_headers",
-    ]
+    deps = [ "${dawn_root}/src/dawn:dawn_headers" ]
     if (dawn_enable_vulkan) {
-      public_deps = [
-        "${dawn_root}/third_party/khronos:vulkan_headers",
-      ]
+      public_deps = [ "${dawn_root}/third_party/khronos:vulkan_headers" ]
     }
     if (is_android) {
       libs = [ "log" ]

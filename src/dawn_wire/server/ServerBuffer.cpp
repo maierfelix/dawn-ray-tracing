@@ -70,7 +70,7 @@ namespace dawn_wire { namespace server {
 
         std::unique_ptr<MapUserdata> userdata = std::make_unique<MapUserdata>();
         userdata->server = this;
-        userdata->buffer = ObjectHandle{bufferId, buffer->serial};
+        userdata->buffer = ObjectHandle{bufferId, buffer->generation};
         userdata->requestSerial = requestSerial;
 
         // The handle will point to the mapped memory or staging memory for the mapping.
@@ -120,7 +120,7 @@ namespace dawn_wire { namespace server {
         if (resultData == nullptr) {
             return false;
         }
-        resultData->serial = bufferResult.serial;
+        resultData->generation = bufferResult.generation;
 
         WGPUCreateBufferMappedResult result = mProcs.deviceCreateBufferMapped(device, descriptor);
         ASSERT(result.buffer != nullptr);
@@ -149,34 +149,6 @@ namespace dawn_wire { namespace server {
                 std::unique_ptr<MemoryTransferService::WriteHandle>(writeHandle);
         }
         resultData->handle = result.buffer;
-
-        return true;
-    }
-
-    bool Server::DoDeviceCreateBufferMappedAsync(WGPUDevice device,
-                                                 const WGPUBufferDescriptor* descriptor,
-                                                 uint32_t requestSerial,
-                                                 ObjectHandle bufferResult,
-                                                 uint64_t handleCreateInfoLength,
-                                                 const uint8_t* handleCreateInfo) {
-        if (!DoDeviceCreateBufferMapped(device, descriptor, bufferResult, handleCreateInfoLength,
-                                        handleCreateInfo)) {
-            return false;
-        }
-
-        auto* bufferData = BufferObjects().Get(bufferResult.id);
-        ASSERT(bufferData != nullptr);
-
-        ReturnBufferMapWriteAsyncCallbackCmd cmd;
-        cmd.buffer = ObjectHandle{bufferResult.id, bufferResult.serial};
-        cmd.requestSerial = requestSerial;
-        cmd.status = bufferData->mapWriteState == BufferMapWriteState::Mapped
-                         ? WGPUBufferMapAsyncStatus_Success
-                         : WGPUBufferMapAsyncStatus_Error;
-
-        size_t requiredSize = cmd.GetRequiredSize();
-        char* allocatedBuffer = static_cast<char*>(GetCmdSpace(requiredSize));
-        cmd.Serialize(allocatedBuffer);
 
         return true;
     }
@@ -260,7 +232,7 @@ namespace dawn_wire { namespace server {
 
         // Skip sending the callback if the buffer has already been destroyed.
         auto* bufferData = BufferObjects().Get(data->buffer.id);
-        if (bufferData == nullptr || bufferData->serial != data->buffer.serial) {
+        if (bufferData == nullptr || bufferData->generation != data->buffer.generation) {
             return;
         }
 
@@ -302,7 +274,7 @@ namespace dawn_wire { namespace server {
 
         // Skip sending the callback if the buffer has already been destroyed.
         auto* bufferData = BufferObjects().Get(data->buffer.id);
-        if (bufferData == nullptr || bufferData->serial != data->buffer.serial) {
+        if (bufferData == nullptr || bufferData->generation != data->buffer.generation) {
             return;
         }
 

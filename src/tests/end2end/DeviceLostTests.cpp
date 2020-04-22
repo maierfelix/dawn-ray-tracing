@@ -24,7 +24,7 @@ using namespace testing;
 
 class MockDeviceLostCallback {
   public:
-    MOCK_METHOD2(Call, void(const char* message, void* userdata));
+    MOCK_METHOD(void, Call, (const char* message, void* userdata));
 };
 
 static std::unique_ptr<MockDeviceLostCallback> mockDeviceLostCallback;
@@ -36,7 +36,7 @@ static void ToMockDeviceLostCallback(const char* message, void* userdata) {
 
 class MockFenceOnCompletionCallback {
   public:
-    MOCK_METHOD2(Call, void(WGPUFenceCompletionStatus status, void* userdata));
+    MOCK_METHOD(void, Call, (WGPUFenceCompletionStatus status, void* userdata));
 };
 
 static std::unique_ptr<MockFenceOnCompletionCallback> mockFenceOnCompletionCallback;
@@ -105,11 +105,11 @@ TEST_P(DeviceLostTest, SubmitFails) {
 TEST_P(DeviceLostTest, CreateBindGroupLayoutFails) {
     SetCallbackAndLoseForTesting();
 
-    wgpu::BindGroupLayoutEntry binding = {0, wgpu::ShaderStage::None,
-                                          wgpu::BindingType::UniformBuffer};
+    wgpu::BindGroupLayoutEntry entry = {0, wgpu::ShaderStage::None,
+                                        wgpu::BindingType::UniformBuffer};
     wgpu::BindGroupLayoutDescriptor descriptor;
-    descriptor.bindingCount = 1;
-    descriptor.bindings = &binding;
+    descriptor.entryCount = 1;
+    descriptor.entries = &entry;
     ASSERT_DEVICE_ERROR(device.CreateBindGroupLayout(&descriptor));
 }
 
@@ -139,18 +139,18 @@ TEST_P(DeviceLostTest, GetBindGroupLayoutFails) {
 TEST_P(DeviceLostTest, CreateBindGroupFails) {
     SetCallbackAndLoseForTesting();
 
-    wgpu::BindGroupEntry binding;
-    binding.binding = 0;
-    binding.sampler = nullptr;
-    binding.textureView = nullptr;
-    binding.buffer = nullptr;
-    binding.offset = 0;
-    binding.size = 0;
+    wgpu::BindGroupEntry entry;
+    entry.binding = 0;
+    entry.sampler = nullptr;
+    entry.textureView = nullptr;
+    entry.buffer = nullptr;
+    entry.offset = 0;
+    entry.size = 0;
 
     wgpu::BindGroupDescriptor descriptor;
     descriptor.layout = nullptr;
-    descriptor.bindingCount = 1;
-    descriptor.bindings = &binding;
+    descriptor.entryCount = 1;
+    descriptor.entries = &entry;
     ASSERT_DEVICE_ERROR(device.CreateBindGroup(&descriptor));
 }
 
@@ -296,38 +296,6 @@ TEST_P(DeviceLostTest, CreateBufferMappedFails) {
     ASSERT_DEVICE_ERROR(device.CreateBufferMapped(&bufferDescriptor));
 }
 
-// Test that CreateBufferMappedAsync fails after device is lost
-TEST_P(DeviceLostTest, CreateBufferMappedAsyncFails) {
-    wgpu::BufferDescriptor bufferDescriptor;
-    bufferDescriptor.size = sizeof(float);
-    bufferDescriptor.usage = wgpu::BufferUsage::MapWrite;
-
-    SetCallbackAndLoseForTesting();
-    struct ResultInfo {
-        wgpu::CreateBufferMappedResult result;
-        bool done = false;
-    } resultInfo;
-
-    ASSERT_DEVICE_ERROR(device.CreateBufferMappedAsync(
-        &bufferDescriptor,
-        [](WGPUBufferMapAsyncStatus status, WGPUCreateBufferMappedResult result, void* userdata) {
-            auto* resultInfo = static_cast<ResultInfo*>(userdata);
-            EXPECT_EQ(WGPUBufferMapAsyncStatus_DeviceLost, status);
-            EXPECT_NE(nullptr, result.data);
-            resultInfo->result.buffer = wgpu::Buffer::Acquire(result.buffer);
-            resultInfo->result.data = result.data;
-            resultInfo->result.dataLength = result.dataLength;
-            resultInfo->done = true;
-        },
-        &resultInfo));
-
-    while (!resultInfo.done) {
-        ASSERT_DEVICE_ERROR(WaitABit());
-    }
-
-    ASSERT_DEVICE_ERROR(resultInfo.result.buffer.Unmap());
-}
-
 // Test that BufferMapReadAsync fails after device is lost
 TEST_P(DeviceLostTest, BufferMapReadAsyncFails) {
     wgpu::BufferDescriptor bufferDescriptor;
@@ -441,6 +409,20 @@ TEST_P(DeviceLostTest, FenceOnCompletionBeforeLossFails) {
     EXPECT_EQ(fence.GetCompletedValue(), 0u);
 }
 
+// Regression test for the Null backend not properly setting the completedSerial when
+// WaitForIdleForDestruction is called, causing the fence signaling to not be retired and an
+// ASSERT to fire.
+TEST_P(DeviceLostTest, AfterSubmitAndSerial) {
+    queue.Submit(0, nullptr);
+
+    wgpu::FenceDescriptor descriptor;
+    descriptor.initialValue = 0;
+    wgpu::Fence fence = queue.CreateFence(&descriptor);
+
+    queue.Signal(fence, 1);
+    SetCallbackAndLoseForTesting();
+}
+
 // Test that when you Signal, then Tick, then device lost, the fence completed value would be 2
 TEST_P(DeviceLostTest, FenceSignalTickOnCompletion) {
     wgpu::FenceDescriptor descriptor;
@@ -471,4 +453,8 @@ TEST_P(DeviceLostTest, LoseForTestingOnce) {
     device.LoseForTesting();
 }
 
-DAWN_INSTANTIATE_TEST(DeviceLostTest, D3D12Backend(), MetalBackend(), VulkanBackend());
+DAWN_INSTANTIATE_TEST(DeviceLostTest,
+                      D3D12Backend(),
+                      MetalBackend(),
+                      NullBackend(),
+                      VulkanBackend());

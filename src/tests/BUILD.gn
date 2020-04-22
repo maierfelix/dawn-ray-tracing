@@ -21,7 +21,7 @@ import("${dawn_root}/scripts/dawn_features.gni")
 group("dawn_tests") {
   testonly = true
   deps = [
-    ":dawn_end2end_tests_tmp",
+    ":dawn_end2end_tests",
     ":dawn_perf_tests",
     ":dawn_unittests",
   ]
@@ -50,9 +50,7 @@ if (!build_with_chromium) {
 
   static_library("gtest") {
     testonly = true
-    sources = [
-      "${googletest_dir}/googletest/src/gtest-all.cc",
-    ]
+    sources = [ "${googletest_dir}/googletest/src/gtest-all.cc" ]
     public_configs = [ ":gtest_config" ]
   }
 
@@ -66,9 +64,7 @@ if (!build_with_chromium) {
 
   static_library("gmock") {
     testonly = true
-    sources = [
-      "${googletest_dir}/googlemock/src/gmock-all.cc",
-    ]
+    sources = [ "${googletest_dir}/googlemock/src/gmock-all.cc" ]
     public_configs = [ ":gmock_config" ]
   }
 
@@ -112,8 +108,8 @@ test("dawn_unittests") {
     ":gmock_and_gtest",
     ":mock_webgpu_gen",
     "${dawn_root}/src/common",
+    "${dawn_root}/src/dawn:dawn_proc",
     "${dawn_root}/src/dawn:dawncpp",
-    "${dawn_root}/src/dawn:libdawn_proc",
     "${dawn_root}/src/dawn_native",
     "${dawn_root}/src/dawn_native:dawn_native_sources",
     "${dawn_root}/src/dawn_wire",
@@ -129,6 +125,7 @@ test("dawn_unittests") {
     "${dawn_root}/src/dawn_wire/client/ClientMemoryTransferService_mock.h",
     "${dawn_root}/src/dawn_wire/server/ServerMemoryTransferService_mock.cpp",
     "${dawn_root}/src/dawn_wire/server/ServerMemoryTransferService_mock.h",
+    "MockCallback.h",
     "unittests/BitSetIteratorTests.cpp",
     "unittests/BuddyAllocatorTests.cpp",
     "unittests/BuddyMemoryAllocatorTests.cpp",
@@ -166,7 +163,6 @@ test("dawn_unittests") {
     "unittests/validation/QueueSubmitValidationTests.cpp",
     "unittests/validation/RenderBundleValidationTests.cpp",
     "unittests/validation/RenderPassDescriptorValidationTests.cpp",
-    "unittests/validation/RenderPassValidationTests.cpp",
     "unittests/validation/RenderPipelineValidationTests.cpp",
     "unittests/validation/ResourceUsageTrackingTests.cpp",
     "unittests/validation/SamplerValidationTests.cpp",
@@ -182,11 +178,13 @@ test("dawn_unittests") {
     "unittests/wire/WireArgumentTests.cpp",
     "unittests/wire/WireBasicTests.cpp",
     "unittests/wire/WireBufferMappingTests.cpp",
+    "unittests/wire/WireDisconnectTests.cpp",
     "unittests/wire/WireErrorCallbackTests.cpp",
     "unittests/wire/WireExtensionTests.cpp",
     "unittests/wire/WireFenceTests.cpp",
     "unittests/wire/WireInjectTextureTests.cpp",
     "unittests/wire/WireMemoryTransferServiceTests.cpp",
+    "unittests/wire/WireMultipleDeviceTests.cpp",
     "unittests/wire/WireOptionalTests.cpp",
     "unittests/wire/WireTest.cpp",
     "unittests/wire/WireTest.h",
@@ -217,8 +215,8 @@ source_set("dawn_end2end_tests_sources") {
   deps = [
     ":gmock_and_gtest",
     "${dawn_root}/src/common",
+    "${dawn_root}/src/dawn:dawn_proc",
     "${dawn_root}/src/dawn:dawncpp",
-    "${dawn_root}/src/dawn:libdawn_proc",
     "${dawn_root}/src/dawn_native",
     "${dawn_root}/src/dawn_wire",
     "${dawn_root}/src/utils:dawn_utils",
@@ -239,6 +237,7 @@ source_set("dawn_end2end_tests_sources") {
     "end2end/CopyTests.cpp",
     "end2end/CullingTests.cpp",
     "end2end/DebugMarkerTests.cpp",
+    "end2end/DeprecatedAPITests.cpp",
     "end2end/DepthStencilStateTests.cpp",
     "end2end/DestroyTests.cpp",
     "end2end/DeviceLostTests.cpp",
@@ -255,6 +254,7 @@ source_set("dawn_end2end_tests_sources") {
     "end2end/ObjectCachingTests.cpp",
     "end2end/OpArrayLengthTests.cpp",
     "end2end/PrimitiveTopologyTests.cpp",
+    "end2end/QueueTests.cpp",
     "end2end/RenderBundleTests.cpp",
     "end2end/RenderPassLoadOpTests.cpp",
     "end2end/RenderPassTests.cpp",
@@ -312,8 +312,8 @@ source_set("dawn_white_box_tests_sources") {
   deps = [
     ":gmock_and_gtest",
     "${dawn_root}/src/common",
+    "${dawn_root}/src/dawn:dawn_proc",
     "${dawn_root}/src/dawn:dawncpp",
-    "${dawn_root}/src/dawn:libdawn_proc",
     "${dawn_root}/src/dawn_native:dawn_native_sources",
     "${dawn_root}/src/dawn_wire",
     "${dawn_root}/src/utils:dawn_utils",
@@ -323,9 +323,7 @@ source_set("dawn_white_box_tests_sources") {
     "${dawn_root}/src/dawn_native:dawn_native_static",
   ]
 
-  sources = [
-    "DawnTest.h",
-  ]
+  sources = [ "DawnTest.h" ]
 
   if (dawn_enable_vulkan) {
     deps += [ "${dawn_root}/third_party/khronos:vulkan_headers" ]
@@ -340,6 +338,8 @@ source_set("dawn_white_box_tests_sources") {
       sources += [ "white_box/VulkanErrorInjectorTests.cpp" ]
     }
   }
+
+  sources += [ "white_box/InternalResourceUsageTests.cpp" ]
 
   if (dawn_enable_d3d12) {
     sources += [
@@ -360,7 +360,7 @@ source_set("dawn_white_box_tests_sources") {
   libs = []
 }
 
-test("dawn_end2end_tests_tmp") {
+test("dawn_end2end_tests") {
   configs += [ "${dawn_root}/src/common:dawn_internal" ]
 
   deps = [
@@ -368,8 +368,8 @@ test("dawn_end2end_tests_tmp") {
     ":dawn_white_box_tests_sources",
     ":gmock_and_gtest",
     "${dawn_root}/src/common",
+    "${dawn_root}/src/dawn:dawn_proc",
     "${dawn_root}/src/dawn:dawncpp",
-    "${dawn_root}/src/dawn:libdawn_proc",
     "${dawn_root}/src/dawn_native",
     "${dawn_root}/src/dawn_wire",
     "${dawn_root}/src/utils:dawn_utils",
@@ -409,8 +409,8 @@ test("dawn_perf_tests") {
   deps = [
     ":gmock_and_gtest",
     "${dawn_root}/src/common",
+    "${dawn_root}/src/dawn:dawn_proc",
     "${dawn_root}/src/dawn:dawncpp",
-    "${dawn_root}/src/dawn:libdawn_proc",
     "${dawn_root}/src/dawn_native",
     "${dawn_root}/src/dawn_platform",
     "${dawn_root}/src/dawn_wire",

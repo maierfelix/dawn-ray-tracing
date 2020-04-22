@@ -571,7 +571,8 @@ namespace dawn_native { namespace metal {
                             break;
                         }
 
-                        case wgpu::BindingType::Sampler: {
+                        case wgpu::BindingType::Sampler:
+                        case wgpu::BindingType::ComparisonSampler: {
                             auto sampler = ToBackend(group->GetBindingAsSampler(bindingIndex));
                             if (hasVertStage) {
                                 [render setVertexSamplerState:sampler->GetMTLSamplerState()
@@ -994,6 +995,8 @@ namespace dawn_native { namespace metal {
                     CopyIntoTrueResolveTarget(commandContext, trueResolveTextures[i],
                                               trueResolveLevels[i], trueResolveSlices[i],
                                               temporaryResolveTextures[i], width, height);
+                    [temporaryResolveTextures[i] release];
+                    temporaryResolveTextures[i] = nil;
                 }
                 return;
             }

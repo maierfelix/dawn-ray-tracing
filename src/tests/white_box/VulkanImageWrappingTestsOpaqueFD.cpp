@@ -422,7 +422,7 @@ namespace dawn_native { namespace vulkan {
 
             wgpu::CommandBuffer commands = encoder.Finish();
 
-            wgpu::Queue queue = dawnDevice.CreateQueue();
+            wgpu::Queue queue = dawnDevice.GetDefaultQueue();
             queue.Submit(1, &commands);
         }
 
@@ -618,7 +618,7 @@ namespace dawn_native { namespace vulkan {
         ClearImage(secondDevice, copySrcTexture, {1 / 255.0f, 2 / 255.0f, 3 / 255.0f, 4 / 255.0f});
 
         // Copy color B on |secondDevice|
-        wgpu::Queue secondDeviceQueue = secondDevice.CreateQueue();
+        wgpu::Queue secondDeviceQueue = secondDevice.GetDefaultQueue();
         SimpleCopyTextureToTexture(secondDevice, secondDeviceQueue, copySrcTexture,
                                    secondDeviceWrappedTexture);
 
@@ -722,7 +722,7 @@ namespace dawn_native { namespace vulkan {
                             defaultMemoryTypeIndex, {signalFd});
 
         // Copy color B on |secondDevice|
-        wgpu::Queue secondDeviceQueue = secondDevice.CreateQueue();
+        wgpu::Queue secondDeviceQueue = secondDevice.GetDefaultQueue();
 
         // Create a buffer on |secondDevice|
         wgpu::Buffer copySrcBuffer =
@@ -831,8 +831,8 @@ namespace dawn_native { namespace vulkan {
             wgpu::Device::Acquire(reinterpret_cast<WGPUDevice>(thirdDeviceVk));
 
         // Make queue for device 2 and 3
-        wgpu::Queue secondDeviceQueue = secondDevice.CreateQueue();
-        wgpu::Queue thirdDeviceQueue = thirdDevice.CreateQueue();
+        wgpu::Queue secondDeviceQueue = secondDevice.GetDefaultQueue();
+        wgpu::Queue thirdDeviceQueue = thirdDevice.GetDefaultQueue();
 
         // Allocate memory for A, B, C
         VkImage imageA;
@@ -944,7 +944,7 @@ namespace dawn_native { namespace vulkan {
             textures.push_back(device.CreateTexture(&descriptor));
         }
 
-        wgpu::Queue secondDeviceQueue = secondDevice.CreateQueue();
+        wgpu::Queue secondDeviceQueue = secondDevice.GetDefaultQueue();
 
         // Make an image on |secondDevice|
         VkImage imageA;
@@ -960,12 +960,12 @@ namespace dawn_native { namespace vulkan {
                                                        allocationSizeA, memoryTypeIndexA, {});
 
         // Draw a non-trivial picture
-        int width = 640, height = 480, pixelSize = 4;
+        uint32_t width = 640, height = 480, pixelSize = 4;
         uint32_t rowPitch = Align(width * pixelSize, kTextureRowPitchAlignment);
         uint32_t size = rowPitch * (height - 1) + width * pixelSize;
         unsigned char data[size];
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
+        for (uint32_t row = 0; row < height; row++) {
+            for (uint32_t col = 0; col < width; col++) {
                 float normRow = static_cast<float>(row) / height;
                 float normCol = static_cast<float>(col) / width;
                 float dist = sqrt(normRow * normRow + normCol * normCol) * 3;

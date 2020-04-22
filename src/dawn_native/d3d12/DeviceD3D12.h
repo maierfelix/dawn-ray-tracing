@@ -17,6 +17,7 @@
 
 #include "dawn_native/dawn_platform.h"
 
+#include "common/Constants.h"
 #include "common/SerialQueue.h"
 #include "dawn_native/Device.h"
 #include "dawn_native/d3d12/CommandRecordingContext.h"
@@ -30,17 +31,18 @@ namespace dawn_native { namespace d3d12 {
 
     class CommandAllocatorManager;
     class DescriptorHeapAllocator;
-    class ShaderVisibleDescriptorAllocator;
     class MapRequestTracker;
     class PlatformFunctions;
-    class ResourceAllocatorManager;
     class ResidencyManager;
+    class ResourceAllocatorManager;
+    class ShaderVisibleDescriptorAllocator;
+    class StagingDescriptorAllocator;
 
 #define ASSERT_SUCCESS(hr)            \
-    {                                 \
+    do {                              \
         HRESULT succeeded = hr;       \
         ASSERT(SUCCEEDED(succeeded)); \
-    }
+    } while (0)
 
     // Definition of backend types
     class Device : public DeviceBase {
@@ -57,8 +59,9 @@ namespace dawn_native { namespace d3d12 {
         Serial GetLastSubmittedCommandSerial() const final override;
         MaybeError TickImpl() override;
 
-        ComPtr<ID3D12Device> GetD3D12Device() const;
-        ComPtr<ID3D12Device5> GetD3D12Device5() const;
+        ID3D12Device* GetD3D12Device() const;
+        ID3D12Device5* GetD3D12Device5() const;
+
         ComPtr<ID3D12CommandQueue> GetCommandQueue() const;
         ID3D12SharingContract* GetSharingContract() const;
 
@@ -102,6 +105,13 @@ namespace dawn_native { namespace d3d12 {
 
         ShaderVisibleDescriptorAllocator* GetShaderVisibleDescriptorAllocator() const;
 
+        // Returns nullptr when descriptor count is zero.
+        StagingDescriptorAllocator* GetViewStagingDescriptorAllocator(
+            uint32_t descriptorCount) const;
+
+        StagingDescriptorAllocator* GetSamplerStagingDescriptorAllocator(
+            uint32_t descriptorCount) const;
+
         TextureBase* WrapSharedHandle(const ExternalImageDescriptor* descriptor,
                                       HANDLE sharedHandle,
                                       uint64_t acquireMutexKey,
@@ -131,7 +141,6 @@ namespace dawn_native { namespace d3d12 {
             const ComputePipelineDescriptor* descriptor) override;
         ResultOrError<PipelineLayoutBase*> CreatePipelineLayoutImpl(
             const PipelineLayoutDescriptor* descriptor) override;
-        ResultOrError<QueueBase*> CreateQueueImpl() override;
         ResultOrError<RenderPipelineBase*> CreateRenderPipelineImpl(
             const RenderPipelineDescriptor* descriptor) override;
         ResultOrError<SamplerBase*> CreateSamplerImpl(const SamplerDescriptor* descriptor) override;
@@ -179,6 +188,15 @@ namespace dawn_native { namespace d3d12 {
         std::unique_ptr<ResourceAllocatorManager> mResourceAllocatorManager;
         std::unique_ptr<ResidencyManager> mResidencyManager;
         std::unique_ptr<ShaderVisibleDescriptorAllocator> mShaderVisibleDescriptorAllocator;
+
+        // Index corresponds to the descriptor count in the range [0, kMaxBindingsPerGroup].
+        static constexpr uint32_t kNumOfStagingDescriptorAllocators = kMaxBindingsPerGroup + 1;
+
+        std::array<std::unique_ptr<StagingDescriptorAllocator>, kNumOfStagingDescriptorAllocators>
+            mViewAllocators;
+
+        std::array<std::unique_ptr<StagingDescriptorAllocator>, kNumOfStagingDescriptorAllocators>
+            mSamplerAllocators;
     };
 
 }}  // namespace dawn_native::d3d12

@@ -28,8 +28,7 @@ namespace dawn_native {
         bool operator==(const BindGroupLayoutEntry& lhs, const BindGroupLayoutEntry& rhs) {
             return lhs.binding == rhs.binding && lhs.visibility == rhs.visibility &&
                    lhs.type == rhs.type && lhs.hasDynamicOffset == rhs.hasDynamicOffset &&
-                   lhs.multisampled == rhs.multisampled &&
-                   lhs.textureDimension == rhs.textureDimension &&
+                   lhs.multisampled == rhs.multisampled && lhs.viewDimension == rhs.viewDimension &&
                    lhs.textureComponentType == rhs.textureComponentType;
         }
 
@@ -37,10 +36,8 @@ namespace dawn_native {
             // TODO(jiawei.shao@intel.com): support read-only and read-write storage textures.
             switch (bindingType) {
                 case wgpu::BindingType::StorageBuffer:
-                    return wgpu::ShaderStage::Fragment | wgpu::ShaderStage::Compute;
-
                 case wgpu::BindingType::WriteonlyStorageTexture:
-                    return wgpu::ShaderStage::Compute;
+                    return wgpu::ShaderStage::Fragment | wgpu::ShaderStage::Compute;
 
                 case wgpu::BindingType::StorageTexture:
                     UNREACHABLE();
@@ -49,6 +46,7 @@ namespace dawn_native {
                 case wgpu::BindingType::UniformBuffer:
                 case wgpu::BindingType::ReadonlyStorageBuffer:
                 case wgpu::BindingType::Sampler:
+                case wgpu::BindingType::ComparisonSampler:
                 case wgpu::BindingType::SampledTexture:
                 case wgpu::BindingType::ReadonlyStorageTexture:
                     return wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment |
@@ -132,13 +130,13 @@ namespace dawn_native {
 
         // Data which BindGroupLayoutDescriptor will point to for creation
         std::array<std::array<BindGroupLayoutEntry, kMaxBindingsPerGroup>, kMaxBindGroups>
-            bindingData = {};
+            entryData = {};
 
-        // A map of bindings to the index in |bindingData|
+        // A map of bindings to the index in |entryData|
         std::array<std::map<BindingNumber, BindingIndex>, kMaxBindGroups> usedBindingsMap = {};
 
-        // A counter of how many bindings we've populated in |bindingData|
-        std::array<uint32_t, kMaxBindGroups> bindingCounts = {};
+        // A counter of how many bindings we've populated in |entryData|
+        std::array<uint32_t, kMaxBindGroups> entryCounts = {};
 
         uint32_t bindGroupLayoutCount = 0;
         for (uint32_t moduleIndex = 0; moduleIndex < count; ++moduleIndex) {
@@ -168,7 +166,7 @@ namespace dawn_native {
                     bindingSlot.type = bindingInfo.type;
                     bindingSlot.hasDynamicOffset = false;
                     bindingSlot.multisampled = bindingInfo.multisampled;
-                    bindingSlot.textureDimension = bindingInfo.textureDimension;
+                    bindingSlot.viewDimension = bindingInfo.viewDimension;
                     bindingSlot.textureComponentType =
                         Format::FormatTypeToTextureComponentType(bindingInfo.textureComponentType);
                     bindingSlot.storageTextureFormat = bindingInfo.storageTextureFormat;
@@ -176,7 +174,7 @@ namespace dawn_native {
                     {
                         const auto& it = usedBindingsMap[group].find(bindingNumber);
                         if (it != usedBindingsMap[group].end()) {
-                            if (bindingSlot == bindingData[group][it->second]) {
+                            if (bindingSlot == entryData[group][it->second]) {
                                 // Already used and the data is the same. Continue.
                                 continue;
                             } else {
@@ -187,12 +185,12 @@ namespace dawn_native {
                         }
                     }
 
-                    uint32_t currentBindingCount = bindingCounts[group];
-                    bindingData[group][currentBindingCount] = bindingSlot;
+                    uint32_t currentBindingCount = entryCounts[group];
+                    entryData[group][currentBindingCount] = bindingSlot;
 
                     usedBindingsMap[group][bindingNumber] = currentBindingCount;
 
-                    bindingCounts[group]++;
+                    entryCounts[group]++;
 
                     bindGroupLayoutCount = std::max(bindGroupLayoutCount, group + 1);
                 }
@@ -202,8 +200,8 @@ namespace dawn_native {
         std::array<BindGroupLayoutBase*, kMaxBindGroups> bindGroupLayouts = {};
         for (uint32_t group = 0; group < bindGroupLayoutCount; ++group) {
             BindGroupLayoutDescriptor desc = {};
-            desc.bindings = bindingData[group].data();
-            desc.bindingCount = bindingCounts[group];
+            desc.entries = entryData[group].data();
+            desc.entryCount = entryCounts[group];
 
             // We should never produce a bad descriptor.
             ASSERT(!ValidateBindGroupLayoutDescriptor(device, &desc).IsError());
