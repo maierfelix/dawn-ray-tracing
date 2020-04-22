@@ -348,9 +348,9 @@ namespace dawn_native { namespace vulkan {
             extensionsToRequest.push_back(kExtensionNameKhrMaintenance1);
             usedKnobs.maintenance1 = true;
         }
-        if (mDeviceInfo.rayTracingNV) {
-            extensionsToRequest.push_back(kExtensionNameNvRayTracing);
-            usedKnobs.rayTracingNV = true;
+        if (mDeviceInfo.rayTracingKHR) {
+            extensionsToRequest.push_back(kExtensionNameKhrRayTracing);
+            usedKnobs.rayTracingKHR = true;
         }
         if (mDeviceInfo.memoryRequirements2) {
             extensionsToRequest.push_back(kExtensionNameKhrGetMemoryRequirements2);
@@ -359,6 +359,18 @@ namespace dawn_native { namespace vulkan {
         if (mDeviceInfo.descriptorIndexing) {
             extensionsToRequest.push_back(kExtensionNameExtDescriptorIndexing);
             usedKnobs.descriptorIndexing = true;
+        }
+        if (mDeviceInfo.deferredHostOperations) {
+            extensionsToRequest.push_back(kExtensionNameKhrDeferredHostOperations);
+            usedKnobs.deferredHostOperations = true;
+        }
+        if (mDeviceInfo.pipelineLibrary) {
+            extensionsToRequest.push_back(kExtensionNameKhrPipelineLibrary);
+            usedKnobs.pipelineLibrary = true;
+        }
+        if (mDeviceInfo.bufferDeviceAddress) {
+            extensionsToRequest.push_back(kExtensionNameKhrBufferDeviceAddress);
+            usedKnobs.bufferDeviceAddress = true;
         }
 
         // Always require independentBlend because it is a core Dawn feature
@@ -375,7 +387,11 @@ namespace dawn_native { namespace vulkan {
         }
 
         if (IsExtensionEnabled(Extension::RayTracing)) {
-            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().rayTracingNV == true);
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().rayTracingKHR == true);
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().descriptorIndexing == true);
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().deferredHostOperations == true);
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().pipelineLibrary == true);
+            ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().bufferDeviceAddress == true);
         }
 
         // Find a universal queue family

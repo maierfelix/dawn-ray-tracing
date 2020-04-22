@@ -14,12 +14,12 @@
 
 #include "dawn_native/vulkan/VulkanInfo.h"
 
+#include <cstring>
+
 #include "common/Log.h"
 #include "dawn_native/vulkan/AdapterVk.h"
 #include "dawn_native/vulkan/BackendVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
-
-#include <cstring>
 
 namespace dawn_native { namespace vulkan {
 
@@ -80,9 +80,12 @@ namespace dawn_native { namespace vulkan {
     const char kExtensionNameKhrXlibSurface[] = "VK_KHR_xlib_surface";
     const char kExtensionNameFuchsiaImagePipeSurface[] = "VK_FUCHSIA_imagepipe_surface";
     const char kExtensionNameKhrMaintenance1[] = "VK_KHR_maintenance1";
-    const char kExtensionNameNvRayTracing[] = "VK_NV_ray_tracing";
+    const char kExtensionNameKhrRayTracing[] = "VK_KHR_ray_tracing";
     const char kExtensionNameKhrGetMemoryRequirements2[] = "VK_KHR_get_memory_requirements2";
     const char kExtensionNameExtDescriptorIndexing[] = "VK_EXT_descriptor_indexing";
+    const char kExtensionNameKhrDeferredHostOperations[] = "VK_KHR_deferred_host_operations";
+    const char kExtensionNameKhrPipelineLibrary[] = "VK_KHR_pipeline_library";
+    const char kExtensionNameKhrBufferDeviceAddress[] = "VK_KHR_buffer_device_address";
 
     ResultOrError<VulkanGlobalInfo> GatherGlobalInfo(const Backend& backend) {
         VulkanGlobalInfo info = {};
@@ -196,8 +199,8 @@ namespace dawn_native { namespace vulkan {
             }
 
             // Use Vulkan 1.1 if it's available.
-            info.apiVersion = (supportedAPIVersion >= VK_MAKE_VERSION(1, 1, 0))
-                                  ? VK_MAKE_VERSION(1, 1, 0)
+            info.apiVersion = (supportedAPIVersion >= VK_MAKE_VERSION(1, 2, 0))
+                                  ? VK_MAKE_VERSION(1, 2, 0)
                                   : VK_MAKE_VERSION(1, 0, 0);
         }
 
@@ -318,14 +321,23 @@ namespace dawn_native { namespace vulkan {
                 if (IsExtensionName(extension, kExtensionNameKhrMaintenance1)) {
                     info.maintenance1 = true;
                 }
-                if (IsExtensionName(extension, kExtensionNameNvRayTracing)) {
-                    info.rayTracingNV = true;
+                if (IsExtensionName(extension, kExtensionNameKhrRayTracing)) {
+                    info.rayTracingKHR = true;
                 }
                 if (IsExtensionName(extension, kExtensionNameKhrGetMemoryRequirements2)) {
                     info.memoryRequirements2 = true;
                 }
                 if (IsExtensionName(extension, kExtensionNameExtDescriptorIndexing)) {
                     info.descriptorIndexing = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameKhrDeferredHostOperations)) {
+                    info.deferredHostOperations = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameKhrPipelineLibrary)) {
+                    info.pipelineLibrary = true;
+                }
+                if (IsExtensionName(extension, kExtensionNameKhrBufferDeviceAddress)) {
+                    info.bufferDeviceAddress = true;
                 }
             }
         }
@@ -402,6 +414,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingProperties(const Adapter& adapter) {
+        printf("1337\n");
         VkPhysicalDevice physicalDevice = adapter.GetPhysicalDevice();
         const VulkanFunctions& vkFunctions = adapter.GetBackend()->GetFunctions();
 

@@ -73,7 +73,7 @@ namespace dawn_native { namespace vulkan {
         if (mDeviceInfo.features.textureCompressionBC == VK_TRUE) {
             mSupportedExtensions.EnableExtension(Extension::TextureCompressionBC);
         }
-        if (mDeviceInfo.rayTracingNV) {
+        if (mDeviceInfo.rayTracingKHR) {
             mSupportedExtensions.EnableExtension(Extension::RayTracing);
         }
     }

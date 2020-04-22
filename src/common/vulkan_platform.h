@@ -167,6 +167,9 @@ namespace dawn_native { namespace vulkan {
 #    define VK_USE_PLATFORM_FUCHSIA
 #endif  // defined(DAWN_PLATFORM_FUCHSIA)
 
+// Enable beta features
+#define VK_ENABLE_BETA_EXTENSIONS
+
 // The actual inclusion of vulkan.h!
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
