@@ -227,7 +227,7 @@ namespace dawn_native {
                     UNREACHABLE();
                     break;
                 case wgpu::BindingType::AccelerationContainer:
-                    DAWN_TRY(ValidateAccelerationContainerBinding(device, binding));
+                    DAWN_TRY(ValidateAccelerationContainerBinding(device, entry));
                     break;
             }
         }
@@ -289,9 +289,9 @@ namespace dawn_native {
                 continue;
             }
 
-            if (binding.accelerationContainer != nullptr) {
+            if (entry.accelerationContainer != nullptr) {
                 ASSERT(mBindingData.bindings[bindingIndex].Get() == nullptr);
-                mBindingData.bindings[bindingIndex] = binding.accelerationContainer;
+                mBindingData.bindings[bindingIndex] = entry.accelerationContainer;
                 continue;
             }
         }

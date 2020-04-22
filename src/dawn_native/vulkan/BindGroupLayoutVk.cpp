@@ -14,15 +14,15 @@
 
 #include "dawn_native/vulkan/BindGroupLayoutVk.h"
 
+#include <map>
+
 #include "common/BitSetIterator.h"
 #include "dawn_native/vulkan/BindGroupVk.h"
 #include "dawn_native/vulkan/DescriptorSetService.h"
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
-#include "dawn_native/vulkan/VulkanError.h"
 #include "dawn_native/vulkan/UtilsVulkan.h"
-
-#include <map>
+#include "dawn_native/vulkan/VulkanError.h"
 
 namespace dawn_native { namespace vulkan {
 

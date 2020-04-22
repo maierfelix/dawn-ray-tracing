@@ -64,7 +64,7 @@ struct CameraData {
 void init() {
     std::vector<const char*> requiredExtensions = {"ray_tracing"};
     device = CreateCppDawnDevice(wgpu::BackendType::Vulkan, requiredExtensions).Release();
-    queue = wgpuDeviceCreateQueue(device);
+    queue = wgpuDeviceGetDefaultQueue(device);
 
     {
         WGPUSwapChainDescriptor descriptor;
@@ -80,35 +80,26 @@ void init() {
     const char* rayGen = R"(
         #version 460
         #extension GL_NV_ray_tracing : require
-
         layout(location = 0) rayPayloadNV vec3 hitValue;
-
         layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
-
         layout(std140, set = 0, binding = 1) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
-
         layout(set = 0, binding = 2) uniform Camera {
             mat4 view;
             mat4 projection;
         } uCamera;
-
         void main() {
             ivec2 ipos = ivec2(gl_LaunchIDNV.xy);
             const ivec2 resolution = ivec2(gl_LaunchSizeNV.xy);
-
             const vec2 offset = vec2(0);
             const vec2 pixel = vec2(ipos.x, ipos.y);
             const vec2 uv = (pixel / gl_LaunchSizeNV.xy) * 2.0 - 1.0;
-
             vec4 origin = uCamera.view * vec4(offset, 0, 1);
             vec4 target = uCamera.projection * (vec4(uv.x, uv.y, 1, 1));
             vec4 direction = uCamera.view * vec4(normalize(target.xyz), 0);
-
             hitValue = vec3(0);
             traceNV(topLevelAS, gl_RayFlagsOpaqueNV, 0xFF, 0, 0, 0, origin.xyz, 0.01, direction.xyz, 4096.0, 0);
-
             const uint pixelIndex = ipos.y * resolution.x + ipos.x;
             pixelBuffer.pixels[pixelIndex] = vec4(hitValue, 1);
         }
@@ -117,11 +108,8 @@ void init() {
     const char* rayCHit = R"(
         #version 460
         #extension GL_NV_ray_tracing : require
-
         layout(location = 0) rayPayloadInNV vec3 hitValue;
-
         hitAttributeNV vec3 attribs;
-
         void main() {
             const vec3 bary = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
             hitValue = bary;
@@ -131,9 +119,7 @@ void init() {
     const char* rayMiss = R"(
         #version 460
         #extension GL_NV_ray_tracing : require
-
         layout(location = 0) rayPayloadInNV vec3 hitValue;
-
         void main() {
             hitValue = vec3(0.15);
         }
@@ -141,9 +127,7 @@ void init() {
 
     const char* vs = R"(
         #version 460
-
         layout (location = 0) out vec2 uv;
-
         void main() {
             vec2 pos = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
             gl_Position = vec4(pos * 2.0 - 1.0, 0.0, 1.0);
@@ -153,21 +137,16 @@ void init() {
 
     const char* fs = R"(
         #version 460
-
         layout (location = 0) in vec2 uv;
         layout (location = 0) out vec4 outColor;
-
         layout(std140, set = 0, binding = 0) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
-
         const vec2 resolution = vec2(640, 480);
-
         void main() {
             const ivec2 bufferCoord = ivec2(floor(uv * resolution));
             const vec2 fragCoord = (uv * resolution);
             const uint pixelIndex = bufferCoord.y * uint(resolution.x) + bufferCoord.x;
-
             vec4 pixelColor = pixelBuffer.pixels[pixelIndex];
             outColor = pixelColor;
         }
@@ -363,7 +342,7 @@ void init() {
 
     {
         WGPUBindGroupLayoutBinding bindingDescriptors[3];
-        // acceleration container
+        // acceleration structure
         bindingDescriptors[0] = {};
         bindingDescriptors[0].binding = 0;
         bindingDescriptors[0].type = WGPUBindingType_AccelerationContainer;
@@ -382,8 +361,10 @@ void init() {
         WGPUBindGroupLayoutDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
-        descriptor.bindingCount = 3;
-        descriptor.bindings = bindingDescriptors;
+        descriptor.bindingCount = 0;
+        descriptor.bindings = nullptr;
+        descriptor.entryCount = 3;
+        descriptor.entries = bindingDescriptors;
 
         rtBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &descriptor);
     }
@@ -422,8 +403,10 @@ void init() {
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.layout = rtBindGroupLayout;
-        descriptor.bindingCount = 3;
-        descriptor.bindings = bindingDescriptors;
+        descriptor.bindingCount = 0;
+        descriptor.bindings = nullptr;
+        descriptor.entryCount = 3;
+        descriptor.entries = bindingDescriptors;
 
         rtBindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }
@@ -462,8 +445,10 @@ void init() {
         WGPUBindGroupLayoutDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
-        descriptor.bindingCount = 1;
-        descriptor.bindings = bindingDescriptors;
+        descriptor.bindingCount = 0;
+        descriptor.bindings = nullptr;
+        descriptor.entryCount = 1;
+        descriptor.entries = bindingDescriptors;
 
         bindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &descriptor);
     }
@@ -484,8 +469,10 @@ void init() {
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.layout = bindGroupLayout;
-        descriptor.bindingCount = 1;
-        descriptor.bindings = bindingDescriptors;
+        descriptor.bindingCount = 0;
+        descriptor.bindings = nullptr;
+        descriptor.entryCount = 1;
+        descriptor.entries = bindingDescriptors;
 
         bindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }

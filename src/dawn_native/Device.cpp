@@ -856,12 +856,6 @@ namespace dawn_native {
         return {};
     }
 
-    MaybeError DeviceBase::CreateQueueInternal(QueueBase** result) {
-        DAWN_TRY(ValidateIsAlive());
-        DAWN_TRY_ASSIGN(*result, CreateQueueImpl());
-        return {};
-    }
-
     MaybeError DeviceBase::CreateRayTracingAccelerationContainerInternal(
         RayTracingAccelerationContainerBase** result,
         const RayTracingAccelerationContainerDescriptor* descriptor) {

@@ -25,14 +25,14 @@ namespace dawn_native {
     RayTracingPassEncoder::RayTracingPassEncoder(DeviceBase* device,
                                                  CommandEncoder* commandEncoder,
                                                  EncodingContext* encodingContext)
-        : ProgrammablePassEncoder(device, encodingContext), mCommandEncoder(commandEncoder) {
+        : ProgrammablePassEncoder(device, encodingContext, PassType::RayTracing), mCommandEncoder(commandEncoder) {
     }
 
     RayTracingPassEncoder::RayTracingPassEncoder(DeviceBase* device,
                                                  CommandEncoder* commandEncoder,
                                                  EncodingContext* encodingContext,
                                                  ErrorTag errorTag)
-        : ProgrammablePassEncoder(device, encodingContext, errorTag),
+        : ProgrammablePassEncoder(device, encodingContext, errorTag, PassType::RayTracing),
           mCommandEncoder(commandEncoder) {
     }
 

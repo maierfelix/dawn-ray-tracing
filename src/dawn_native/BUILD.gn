@@ -238,8 +238,6 @@ source_set("dawn_native_sources") {
     "RayTracingPipeline.h",
     "RayTracingShaderBindingTable.cpp",
     "RayTracingShaderBindingTable.h",
-    "RefCounted.cpp",
-    "RefCounted.h",
     "RenderBundle.cpp",
     "RenderBundle.h",
     "RenderBundleEncoder.cpp",

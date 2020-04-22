@@ -26,7 +26,7 @@ namespace dawn_native {
     class TextureBase;
     class RayTracingAccelerationContainerBase;
 
-    enum class PassType { Render, Compute };
+    enum class PassType { Render, Compute, RayTracing };
 
     // Which resources are used by pass and how they are used. The command buffer validation
     // pre-computes this information so that backends with explicit barriers don't have to
