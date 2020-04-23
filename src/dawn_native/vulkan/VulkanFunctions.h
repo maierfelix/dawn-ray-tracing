@@ -16,7 +16,6 @@
 #define DAWNNATIVE_VULKAN_VULKANFUNCTIONS_H_
 
 #include "common/vulkan_platform.h"
-
 #include "dawn_native/Error.h"
 
 class DynamicLib;
@@ -300,8 +299,24 @@ namespace dawn_native { namespace vulkan {
         PFN_vkGetAccelerationStructureHandleNV GetAccelerationStructureHandleNV = nullptr;
         PFN_vkBindAccelerationStructureMemoryNV BindAccelerationStructureMemoryNV = nullptr;
         PFN_vkGetRayTracingShaderGroupHandlesNV GetRayTracingShaderGroupHandlesNV = nullptr;
-        PFN_vkGetAccelerationStructureMemoryRequirementsNV GetAccelerationStructureMemoryRequirementsNV = nullptr;
+        PFN_vkGetAccelerationStructureMemoryRequirementsNV
+            GetAccelerationStructureMemoryRequirementsNV = nullptr;
 
+        // VK_KHR_ray_tracing
+        /*PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR = nullptr;
+        PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR = nullptr;
+        PFN_vkCmdBuildAccelerationStructureKHR CmdBuildAccelerationStructureKHR = nullptr;
+        PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructureKHR = nullptr;
+        PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR = nullptr;
+        PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR = nullptr;
+        PFN_vkBindAccelerationStructureMemoryKHR BindAccelerationStructureMemoryKHR = nullptr;
+        PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddressKHR =
+            nullptr;
+        PFN_vkGetAccelerationStructureMemoryRequirementsKHR
+            GetAccelerationStructureMemoryRequirementsKHR = nullptr;*/
+
+        // VK_KHR_buffer_device_address
+        //PFN_vkGetBufferDeviceAddressKHR GetBufferDeviceAddressKHR = nullptr;
     };
 
     // Create a wrapper around VkResult in the dawn_native::vulkan namespace. This shadows the

@@ -80,7 +80,7 @@ namespace dawn_native { namespace vulkan {
     const char kExtensionNameKhrXlibSurface[] = "VK_KHR_xlib_surface";
     const char kExtensionNameFuchsiaImagePipeSurface[] = "VK_FUCHSIA_imagepipe_surface";
     const char kExtensionNameKhrMaintenance1[] = "VK_KHR_maintenance1";
-    const char kExtensionNameKhrRayTracing[] = "VK_KHR_ray_tracing";
+    const char kExtensionNameKhrRayTracing[] = "VK_NV_ray_tracing";
     const char kExtensionNameKhrGetMemoryRequirements2[] = "VK_KHR_get_memory_requirements2";
     const char kExtensionNameExtDescriptorIndexing[] = "VK_EXT_descriptor_indexing";
     const char kExtensionNameKhrDeferredHostOperations[] = "VK_KHR_deferred_host_operations";
@@ -414,7 +414,6 @@ namespace dawn_native { namespace vulkan {
     }
 
     VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingProperties(const Adapter& adapter) {
-        printf("1337\n");
         VkPhysicalDevice physicalDevice = adapter.GetPhysicalDevice();
         const VulkanFunctions& vkFunctions = adapter.GetBackend()->GetFunctions();
 

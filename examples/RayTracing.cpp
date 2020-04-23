@@ -56,11 +56,6 @@ uint32_t height = 480;
 
 uint64_t pixelBufferSize = width * height * 4 * sizeof(float);
 
-struct CameraData {
-    glm::mat4 view;
-    glm::mat4 projection;
-};
-
 void init() {
     std::vector<const char*> requiredExtensions = {"ray_tracing"};
     device = CreateCppDawnDevice(wgpu::BackendType::Vulkan, requiredExtensions).Release();
@@ -85,22 +80,16 @@ void init() {
         layout(std140, set = 0, binding = 1) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
-        layout(set = 0, binding = 2) uniform Camera {
-            mat4 view;
-            mat4 projection;
-        } uCamera;
         void main() {
-            ivec2 ipos = ivec2(gl_LaunchIDNV.xy);
-            const ivec2 resolution = ivec2(gl_LaunchSizeNV.xy);
-            const vec2 offset = vec2(0);
-            const vec2 pixel = vec2(ipos.x, ipos.y);
+            const vec2 pixel = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
             const vec2 uv = (pixel / gl_LaunchSizeNV.xy) * 2.0 - 1.0;
-            vec4 origin = uCamera.view * vec4(offset, 0, 1);
-            vec4 target = uCamera.projection * (vec4(uv.x, uv.y, 1, 1));
-            vec4 direction = uCamera.view * vec4(normalize(target.xyz), 0);
+            const float aspect = float(gl_LaunchSizeNV.x) / float(gl_LaunchSizeNV.y);
+            
+            const vec3 origin = vec3(0, 0, -1.5);
+            const vec3 direction = normalize(vec3(uv.x * aspect, -uv.y, 1));
             hitValue = vec3(0);
             traceNV(topLevelAS, gl_RayFlagsOpaqueNV, 0xFF, 0, 0, 0, origin.xyz, 0.01, direction.xyz, 4096.0, 0);
-            const uint pixelIndex = ipos.y * resolution.x + ipos.x;
+            const uint pixelIndex = gl_LaunchIDNV.y * gl_LaunchSizeNV.x + gl_LaunchIDNV.x;
             pixelBuffer.pixels[pixelIndex] = vec4(hitValue, 1);
         }
     )";
@@ -213,27 +202,6 @@ void init() {
     }
 
     {
-        WGPUBufferDescriptor descriptor;
-        descriptor.label = nullptr;
-        descriptor.nextInChain = nullptr;
-        descriptor.size = sizeof(CameraData);
-        descriptor.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
-
-        CameraData data = {};
-
-        float aspect = width / height;
-        data.projection = glm::perspective(2.0f * glm::pi<float>() / 5.0f, -aspect, 0.1f, 4096.0f);
-        data.projection = glm::inverse(data.projection);
-        data.projection[1][1] *= -1.0f;
-
-        data.view = glm::translate(data.view, glm::vec3(0.0f, 0.0f, -2.0f));
-        data.view = glm::inverse(data.view);
-
-        cameraBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
-        wgpuBufferSetSubData(cameraBuffer, 0, sizeof(CameraData), &data);
-    }
-
-    {
         WGPURayTracingAccelerationGeometryVertexDescriptor vertexDescriptor;
         vertexDescriptor.offset = 0;
         vertexDescriptor.buffer = vertexBuffer;
@@ -341,7 +309,7 @@ void init() {
     }
 
     {
-        WGPUBindGroupLayoutBinding bindingDescriptors[3];
+        WGPUBindGroupLayoutBinding bindingDescriptors[2];
         // acceleration structure
         bindingDescriptors[0] = {};
         bindingDescriptors[0].binding = 0;
@@ -352,25 +320,20 @@ void init() {
         bindingDescriptors[1].binding = 1;
         bindingDescriptors[1].type = WGPUBindingType_StorageBuffer;
         bindingDescriptors[1].visibility = WGPUShaderStage_RayGeneration;
-        // camera buffer
-        bindingDescriptors[2] = {};
-        bindingDescriptors[2].binding = 2;
-        bindingDescriptors[2].type = WGPUBindingType_UniformBuffer;
-        bindingDescriptors[2].visibility = WGPUShaderStage_RayGeneration;
 
         WGPUBindGroupLayoutDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.bindingCount = 0;
         descriptor.bindings = nullptr;
-        descriptor.entryCount = 3;
+        descriptor.entryCount = 2;
         descriptor.entries = bindingDescriptors;
 
         rtBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &descriptor);
     }
 
     {
-        WGPUBindGroupBinding bindingDescriptors[3];
+        WGPUBindGroupBinding bindingDescriptors[2];
         // acceleration container
         bindingDescriptors[0] = {};
         bindingDescriptors[0].binding = 0;
@@ -389,15 +352,6 @@ void init() {
         bindingDescriptors[1].sampler = nullptr;
         bindingDescriptors[1].textureView = nullptr;
         bindingDescriptors[1].accelerationContainer = nullptr;
-        // camera buffer
-        bindingDescriptors[2] = {};
-        bindingDescriptors[2].binding = 2;
-        bindingDescriptors[2].offset = 0;
-        bindingDescriptors[2].size = sizeof(CameraData);
-        bindingDescriptors[2].buffer = cameraBuffer;
-        bindingDescriptors[2].sampler = nullptr;
-        bindingDescriptors[2].textureView = nullptr;
-        bindingDescriptors[2].accelerationContainer = nullptr;
 
         WGPUBindGroupDescriptor descriptor;
         descriptor.label = nullptr;
@@ -405,7 +359,7 @@ void init() {
         descriptor.layout = rtBindGroupLayout;
         descriptor.bindingCount = 0;
         descriptor.bindings = nullptr;
-        descriptor.entryCount = 3;
+        descriptor.entryCount = 2;
         descriptor.entries = bindingDescriptors;
 
         rtBindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);

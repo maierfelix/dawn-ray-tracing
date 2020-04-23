@@ -372,10 +372,11 @@ namespace dawn_native { namespace vulkan {
             return DAWN_VALIDATION_ERROR("Invalid Acceleration Container Level");
         }
 
-        MaybeError result = CheckVkSuccess(device->fn.CreateAccelerationStructureNV(
-                                               device->GetVkDevice(), &accelerationStructureInfo,
-                                               nullptr, &*mAccelerationStructure),
-                                           "vkCreateAccelerationStructureNV");
+        MaybeError result = CheckVkSuccess(
+            device->fn.CreateAccelerationStructureNV(
+                device->GetVkDevice(), &accelerationStructureInfo, nullptr,
+                reinterpret_cast<VkAccelerationStructureNV*>(&mAccelerationStructure)),
+            "vkCreateAccelerationStructureNV");
         if (result.IsError())
             return result;
 
