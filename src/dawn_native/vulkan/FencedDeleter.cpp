@@ -111,7 +111,7 @@ namespace dawn_native { namespace vulkan {
         mBuffersToDelete.ClearUpTo(completedSerial);
         for (VkAccelerationStructureNV as :
              mAccelerationStructuresToDelete.IterateUpTo(completedSerial)) {
-            mDevice->fn.DestroyAccelerationStructureNV(vkDevice, as, nullptr);
+            mDevice->fn.DestroyAccelerationStructureKHR(vkDevice, as, nullptr);
         }
         mAccelerationStructuresToDelete.ClearUpTo(completedSerial);
         for (VkImage image : mImagesToDelete.IterateUpTo(completedSerial)) {

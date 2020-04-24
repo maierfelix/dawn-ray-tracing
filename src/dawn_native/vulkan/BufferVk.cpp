@@ -14,13 +14,13 @@
 
 #include "dawn_native/vulkan/BufferVk.h"
 
+#include <cstring>
+
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
 #include "dawn_native/vulkan/ResourceMemoryAllocatorVk.h"
 #include "dawn_native/vulkan/VulkanError.h"
-
-#include <cstring>
 
 namespace dawn_native { namespace vulkan {
 
@@ -51,7 +51,7 @@ namespace dawn_native { namespace vulkan {
                 flags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
             }
             if (usage & wgpu::BufferUsage::RayTracing) {
-                flags |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+                flags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
             }
 
             return flags;
@@ -74,7 +74,7 @@ namespace dawn_native { namespace vulkan {
                 flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
             if (usage & wgpu::BufferUsage::Indirect) {
                 flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
@@ -159,13 +159,26 @@ namespace dawn_native { namespace vulkan {
 
         bool requestMappable =
             (GetUsage() & (wgpu::BufferUsage::MapRead | wgpu::BufferUsage::MapWrite)) != 0;
-        DAWN_TRY_ASSIGN(mMemoryAllocation, device->AllocateMemory(requirements, requestMappable));
+        bool requestDeviceAddress = (GetUsage() & wgpu::BufferUsage::RayTracing) != 0;
+
+        DAWN_TRY_ASSIGN(mMemoryAllocation, device->AllocateMemory(requirements, requestMappable,
+                                                                  requestDeviceAddress));
 
         DAWN_TRY(CheckVkSuccess(
             device->fn.BindBufferMemory(device->GetVkDevice(), mHandle,
                                         ToBackend(mMemoryAllocation.GetResourceHeap())->GetMemory(),
                                         mMemoryAllocation.GetOffset()),
             "vkBindBufferMemory"));
+
+        if (requestDeviceAddress) {
+            VkBufferDeviceAddressInfoKHR bufferDeviceAddressInfo;
+            bufferDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+            bufferDeviceAddressInfo.pNext = nullptr;
+            bufferDeviceAddressInfo.buffer = mHandle;
+
+            mDeviceAddress = device->fn.GetBufferDeviceAddressKHR(device->GetVkDevice(),
+                                                                  &bufferDeviceAddressInfo);
+        }
 
         return {};
     }
@@ -184,6 +197,10 @@ namespace dawn_native { namespace vulkan {
 
     VkBuffer Buffer::GetHandle() const {
         return mHandle;
+    }
+
+    uint64_t Buffer::GetDeviceAddress() const {
+        return mDeviceAddress;
     }
 
     ResourceMemoryAllocation Buffer::GetMemoryResource() const {

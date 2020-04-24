@@ -52,11 +52,6 @@ namespace dawn_native { namespace vulkan {
         Device* device = ToBackend(GetDevice());
         Adapter* adapter = ToBackend(device->GetAdapter());
 
-        // validate ray tracing calls
-        if (device->fn.GetRayTracingShaderGroupHandlesNV == nullptr) {
-            return DAWN_VALIDATION_ERROR("Invalid Call to GetRayTracingShaderGroupHandlesNV");
-        }
-
         mRayTracingProperties = GetRayTracingProperties(*adapter);
 
         mStages.reserve(descriptor->stagesCount);

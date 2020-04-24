@@ -289,21 +289,8 @@ namespace dawn_native { namespace vulkan {
         PFN_vkGetSemaphoreZirconHandleFUCHSIA GetSemaphoreZirconHandleFUCHSIA = nullptr;
 #endif
 
-        // VK_NV_ray_tracing
-        PFN_vkCmdTraceRaysNV CmdTraceRaysNV = nullptr;
-        PFN_vkCreateRayTracingPipelinesNV CreateRayTracingPipelinesNV = nullptr;
-        PFN_vkCreateAccelerationStructureNV CreateAccelerationStructureNV = nullptr;
-        PFN_vkDestroyAccelerationStructureNV DestroyAccelerationStructureNV = nullptr;
-        PFN_vkCmdCopyAccelerationStructureNV CmdCopyAccelerationStructureNV = nullptr;
-        PFN_vkCmdBuildAccelerationStructureNV CmdBuildAccelerationStructureNV = nullptr;
-        PFN_vkGetAccelerationStructureHandleNV GetAccelerationStructureHandleNV = nullptr;
-        PFN_vkBindAccelerationStructureMemoryNV BindAccelerationStructureMemoryNV = nullptr;
-        PFN_vkGetRayTracingShaderGroupHandlesNV GetRayTracingShaderGroupHandlesNV = nullptr;
-        PFN_vkGetAccelerationStructureMemoryRequirementsNV
-            GetAccelerationStructureMemoryRequirementsNV = nullptr;
-
         // VK_KHR_ray_tracing
-        /*PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR = nullptr;
+        PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR = nullptr;
         PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR = nullptr;
         PFN_vkCmdBuildAccelerationStructureKHR CmdBuildAccelerationStructureKHR = nullptr;
         PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructureKHR = nullptr;
@@ -313,10 +300,10 @@ namespace dawn_native { namespace vulkan {
         PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddressKHR =
             nullptr;
         PFN_vkGetAccelerationStructureMemoryRequirementsKHR
-            GetAccelerationStructureMemoryRequirementsKHR = nullptr;*/
+            GetAccelerationStructureMemoryRequirementsKHR = nullptr;
 
         // VK_KHR_buffer_device_address
-        //PFN_vkGetBufferDeviceAddressKHR GetBufferDeviceAddressKHR = nullptr;
+        PFN_vkGetBufferDeviceAddressKHR GetBufferDeviceAddressKHR = nullptr;
     };
 
     // Create a wrapper around VkResult in the dawn_native::vulkan namespace. This shadows the

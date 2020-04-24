@@ -47,12 +47,12 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType) {
+    VkGeometryTypeKHR ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType) {
         switch (geometryType) {
             case wgpu::RayTracingAccelerationGeometryType::Triangles:
-                return VK_GEOMETRY_TYPE_TRIANGLES_NV;
+                return VK_GEOMETRY_TYPE_TRIANGLES_KHR;
             case wgpu::RayTracingAccelerationGeometryType::Aabbs:
-                return VK_GEOMETRY_TYPE_AABBS_NV;
+                return VK_GEOMETRY_TYPE_AABBS_KHR;
             default:
                 UNREACHABLE();
         }
@@ -61,7 +61,7 @@ namespace dawn_native { namespace vulkan {
     VkIndexType ToVulkanAccelerationContainerIndexFormat(wgpu::IndexFormat format) {
         switch (format) {
             case wgpu::IndexFormat::None:
-                return VK_INDEX_TYPE_NONE_NV;
+                return VK_INDEX_TYPE_NONE_KHR;
             case wgpu::IndexFormat::Uint16:
                 return VK_INDEX_TYPE_UINT16;
             case wgpu::IndexFormat::Uint32:
@@ -82,27 +82,27 @@ namespace dawn_native { namespace vulkan {
         }
     }
 
-    VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
+    VkAccelerationStructureTypeKHR ToVulkanAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level) {
         switch (level) {
             case wgpu::RayTracingAccelerationContainerLevel::Bottom:
-                return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+                return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
             case wgpu::RayTracingAccelerationContainerLevel::Top:
-                return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+                return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
             default:
                 UNREACHABLE();
         }
     }
 
-    VkRayTracingShaderGroupTypeNV ToVulkanShaderBindingTableGroupType(
+    VkRayTracingShaderGroupTypeKHR ToVulkanShaderBindingTableGroupType(
         wgpu::RayTracingShaderBindingTableGroupType type) {
         switch (type) {
             case wgpu::RayTracingShaderBindingTableGroupType::General:
-                return VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
             case wgpu::RayTracingShaderBindingTableGroupType::TrianglesHitGroup:
-                return VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
             case wgpu::RayTracingShaderBindingTableGroupType::ProceduralHitGroup:
-                return VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
+                return VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR;
             default:
                 UNREACHABLE();
         }
@@ -120,70 +120,70 @@ namespace dawn_native { namespace vulkan {
             flags |= VK_SHADER_STAGE_COMPUTE_BIT;
         }
         if (stages & wgpu::ShaderStage::RayGeneration) {
-            flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;
+            flags |= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         }
         if (stages & wgpu::ShaderStage::RayClosestHit) {
-            flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+            flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         }
         if (stages & wgpu::ShaderStage::RayAnyHit) {
-            flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+            flags |= VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
         }
         if (stages & wgpu::ShaderStage::RayMiss) {
-            flags |= VK_SHADER_STAGE_MISS_BIT_NV;
+            flags |= VK_SHADER_STAGE_MISS_BIT_KHR;
         }
         if (stages & wgpu::ShaderStage::RayIntersection) {
-            flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+            flags |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
         }
         return static_cast<VkShaderStageFlags>(flags);
     }
 
-    VkBuildAccelerationStructureFlagsNV ToVulkanBuildAccelerationContainerFlags(
+    VkBuildAccelerationStructureFlagsKHR ToVulkanBuildAccelerationContainerFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags) {
         uint32_t flags = 0;
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
-            flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
         }
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
-            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR;
         }
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
-            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
         }
         if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
-            flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
+            flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_KHR;
         }
-        return static_cast<VkBuildAccelerationStructureFlagsNV>(flags);
+        return static_cast<VkBuildAccelerationStructureFlagsKHR>(flags);
     }
 
-    VkGeometryInstanceFlagsNV ToVulkanAccelerationContainerInstanceFlags(
+    VkGeometryInstanceFlagsKHR ToVulkanAccelerationContainerInstanceFlags(
         wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
         uint32_t flags = 0;
         if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
-            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         }
         if (instanceFlags &
             wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise) {
-            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
+            flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR;
         }
         if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque) {
-            flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
+            flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR;
         }
         if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
-            flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
+            flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR;
         }
-        return static_cast<VkGeometryInstanceFlagsNV>(flags);
+        return static_cast<VkGeometryInstanceFlagsKHR>(flags);
     }
 
-    VkGeometryFlagsNV ToVulkanAccelerationContainerGeometryFlags(
+    VkGeometryFlagsKHR ToVulkanAccelerationContainerGeometryFlags(
         wgpu::RayTracingAccelerationGeometryFlag geometryFlags) {
         uint32_t flags = 0;
         if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::Opaque) {
-            flags |= VK_GEOMETRY_OPAQUE_BIT_NV;
+            flags |= VK_GEOMETRY_OPAQUE_BIT_KHR;
         }
         if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::AllowAnyHit) {
-            flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;
+            flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
         }
-        return static_cast<VkGeometryFlagsNV>(flags);
+        return static_cast<VkGeometryFlagsKHR>(flags);
     }
 
     // Vulkan SPEC requires the source/destination region specified by each element of

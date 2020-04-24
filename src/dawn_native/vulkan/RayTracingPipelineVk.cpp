@@ -36,7 +36,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     MaybeError RayTracingPipeline::Initialize(const RayTracingPipelineDescriptor* descriptor) {
-        Device* device = ToBackend(GetDevice());
+        /*Device* device = ToBackend(GetDevice());
 
         RayTracingShaderBindingTable* shaderBindingTable =
             ToBackend(descriptor->rayTracingState->shaderBindingTable);
@@ -77,7 +77,7 @@ namespace dawn_native { namespace vulkan {
             if (result.IsError())
                 return result.AcquireError();
         }
-
+        */
         return {};
     }
 

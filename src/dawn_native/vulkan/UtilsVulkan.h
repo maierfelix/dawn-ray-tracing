@@ -25,19 +25,19 @@ namespace dawn_native { namespace vulkan {
 
     VkCompareOp ToVulkanCompareOp(wgpu::CompareFunction op);
     VkShaderStageFlags ToVulkanShaderStageFlags(wgpu::ShaderStage stages);
-    VkGeometryTypeNV ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType);
+    VkGeometryTypeKHR ToVulkanGeometryType(wgpu::RayTracingAccelerationGeometryType geometryType);
     VkIndexType ToVulkanAccelerationContainerIndexFormat(wgpu::IndexFormat format);
     VkFormat ToVulkanAccelerationContainerVertexFormat(wgpu::VertexFormat format);
 
-    VkAccelerationStructureTypeNV ToVulkanAccelerationContainerLevel(
+    VkAccelerationStructureTypeKHR ToVulkanAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level);
-    VkBuildAccelerationStructureFlagsNV ToVulkanBuildAccelerationContainerFlags(
+    VkBuildAccelerationStructureFlagsKHR ToVulkanBuildAccelerationContainerFlags(
         wgpu::RayTracingAccelerationContainerFlag buildFlags);
-    VkGeometryInstanceFlagsNV ToVulkanAccelerationContainerInstanceFlags(
+    VkGeometryInstanceFlagsKHR ToVulkanAccelerationContainerInstanceFlags(
         wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
-    VkGeometryFlagsNV ToVulkanAccelerationContainerGeometryFlags(
+    VkGeometryFlagsKHR ToVulkanAccelerationContainerGeometryFlags(
         wgpu::RayTracingAccelerationGeometryFlag geometryFlags);
-    VkRayTracingShaderGroupTypeNV ToVulkanShaderBindingTableGroupType(
+    VkRayTracingShaderGroupTypeKHR ToVulkanShaderBindingTableGroupType(
         wgpu::RayTracingShaderBindingTableGroupType type);
 
     Extent3D ComputeTextureCopyExtent(const TextureCopy& textureCopy, const Extent3D& copySize);

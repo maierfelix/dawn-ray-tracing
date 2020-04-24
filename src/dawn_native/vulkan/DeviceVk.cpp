@@ -386,6 +386,8 @@ namespace dawn_native { namespace vulkan {
             usedKnobs.features.textureCompressionBC = VK_TRUE;
         }
 
+        // Make sure the minimum required extensions for RT ara available
+        // Descriptor indexing is not strictly necessary, but commonly used in RT
         if (IsExtensionEnabled(Extension::RayTracing)) {
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().rayTracingKHR == true);
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().descriptorIndexing == true);
@@ -437,6 +439,22 @@ namespace dawn_native { namespace vulkan {
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionsToRequest.size());
         createInfo.ppEnabledExtensionNames = extensionsToRequest.data();
         createInfo.pEnabledFeatures = &usedKnobs.features;
+
+        VkPhysicalDeviceRayTracingFeaturesKHR deviceRayTracingFeatures = {};
+        deviceRayTracingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR;
+        deviceRayTracingFeatures.pNext = nullptr;
+
+        VkPhysicalDeviceVulkan12Features deviceVulkan12Features = {};
+        deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        deviceVulkan12Features.pNext = nullptr;
+
+        // Enable device extensions for RT
+        if (IsExtensionEnabled(Extension::RayTracing)) {
+            deviceRayTracingFeatures.rayTracing = VK_TRUE;
+            deviceVulkan12Features.bufferDeviceAddress = VK_TRUE;
+            deviceVulkan12Features.pNext = &deviceRayTracingFeatures;
+            createInfo.pNext = &deviceVulkan12Features;
+        }
 
         DAWN_TRY(CheckVkSuccess(fn.CreateDevice(physicalDevice, &createInfo, nullptr, &mVkDevice),
                                 "vkCreateDevice"));
@@ -748,8 +766,9 @@ namespace dawn_native { namespace vulkan {
 
     ResultOrError<ResourceMemoryAllocation> Device::AllocateMemory(
         VkMemoryRequirements requirements,
-        bool mappable) {
-        return mResourceMemoryAllocator->Allocate(requirements, mappable);
+        bool mappable,
+        bool requestDeviceAddress) {
+        return mResourceMemoryAllocator->Allocate(requirements, mappable, requestDeviceAddress);
     }
 
     void Device::DeallocateMemory(ResourceMemoryAllocation* allocation) {

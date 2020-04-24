@@ -432,15 +432,15 @@ namespace dawn_native { namespace vulkan {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         size_t nextPassNumber = 0;
 
-        bool hasBottomLevelContainerBuild = false;
-        bool hasBottomLevelContainerUpdate = false;
+        /*bool hasBottomLevelContainerBuild = false;
+        bool hasBottomLevelContainerUpdate = false;*/
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
 
                 case Command::BuildRayTracingAccelerationContainer: {
-                    BuildRayTracingAccelerationContainerCmd* build =
+                    /*BuildRayTracingAccelerationContainerCmd* build =
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
@@ -506,11 +506,11 @@ namespace dawn_native { namespace vulkan {
 
                         container->SetBuildState(true);
                     }
-
+                    */
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {
-                    CopyRayTracingAccelerationContainerCmd* copy =
+                    /*CopyRayTracingAccelerationContainerCmd* copy =
                         mCommands.NextCommand<CopyRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* srcContainer =
                         ToBackend(copy->srcContainer.Get());
@@ -521,11 +521,11 @@ namespace dawn_native { namespace vulkan {
                         commands, dstContainer->GetAccelerationStructure(),
                         srcContainer->GetAccelerationStructure(),
                         VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV);
-
+                    */
                 } break;
 
                 case Command::UpdateRayTracingAccelerationContainer: {
-                    UpdateRayTracingAccelerationContainerCmd* update =
+                    /*UpdateRayTracingAccelerationContainerCmd* update =
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(update->container.Get());
 
@@ -598,7 +598,7 @@ namespace dawn_native { namespace vulkan {
                             0, 1, &barrier, 0, 0, 0, 0);
 
                     }
-
+                    */
                 } break;
 
                 case Command::CopyBufferToBuffer: {
@@ -919,7 +919,7 @@ namespace dawn_native { namespace vulkan {
                 } break;
 
                 case Command::TraceRays: {
-                    TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+                    /*TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
 
                     ASSERT(usedPipeline != nullptr);
 
@@ -948,7 +948,7 @@ namespace dawn_native { namespace vulkan {
                         // callable
                         VK_NULL_HANDLE, 0, 0,
                         // dimensions
-                        traceRays->width, traceRays->height, traceRays->depth);
+                        traceRays->width, traceRays->height, traceRays->depth);*/
                 } break;
 
                 case Command::SetBindGroup: {

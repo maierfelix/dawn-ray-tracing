@@ -34,6 +34,7 @@ namespace dawn_native { namespace vulkan {
         void OnMapWriteCommandSerialFinished(uint32_t mapSerial, void* data);
 
         VkBuffer GetHandle() const;
+        uint64_t GetDeviceAddress() const;
         ResourceMemoryAllocation GetMemoryResource() const;
 
         // Transitions the buffer to be used as `usage`, recording any necessary barrier in
@@ -56,6 +57,7 @@ namespace dawn_native { namespace vulkan {
         MaybeError MapAtCreationImpl(uint8_t** mappedPointer) override;
 
         VkBuffer mHandle = VK_NULL_HANDLE;
+        uint64_t mDeviceAddress = 0;
         ResourceMemoryAllocation mMemoryAllocation;
 
         wgpu::BufferUsage mLastUsage = wgpu::BufferUsage::None;

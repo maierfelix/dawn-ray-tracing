@@ -74,43 +74,43 @@ void init() {
 
     const char* rayGen = R"(
         #version 460
-        #extension GL_NV_ray_tracing : require
-        layout(location = 0) rayPayloadNV vec3 hitValue;
-        layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
+        #extension GL_EXT_ray_tracing  : require
+        layout(location = 0) rayPayloadEXT vec4 payload;
+        layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
         layout(std140, set = 0, binding = 1) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
         void main() {
-            const vec2 pixel = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
-            const vec2 uv = (pixel / gl_LaunchSizeNV.xy) * 2.0 - 1.0;
-            const float aspect = float(gl_LaunchSizeNV.x) / float(gl_LaunchSizeNV.y);
-            
+            const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+            const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+            const vec2 d = uv * 2.0 - 1.0;
+            const float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
             const vec3 origin = vec3(0, 0, -1.5);
-            const vec3 direction = normalize(vec3(uv.x * aspect, -uv.y, 1));
-            hitValue = vec3(0);
-            traceNV(topLevelAS, gl_RayFlagsOpaqueNV, 0xFF, 0, 0, 0, origin.xyz, 0.01, direction.xyz, 4096.0, 0);
-            const uint pixelIndex = gl_LaunchIDNV.y * gl_LaunchSizeNV.x + gl_LaunchIDNV.x;
-            pixelBuffer.pixels[pixelIndex] = vec4(hitValue, 1);
+            const vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, 1));
+            payload = vec4(0);
+            traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
+            const uint pixelIndex = gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
+            pixelBuffer.pixels[pixelIndex] = payload;
         }
     )";
 
     const char* rayCHit = R"(
-        #version 460
-        #extension GL_NV_ray_tracing : require
-        layout(location = 0) rayPayloadInNV vec3 hitValue;
-        hitAttributeNV vec3 attribs;
+        #version 460 core
+        #extension GL_EXT_ray_tracing : enable
+        layout(location = 0) rayPayloadInEXT vec4 payload;
+        hitAttributeEXT vec3 attribs;
         void main() {
-            const vec3 bary = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
-            hitValue = bary;
+          vec3 bary = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
+          payload = vec4(bary, 0);
         }
     )";
 
     const char* rayMiss = R"(
-        #version 460
-        #extension GL_NV_ray_tracing : require
-        layout(location = 0) rayPayloadInNV vec3 hitValue;
+        #version 460 core
+        #extension GL_EXT_ray_tracing : enable
+        layout(location = 0) rayPayloadInEXT vec4 payload;
         void main() {
-            hitValue = vec3(0.15);
+          payload = vec4(0.3);
         }
     )";
 
@@ -169,7 +169,7 @@ void init() {
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.size = sizeof(vertexData);
-        descriptor.usage = WGPUBufferUsage_CopyDst;
+        descriptor.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_RayTracing;
 
         vertexBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
         wgpuBufferSetSubData(vertexBuffer, 0, sizeof(vertexData), vertexData);
@@ -185,12 +185,12 @@ void init() {
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.size = sizeof(indexData);
-        descriptor.usage = WGPUBufferUsage_CopyDst;
+        descriptor.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_RayTracing;
 
         indexBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
         wgpuBufferSetSubData(indexBuffer, 0, sizeof(indexData), indexData);
     }
-
+    
     {
         WGPUBufferDescriptor descriptor;
         descriptor.label = nullptr;
@@ -200,7 +200,7 @@ void init() {
 
         pixelBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
     }
-
+    
     {
         WGPURayTracingAccelerationGeometryVertexDescriptor vertexDescriptor;
         vertexDescriptor.offset = 0;
@@ -232,7 +232,7 @@ void init() {
 
         geometryContainer = wgpuDeviceCreateRayTracingAccelerationContainer(device, &descriptor);
     }
-
+    /*
     {
         // clang-format off
         const float transformMatrix[] = {
@@ -386,7 +386,7 @@ void init() {
         descriptor.rayTracingState = &rtStateDescriptor;
 
         rtPipeline = wgpuDeviceCreateRayTracingPipeline(device, &descriptor);
-    }
+    }*/
 
     {
         WGPUBindGroupLayoutBinding bindingDescriptors[1];
@@ -501,7 +501,7 @@ void init() {
 void frame() {
     WGPUTextureView backbufferView = wgpuSwapChainGetCurrentTextureView(swapchain);
 
-    {
+    /*{
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
 
         WGPURayTracingPassDescriptor rayTracingPassInfo;
@@ -520,7 +520,7 @@ void frame() {
         wgpuCommandEncoderRelease(encoder);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
         wgpuCommandBufferRelease(commandBuffer);
-    }
+    }*/
 
     {
         WGPURenderPassDescriptor renderpassInfo;
