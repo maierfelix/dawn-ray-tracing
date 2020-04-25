@@ -31,7 +31,7 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingShaderBindingTable() override;
 
         std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
-        std::vector<VkRayTracingShaderGroupCreateInfoNV>& GetGroups();
+        std::vector<VkRayTracingShaderGroupCreateInfoKHR>& GetGroups();
 
         VkBuffer GetGroupBufferHandle() const;
         ResourceMemoryAllocation GetGroupBufferResource() const;
@@ -44,9 +44,9 @@ namespace dawn_native { namespace vulkan {
         void DestroyImpl() override;
 
         std::vector<VkPipelineShaderStageCreateInfo> mStages;
-        std::vector<VkRayTracingShaderGroupCreateInfoNV> mGroups;
+        std::vector<VkRayTracingShaderGroupCreateInfoKHR> mGroups;
 
-        VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
+        VkPhysicalDeviceRayTracingPropertiesKHR mRayTracingProperties;
 
         // group handle buffer
         VkBuffer mGroupBuffer = VK_NULL_HANDLE;

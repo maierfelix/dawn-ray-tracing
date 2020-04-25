@@ -43,9 +43,9 @@ namespace dawn_native { namespace vulkan {
         std::array<VkWriteDescriptorSet, kMaxBindingsPerGroup> writes;
         std::array<VkDescriptorBufferInfo, kMaxBindingsPerGroup> writeBufferInfo;
         std::array<VkDescriptorImageInfo, kMaxBindingsPerGroup> writeImageInfo;
-        std::array<VkWriteDescriptorSetAccelerationStructureNV, kMaxBindingsPerGroup>
+        std::array<VkWriteDescriptorSetAccelerationStructureKHR, kMaxBindingsPerGroup>
             writeAccelerationInfo;
-        std::array<VkAccelerationStructureNV, kMaxBindingsPerGroup> accelerationStructures;
+        std::array<VkAccelerationStructureKHR, kMaxBindingsPerGroup> accelerationStructures;
 
         for (const auto& it : GetLayout()->GetBindingMap()) {
             BindingNumber bindingNumber = it.first;
@@ -115,7 +115,7 @@ namespace dawn_native { namespace vulkan {
 
                     writeAccelerationInfo[numWrites].pNext = nullptr;
                     writeAccelerationInfo[numWrites].sType =
-                        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+                        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
                     writeAccelerationInfo[numWrites].accelerationStructureCount = 1;
                     writeAccelerationInfo[numWrites].pAccelerationStructures =
                         AsVkArray(&accelerationStructures.data()[numWrites]);

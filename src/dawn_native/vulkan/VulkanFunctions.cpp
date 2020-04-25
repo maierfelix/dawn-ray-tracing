@@ -321,21 +321,22 @@ namespace dawn_native { namespace vulkan {
             GET_DEVICE_PROC(QueuePresentKHR);
         }
 
-        if (deviceInfo.rayTracingNV) {
-            GET_DEVICE_PROC(CmdTraceRaysNV);
-            GET_DEVICE_PROC(CreateRayTracingPipelinesNV);
-            GET_DEVICE_PROC(CreateAccelerationStructureNV);
-            GET_DEVICE_PROC(DestroyAccelerationStructureNV);
-            GET_DEVICE_PROC(CmdCopyAccelerationStructureNV);
-            GET_DEVICE_PROC(CmdBuildAccelerationStructureNV);
-            GET_DEVICE_PROC(GetAccelerationStructureHandleNV);
-            GET_DEVICE_PROC(BindAccelerationStructureMemoryNV);
-            GET_DEVICE_PROC(GetRayTracingShaderGroupHandlesNV);
-            GET_DEVICE_PROC(GetAccelerationStructureMemoryRequirementsNV);
+        if (deviceInfo.rayTracingKHR) {
+            GET_DEVICE_PROC(CreateAccelerationStructureKHR);
+            GET_DEVICE_PROC(CreateRayTracingPipelinesKHR);
+            GET_DEVICE_PROC(CmdBuildAccelerationStructureKHR);
+            GET_DEVICE_PROC(CmdCopyAccelerationStructureKHR);
+            GET_DEVICE_PROC(DestroyAccelerationStructureKHR);
+            GET_DEVICE_PROC(GetRayTracingShaderGroupHandlesKHR);
+            GET_DEVICE_PROC(CmdTraceRaysKHR);
+            GET_DEVICE_PROC(BindAccelerationStructureMemoryKHR);
+            GET_DEVICE_PROC(CreateAccelerationStructureKHR);
+            GET_DEVICE_PROC(GetAccelerationStructureDeviceAddressKHR);
+            GET_DEVICE_PROC(GetAccelerationStructureMemoryRequirementsKHR);
         }
 
-        if (deviceInfo.memoryRequirements2) {
-          
+        if (deviceInfo.bufferDeviceAddress) {
+            GET_DEVICE_PROC(GetBufferDeviceAddressKHR);
         }
 
         return {};

@@ -15,13 +15,13 @@
 #ifndef DAWNNATIVE_VULKAN_RESOURCEMEMORYALLOCATORVK_H_
 #define DAWNNATIVE_VULKAN_RESOURCEMEMORYALLOCATORVK_H_
 
+#include <memory>
+#include <vector>
+
 #include "common/SerialQueue.h"
 #include "common/vulkan_platform.h"
 #include "dawn_native/Error.h"
 #include "dawn_native/ResourceMemoryAllocation.h"
-
-#include <memory>
-#include <vector>
 
 namespace dawn_native { namespace vulkan {
 
@@ -33,7 +33,9 @@ namespace dawn_native { namespace vulkan {
         ~ResourceMemoryAllocator();
 
         ResultOrError<ResourceMemoryAllocation> Allocate(const VkMemoryRequirements& requirements,
-                                                         bool mappable);
+                                                         bool mappable,
+                                                         bool requestDeviceAddress = false);
+
         void Deallocate(ResourceMemoryAllocation* allocation);
 
         void Tick(Serial completedSerial);

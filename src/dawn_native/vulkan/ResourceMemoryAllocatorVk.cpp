@@ -68,6 +68,16 @@ namespace dawn_native { namespace vulkan {
             allocateInfo.allocationSize = size;
             allocateInfo.memoryTypeIndex = mMemoryTypeIndex;
 
+            // When RT extension is enabled: gather the device address of all allocated resources
+            VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo;
+            if (mDevice->IsExtensionEnabled(Extension::RayTracing)) {
+                memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+                memoryAllocateFlagsInfo.pNext = nullptr;
+                memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+                memoryAllocateFlagsInfo.deviceMask = 0;
+                allocateInfo.pNext = &memoryAllocateFlagsInfo;
+            }
+
             VkDeviceMemory allocatedMemory = VK_NULL_HANDLE;
 
             // First check OOM that we want to surface to the application.
@@ -105,7 +115,8 @@ namespace dawn_native { namespace vulkan {
 
     ResultOrError<ResourceMemoryAllocation> ResourceMemoryAllocator::Allocate(
         const VkMemoryRequirements& requirements,
-        bool mappable) {
+        bool mappable,
+        bool requestDeviceAddress) {
         // The Vulkan spec guarantees at least on memory type is valid.
         int memoryType = FindBestTypeIndex(requirements, mappable);
         ASSERT(memoryType >= 0);

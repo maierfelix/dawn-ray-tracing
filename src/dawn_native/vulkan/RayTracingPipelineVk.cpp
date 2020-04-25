@@ -42,11 +42,11 @@ namespace dawn_native { namespace vulkan {
             ToBackend(descriptor->rayTracingState->shaderBindingTable);
 
         std::vector<VkPipelineShaderStageCreateInfo> stages = shaderBindingTable->GetStages();
-        std::vector<VkRayTracingShaderGroupCreateInfoNV> groups = shaderBindingTable->GetGroups();
+        std::vector<VkRayTracingShaderGroupCreateInfoKHR> groups = shaderBindingTable->GetGroups();
 
         {
-            VkRayTracingPipelineCreateInfoNV createInfo;
-            createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
+            VkRayTracingPipelineCreateInfoKHR createInfo;
+            createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
             createInfo.pNext = nullptr;
             createInfo.flags = 0;
             createInfo.pStages = stages.data();
@@ -57,11 +57,16 @@ namespace dawn_native { namespace vulkan {
             createInfo.layout = ToBackend(descriptor->layout)->GetHandle();
             createInfo.basePipelineHandle = VK_NULL_HANDLE;
             createInfo.basePipelineIndex = 0;
+            createInfo.libraries.sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR;
+            createInfo.libraries.pNext = nullptr;
+            createInfo.libraries.libraryCount = 0;
+            createInfo.libraries.pLibraries = nullptr;
+            createInfo.pLibraryInterface = nullptr;
 
             MaybeError result = CheckVkSuccess(
-                device->fn.CreateRayTracingPipelinesNV(device->GetVkDevice(), VK_NULL_HANDLE, 1,
+                device->fn.CreateRayTracingPipelinesKHR(device->GetVkDevice(), VK_NULL_HANDLE, 1,
                                                        &createInfo, nullptr, &*mHandle),
-                "vkCreateRayTracingPipelinesNV");
+                "vkCreateRayTracingPipelinesKHR");
             if (result.IsError())
                 return result.AcquireError();
         }
@@ -70,10 +75,10 @@ namespace dawn_native { namespace vulkan {
             uint64_t bufferSize = groups.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
             MaybeError result =
-                CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesNV(
+                CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesKHR(
                                    device->GetVkDevice(), mHandle, 0, groups.size(), bufferSize,
                                    shaderBindingTable->GetGroupBufferResource().GetMappedPointer()),
-                               "vkGetRayTracingShaderGroupHandlesNV");
+                               "vkGetRayTracingShaderGroupHandlesKHR");
             if (result.IsError())
                 return result.AcquireError();
         }

@@ -28,7 +28,7 @@ namespace dawn_native { namespace vulkan {
         ~FencedDeleter();
 
         void DeleteWhenUnused(VkBuffer buffer);
-        void DeleteWhenUnused(VkAccelerationStructureNV as);
+        void DeleteWhenUnused(VkAccelerationStructureKHR as);
         void DeleteWhenUnused(VkDescriptorPool pool);
         void DeleteWhenUnused(VkDeviceMemory memory);
         void DeleteWhenUnused(VkFramebuffer framebuffer);
@@ -48,7 +48,7 @@ namespace dawn_native { namespace vulkan {
       private:
         Device* mDevice = nullptr;
         SerialQueue<VkBuffer> mBuffersToDelete;
-        SerialQueue<VkAccelerationStructureNV> mAccelerationStructuresToDelete;
+        SerialQueue<VkAccelerationStructureKHR> mAccelerationStructuresToDelete;
         SerialQueue<VkDescriptorPool> mDescriptorPoolsToDelete;
         SerialQueue<VkDeviceMemory> mMemoriesToDelete;
         SerialQueue<VkFramebuffer> mFramebuffersToDelete;

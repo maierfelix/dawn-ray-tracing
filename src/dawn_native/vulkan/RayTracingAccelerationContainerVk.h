@@ -25,15 +25,6 @@ namespace dawn_native { namespace vulkan {
 
     class Device;
 
-    struct VkAccelerationInstance {
-        float transform[12];
-        uint32_t instanceId : 24;
-        uint32_t mask : 8;
-        uint32_t instanceOffset : 24;
-        uint32_t flags : 8;
-        uint64_t accelerationStructureHandle;
-    };
-
     struct ScratchMemoryPool {
         MemoryEntry result;
         MemoryEntry update;
@@ -48,11 +39,10 @@ namespace dawn_native { namespace vulkan {
         ~RayTracingAccelerationContainer() override;
 
         uint64_t GetHandle() const;
-        VkAccelerationStructureNV GetAccelerationStructure() const;
+        VkAccelerationStructureKHR GetAccelerationStructure() const;
 
-        uint32_t GetInstanceCount() const;
-
-        std::vector<VkGeometryNV>& GetGeometries();
+        std::vector<VkAccelerationStructureGeometryKHR>& GetGeometries();
+        std::vector<VkAccelerationStructureBuildOffsetInfoKHR>& GetBuildOffsets();
 
         MemoryEntry& GetInstanceMemory();
 
@@ -67,32 +57,29 @@ namespace dawn_native { namespace vulkan {
             uint32_t instanceIndex,
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
 
-        std::vector<VkGeometryNV> mGeometries;
-        std::vector<VkAccelerationInstance> mInstances;
+        std::vector<VkAccelerationStructureGeometryKHR> mGeometries;
+        std::vector<VkAccelerationStructureBuildOffsetInfoKHR> mBuildOffsets;
 
         // AS related
-        VkAccelerationStructureNV mAccelerationStructure = VK_NULL_HANDLE;
+        uint64_t mAccelerationHandle;
+        VkAccelerationStructureKHR mAccelerationStructure = VK_NULL_HANDLE;
 
         // scratch memory
         ScratchMemoryPool mScratchMemory;
 
         // instance buffer
         MemoryEntry mInstanceMemory;
-        uint32_t mInstanceCount;
 
         VkMemoryRequirements GetMemoryRequirements(
-            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
+            VkAccelerationStructureMemoryRequirementsTypeKHR type) const;
         uint64_t GetMemoryRequirementSize(
-            VkAccelerationStructureMemoryRequirementsTypeNV type) const;
+            VkAccelerationStructureMemoryRequirementsTypeKHR type) const;
 
         MaybeError CreateAccelerationStructure(
             const RayTracingAccelerationContainerDescriptor* descriptor);
 
         MaybeError AllocateScratchMemory(MemoryEntry& memoryEntry,
                                          VkMemoryRequirements& requirements);
-
-        uint64_t mHandle;
-        MaybeError FetchHandle(uint64_t* handle);
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

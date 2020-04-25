@@ -15,10 +15,10 @@
 #ifndef DAWNNATIVE_VULKAN_VULKANINFO_H_
 #define DAWNNATIVE_VULKAN_VULKANINFO_H_
 
+#include <vector>
+
 #include "common/vulkan_platform.h"
 #include "dawn_native/Error.h"
-
-#include <vector>
 
 namespace dawn_native { namespace vulkan {
 
@@ -53,9 +53,12 @@ namespace dawn_native { namespace vulkan {
     extern const char kExtensionNameKhrXlibSurface[];
     extern const char kExtensionNameFuchsiaImagePipeSurface[];
     extern const char kExtensionNameKhrMaintenance1[];
-    extern const char kExtensionNameNvRayTracing[];
+    extern const char kExtensionNameKhrRayTracing[];
     extern const char kExtensionNameKhrGetMemoryRequirements2[];
     extern const char kExtensionNameExtDescriptorIndexing[];
+    extern const char kExtensionNameKhrDeferredHostOperations[];
+    extern const char kExtensionNameKhrPipelineLibrary[];
+    extern const char kExtensionNameKhrBufferDeviceAddress[];
 
     // Global information - gathered before the instance is created
     struct VulkanGlobalKnobs {
@@ -103,9 +106,12 @@ namespace dawn_native { namespace vulkan {
         bool externalSemaphoreZirconHandle = false;
         bool swapchain = false;
         bool maintenance1 = false;
-        bool rayTracingNV = false;
+        bool rayTracingKHR = false;
         bool memoryRequirements2 = false;
         bool descriptorIndexing = false;
+        bool deferredHostOperations = false;
+        bool pipelineLibrary = false;
+        bool bufferDeviceAddress = false;
     };
 
     struct VulkanDeviceInfo : VulkanDeviceKnobs {
@@ -131,7 +137,7 @@ namespace dawn_native { namespace vulkan {
     ResultOrError<std::vector<VkPhysicalDevice>> GetPhysicalDevices(const Backend& backend);
     ResultOrError<VulkanDeviceInfo> GatherDeviceInfo(const Adapter& adapter);
 
-    VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingProperties(const Adapter& adapter);
+    VkPhysicalDeviceRayTracingPropertiesKHR GetRayTracingProperties(const Adapter& adapter);
 
     ResultOrError<VulkanSurfaceInfo> GatherSurfaceInfo(const Adapter& adapter,
                                                        VkSurfaceKHR surface);

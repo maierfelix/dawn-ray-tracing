@@ -91,7 +91,8 @@ namespace dawn_native { namespace vulkan {
                                            uint64_t size) override;
 
         ResultOrError<ResourceMemoryAllocation> AllocateMemory(VkMemoryRequirements requirements,
-                                                               bool mappable);
+                                                               bool mappable,
+                                                               bool requestDeviceAddress = false);
         void DeallocateMemory(ResourceMemoryAllocation* allocation);
 
         int FindBestMemoryTypeIndex(VkMemoryRequirements requirements, bool mappable);
