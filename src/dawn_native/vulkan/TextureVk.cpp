@@ -153,7 +153,7 @@ namespace dawn_native { namespace vulkan {
                 flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+                         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
             if (usage & wgpu::TextureUsage::OutputAttachment) {
                 if (format.HasDepthOrStencil()) {

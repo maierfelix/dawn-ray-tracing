@@ -43,7 +43,7 @@ namespace dawn_native { namespace vulkan {
         mBuffersToDelete.Enqueue(buffer, mDevice->GetPendingCommandSerial());
     }
 
-    void FencedDeleter::DeleteWhenUnused(VkAccelerationStructureNV as) {
+    void FencedDeleter::DeleteWhenUnused(VkAccelerationStructureKHR as) {
         mAccelerationStructuresToDelete.Enqueue(as, mDevice->GetPendingCommandSerial());
     }
 
@@ -109,7 +109,7 @@ namespace dawn_native { namespace vulkan {
             mDevice->fn.DestroyBuffer(vkDevice, buffer, nullptr);
         }
         mBuffersToDelete.ClearUpTo(completedSerial);
-        for (VkAccelerationStructureNV as :
+        for (VkAccelerationStructureKHR as :
              mAccelerationStructuresToDelete.IterateUpTo(completedSerial)) {
             mDevice->fn.DestroyAccelerationStructureKHR(vkDevice, as, nullptr);
         }

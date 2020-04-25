@@ -413,12 +413,12 @@ namespace dawn_native { namespace vulkan {
         return std::move(info);
     }
 
-    VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingProperties(const Adapter& adapter) {
+    VkPhysicalDeviceRayTracingPropertiesKHR GetRayTracingProperties(const Adapter& adapter) {
         VkPhysicalDevice physicalDevice = adapter.GetPhysicalDevice();
         const VulkanFunctions& vkFunctions = adapter.GetBackend()->GetFunctions();
 
-        VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties;
-        rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+        VkPhysicalDeviceRayTracingPropertiesKHR rayTracingProperties;
+        rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR;
         rayTracingProperties.pNext = nullptr;
 
         VkPhysicalDeviceProperties2 deviceProperties2;

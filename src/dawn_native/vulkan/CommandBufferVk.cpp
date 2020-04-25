@@ -432,81 +432,55 @@ namespace dawn_native { namespace vulkan {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         size_t nextPassNumber = 0;
 
-        /*bool hasBottomLevelContainerBuild = false;
-        bool hasBottomLevelContainerUpdate = false;*/
+        bool hasBottomLevelContainerBuild = false;
+        /*bool hasBottomLevelContainerUpdate = false;*/
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
-
                 case Command::BuildRayTracingAccelerationContainer: {
-                    /*BuildRayTracingAccelerationContainerCmd* build =
+                    BuildRayTracingAccelerationContainerCmd* build =
                         mCommands.NextCommand<BuildRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(build->container.Get());
 
-                    VkMemoryBarrier barrier;
-                    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-                    barrier.pNext = nullptr;
-                    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-                    barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+                    std::vector<VkAccelerationStructureGeometryKHR>& geometries =
+                        container->GetGeometries();
+                    const VkAccelerationStructureGeometryKHR* ppGeometries = geometries.data();
 
-                    // bottom-level AS
-                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-                        std::vector<VkGeometryNV>& geometries = container->GetGeometries();
+                    VkAccelerationStructureBuildGeometryInfoKHR asInfo;
+                    asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+                    asInfo.pNext = nullptr;
+                    asInfo.type = ToVulkanAccelerationContainerLevel(container->GetLevel());
+                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
+                    asInfo.update = VK_FALSE;
+                    asInfo.srcAccelerationStructure = VK_NULL_HANDLE;
+                    asInfo.dstAccelerationStructure = container->GetAccelerationStructure();
+                    asInfo.geometryArrayOfPointers = VK_FALSE;
+                    asInfo.geometryCount = geometries.size();
+                    asInfo.ppGeometries = &ppGeometries;
+                    asInfo.scratchData.deviceAddress =
+                        container->GetScratchMemory().build.deviceAddress;
 
-                        VkAccelerationStructureInfoNV asInfo;
-                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-                        asInfo.pNext = nullptr;
-                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
-                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-                        asInfo.instanceCount = 0;
-                        asInfo.geometryCount = geometries.size();
-                        asInfo.pGeometries = geometries.data();
+                    std::vector<VkAccelerationStructureBuildOffsetInfoKHR>& buildOffsets =
+                        container->GetBuildOffsets();
+                    const VkAccelerationStructureBuildOffsetInfoKHR* ppBuildOffsets =
+                        buildOffsets.data();
 
-                        device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, VK_NULL_HANDLE, 0, false,
-                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
-                            container->GetScratchMemory().build.buffer,
-                            0);
-                        container->SetBuildState(true);
+                    device->fn.CmdBuildAccelerationStructureKHR(commands, 1, &asInfo,
+                                                                &ppBuildOffsets);
 
+                    container->SetBuildState(true);
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom)
                         hasBottomLevelContainerBuild = true;
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
+                        hasBottomLevelContainerBuild) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration containers of different levels must be built in "
+                            "separate passes");
                     }
-                    // top-level AS
-                    else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
 
-                        VkAccelerationStructureInfoNV asInfo;
-                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-                        asInfo.pNext = nullptr;
-                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
-                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-                        asInfo.instanceCount = container->GetInstanceCount();
-                        asInfo.geometryCount = 0;
-                        asInfo.pGeometries = nullptr;
-
-                        if (hasBottomLevelContainerBuild) {
-                            return DAWN_VALIDATION_ERROR(
-                                "Acceleration containers of different levels must be built in "
-                                "separate passes");
-                        }
-
-                        device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceMemory().buffer, 0, false,
-                            container->GetAccelerationStructure(), VK_NULL_HANDLE,
-                            container->GetScratchMemory().build.buffer,
-                            0);
-
-                        device->fn.CmdPipelineBarrier(
-                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
-                                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
-                            0, 1, &barrier, 0, 0, 0, 0);
-
-                        container->SetBuildState(true);
-                    }
-                    */
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {
@@ -919,7 +893,7 @@ namespace dawn_native { namespace vulkan {
                 } break;
 
                 case Command::TraceRays: {
-                    /*TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+                    TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
 
                     ASSERT(usedPipeline != nullptr);
 
@@ -929,26 +903,33 @@ namespace dawn_native { namespace vulkan {
                     VkBuffer sbtBuffer = sbt->GetGroupBufferHandle();
 
                     uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
+                    uint32_t groupCount = sbt->GetGroups().size();
 
                     uint32_t rayGenOffset = traceRays->rayGenerationOffset;
                     uint32_t rayHitOffset = traceRays->rayHitOffset;
                     uint32_t rayMissOffset = traceRays->rayMissOffset;
 
                     descriptorSets.Apply(device, recordingContext,
-                                         VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
+                                         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);
 
-                    device->fn.CmdTraceRaysNV(
-                        commands,
-                        // ray-gen
-                        sbtBuffer, rayGenOffset * groupHandleSize,
-                        // ray-miss
-                        sbtBuffer, rayMissOffset * groupHandleSize, groupHandleSize,
-                        // ray-hit
-                        sbtBuffer, rayHitOffset * groupHandleSize, groupHandleSize,
-                        // callable
-                        VK_NULL_HANDLE, 0, 0,
-                        // dimensions
-                        traceRays->width, traceRays->height, traceRays->depth);*/
+                    // clang-format off
+                    VkStridedBufferRegionKHR rayGenSBT = {
+                        sbtBuffer, rayGenOffset * groupHandleSize, 0, groupCount * groupHandleSize
+                    };
+                    VkStridedBufferRegionKHR rayMissSBT = {
+                        sbtBuffer, rayMissOffset * groupHandleSize, 0, groupCount * groupHandleSize
+                    };
+                    VkStridedBufferRegionKHR rayHitSBT = {
+                        sbtBuffer, rayHitOffset * groupHandleSize, 0, groupCount * groupHandleSize
+                    };
+                    VkStridedBufferRegionKHR rayCallSBT = {
+                        VK_NULL_HANDLE, 0, 0, 0
+                    };
+                    // clang-format on
+
+                    device->fn.CmdTraceRaysKHR(commands, &rayGenSBT, &rayMissSBT, &rayHitSBT,
+                                               &rayCallSBT, traceRays->width, traceRays->height,
+                                               traceRays->depth);
                 } break;
 
                 case Command::SetBindGroup: {

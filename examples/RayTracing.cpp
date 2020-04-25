@@ -32,7 +32,6 @@ WGPUBuffer vertexBuffer;
 WGPUBuffer indexBuffer;
 
 WGPUBuffer pixelBuffer;
-WGPUBuffer cameraBuffer;
 
 WGPUShaderModule vsModule;
 WGPUShaderModule fsModule;
@@ -89,7 +88,7 @@ void init() {
             const vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, 1));
             payload = vec4(0);
             traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
-            const uint pixelIndex = gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
+            const uint pixelIndex = (gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y) * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
             pixelBuffer.pixels[pixelIndex] = payload;
         }
     )";
@@ -110,7 +109,7 @@ void init() {
         #extension GL_EXT_ray_tracing : enable
         layout(location = 0) rayPayloadInEXT vec4 payload;
         void main() {
-          payload = vec4(0.3);
+          payload = vec4(0.15);
         }
     )";
 
@@ -232,7 +231,7 @@ void init() {
 
         geometryContainer = wgpuDeviceCreateRayTracingAccelerationContainer(device, &descriptor);
     }
-    /*
+
     {
         // clang-format off
         const float transformMatrix[] = {
@@ -272,7 +271,7 @@ void init() {
         wgpuCommandEncoderRelease(encoder);
         wgpuCommandBufferRelease(commandBuffer);
     }
-
+    
     {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
         wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, instanceContainer);
@@ -386,7 +385,7 @@ void init() {
         descriptor.rayTracingState = &rtStateDescriptor;
 
         rtPipeline = wgpuDeviceCreateRayTracingPipeline(device, &descriptor);
-    }*/
+    }
 
     {
         WGPUBindGroupLayoutBinding bindingDescriptors[1];
@@ -501,7 +500,7 @@ void init() {
 void frame() {
     WGPUTextureView backbufferView = wgpuSwapChainGetCurrentTextureView(swapchain);
 
-    /*{
+    {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
 
         WGPURayTracingPassDescriptor rayTracingPassInfo;
@@ -520,7 +519,7 @@ void frame() {
         wgpuCommandEncoderRelease(encoder);
         wgpuQueueSubmit(queue, 1, &commandBuffer);
         wgpuCommandBufferRelease(commandBuffer);
-    }*/
+    }
 
     {
         WGPURenderPassDescriptor renderpassInfo;

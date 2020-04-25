@@ -42,6 +42,7 @@ namespace dawn_native { namespace vulkan {
         VkAccelerationStructureKHR GetAccelerationStructure() const;
 
         std::vector<VkAccelerationStructureGeometryKHR>& GetGeometries();
+        std::vector<VkAccelerationStructureBuildOffsetInfoKHR>& GetBuildOffsets();
 
         MemoryEntry& GetInstanceMemory();
 
@@ -57,8 +58,10 @@ namespace dawn_native { namespace vulkan {
             const RayTracingAccelerationInstanceDescriptor* descriptor) override;
 
         std::vector<VkAccelerationStructureGeometryKHR> mGeometries;
+        std::vector<VkAccelerationStructureBuildOffsetInfoKHR> mBuildOffsets;
 
         // AS related
+        uint64_t mAccelerationHandle;
         VkAccelerationStructureKHR mAccelerationStructure = VK_NULL_HANDLE;
 
         // scratch memory
@@ -77,9 +80,6 @@ namespace dawn_native { namespace vulkan {
 
         MaybeError AllocateScratchMemory(MemoryEntry& memoryEntry,
                                          VkMemoryRequirements& requirements);
-
-        uint64_t mHandle;
-        MaybeError FetchHandle(uint64_t* handle);
 
         MaybeError Initialize(const RayTracingAccelerationContainerDescriptor* descriptor);
     };

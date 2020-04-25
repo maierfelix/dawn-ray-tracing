@@ -98,6 +98,7 @@ namespace dawn_native { namespace vulkan {
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             mGeometries.reserve(descriptor->geometryCount);
+            mBuildOffsets.reserve(descriptor->geometryCount);
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 const RayTracingAccelerationGeometryDescriptor& geometry =
                     descriptor->geometries[ii];
@@ -108,12 +109,23 @@ namespace dawn_native { namespace vulkan {
                 geometryInfo.flags = ToVulkanAccelerationContainerGeometryFlags(geometry.flags);
                 geometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
 
+                // reset
+                geometryInfo.geometry.triangles = {};
+                geometryInfo.geometry.triangles.sType =
+                    VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+                geometryInfo.geometry.triangles.pNext = nullptr;
+                geometryInfo.geometry.aabbs = {};
+                geometryInfo.geometry.aabbs.sType =
+                    VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
+                geometryInfo.geometry.aabbs.pNext = nullptr;
+                geometryInfo.geometry.instances = {};
+                geometryInfo.geometry.instances.sType =
+                    VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+                geometryInfo.geometry.instances.pNext = nullptr;
+
                 // vertex buffer
                 if (geometry.vertex != nullptr && geometry.vertex->buffer != nullptr) {
                     Buffer* vertexBuffer = ToBackend(geometry.vertex->buffer);
-                    geometryInfo.geometry.triangles.sType =
-                        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-                    geometryInfo.geometry.triangles.pNext = nullptr;
                     geometryInfo.geometry.triangles.vertexFormat =
                         ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
                     geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
@@ -126,19 +138,22 @@ namespace dawn_native { namespace vulkan {
                             ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
                         geometryInfo.geometry.triangles.indexData.deviceAddress =
                             indexBuffer->GetDeviceAddress() + geometry.index->offset;
+                        // build offset (indexed)
+                        mBuildOffsets.push_back({geometry.index->count, 0x0, 0, 0x0});
                     } else {
                         geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_NONE_KHR;
+                        // build offset (unindexed)
+                        mBuildOffsets.push_back({geometry.vertex->count, 0x0, 0, 0x0});
                     }
                 }
                 // aabb buffer
                 if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
                     Buffer* aabbBuffer = ToBackend(geometry.aabb->buffer);
-                    geometryInfo.geometry.aabbs.sType =
-                        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
-                    geometryInfo.geometry.aabbs.pNext = nullptr;
                     geometryInfo.geometry.aabbs.stride = geometry.aabb->stride;
                     geometryInfo.geometry.aabbs.data.deviceAddress =
                         aabbBuffer->GetDeviceAddress() + geometry.aabb->offset;
+                    // build offset
+                    mBuildOffsets.push_back({geometry.aabb->count, 0x0, 0, 0x0});
                 }
                 mGeometries.push_back(geometryInfo);
             };
@@ -147,13 +162,15 @@ namespace dawn_native { namespace vulkan {
         // acceleration container holds instances
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             mGeometries.reserve(1);
+            mBuildOffsets.reserve(1);
 
             uint64_t bufferSize =
                 descriptor->instanceCount * sizeof(VkAccelerationStructureInstanceKHR);
 
             // create internal buffer holding instances
-            BufferDescriptor bufDescriptor = {nullptr, nullptr, wgpu::BufferUsage::CopyDst,
-                                           bufferSize};
+            BufferDescriptor bufDescriptor = {
+                nullptr, nullptr, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::RayTracing,
+                                              bufferSize};
             Buffer* buffer = ToBackend(device->CreateBuffer(&bufDescriptor));
             mInstanceMemory.allocation = AcquireRef(buffer);
             mInstanceMemory.buffer = buffer->GetHandle();
@@ -170,7 +187,7 @@ namespace dawn_native { namespace vulkan {
                 VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
             geometryInfo.geometry.instances.pNext = nullptr;
             geometryInfo.geometry.instances.arrayOfPointers = VK_FALSE;
-            geometryInfo.geometry.instances.data.deviceAddress = 0;  // TODO: address
+            geometryInfo.geometry.instances.data.deviceAddress = buffer->GetDeviceAddress();
             mGeometries.push_back(geometryInfo);
 
             // copy instance data into instance buffer
@@ -180,6 +197,9 @@ namespace dawn_native { namespace vulkan {
                 mInstances.push_back(GetVkAccelerationInstance(descriptor->instances[ii]));
             };
             buffer->SetSubData(0, bufferSize, mInstances.data());
+
+            // build offset
+            mBuildOffsets.push_back({descriptor->instanceCount, 0x0, 0, 0x0});
         }
 
         // create the acceleration container
@@ -230,13 +250,13 @@ namespace dawn_native { namespace vulkan {
         }
 
         // take handle
-        {
-            uint64_t handle = 0;
-            MaybeError result = FetchHandle(&handle);
-            if (result.IsError())
-                return result.AcquireError();
-            mHandle = handle;
-        }
+        VkAccelerationStructureDeviceAddressInfoKHR devAddrInfo;
+        devAddrInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+        devAddrInfo.pNext = nullptr;
+        devAddrInfo.accelerationStructure = mAccelerationStructure;
+        mAccelerationHandle = device->fn.GetAccelerationStructureDeviceAddressKHR(
+            device->GetVkDevice(),
+                                                                      &devAddrInfo);
 
         return {};
     }
@@ -265,7 +285,8 @@ namespace dawn_native { namespace vulkan {
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
         createInfo.size = requirements.size;
-        createInfo.usage = VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
+        createInfo.usage =
+            VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = 0;
@@ -286,12 +307,16 @@ namespace dawn_native { namespace vulkan {
         device->fn.GetBufferMemoryRequirements2(device->GetVkDevice(), &bufferMemoryRequirements,
                                                 &bufferSizeRequirements);
 
-        requirements.size = bufferSizeRequirements.memoryRequirements.size;
-        requirements.alignment = bufferSizeRequirements.memoryRequirements.alignment;
-        requirements.memoryTypeBits =
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;  // validate that this is legal
+        uint64_t bufAllocSize = bufferSizeRequirements.memoryRequirements.size;
+        uint64_t asAllocSize = requirements.size;
+        // buf size can be larger than as size
+        uint64_t allocationSize = asAllocSize > bufAllocSize ? asAllocSize : bufAllocSize;
 
-        DAWN_TRY_ASSIGN(memoryEntry.resource, device->AllocateMemory(requirements, false));
+        requirements.size = allocationSize;
+        requirements.alignment = bufferSizeRequirements.memoryRequirements.alignment;
+        requirements.memoryTypeBits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+        DAWN_TRY_ASSIGN(memoryEntry.resource, device->AllocateMemory(requirements, false, true));
 
         DAWN_TRY(CheckVkSuccess(device->fn.BindBufferMemory(
                                     device->GetVkDevice(), memoryEntry.buffer,
@@ -301,6 +326,14 @@ namespace dawn_native { namespace vulkan {
 
         memoryEntry.memory = ToBackend(memoryEntry.resource.GetResourceHeap())->GetMemory();
         memoryEntry.offset = memoryEntry.resource.GetOffset();
+
+        VkBufferDeviceAddressInfoKHR bufferDeviceAddressInfo;
+        bufferDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+        bufferDeviceAddressInfo.pNext = nullptr;
+        bufferDeviceAddressInfo.buffer = memoryEntry.buffer;
+
+        memoryEntry.deviceAddress =
+            device->fn.GetBufferDeviceAddressKHR(device->GetVkDevice(), &bufferDeviceAddressInfo);
 
         return {};
     }
@@ -338,36 +371,57 @@ namespace dawn_native { namespace vulkan {
         Device* device = ToBackend(GetDevice());
 
         std::vector<VkAccelerationStructureCreateGeometryTypeInfoKHR> accelerationGeometries;
-        geometries.reserve(descriptor->geometryCount);
-        for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
-            const RayTracingAccelerationGeometryDescriptor& geometry = descriptor->geometries[ii];
+
+        // bottom-level geometry
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
+            accelerationGeometries.reserve(descriptor->geometryCount);
+            for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
+                const RayTracingAccelerationGeometryDescriptor& geometry =
+                    descriptor->geometries[ii];
+                VkAccelerationStructureCreateGeometryTypeInfoKHR accelerationCreateGeometryInfo;
+                accelerationCreateGeometryInfo.sType =
+                    VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_GEOMETRY_TYPE_INFO_KHR;
+                accelerationCreateGeometryInfo.pNext = nullptr;
+                accelerationCreateGeometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
+                accelerationCreateGeometryInfo.allowsTransforms = VK_FALSE;
+                accelerationCreateGeometryInfo.maxVertexCount = 0;
+                accelerationCreateGeometryInfo.vertexFormat = VK_FORMAT_UNDEFINED;
+                accelerationCreateGeometryInfo.indexType = VK_INDEX_TYPE_NONE_KHR;
+                // vertex buffer
+                if (geometry.vertex != nullptr && geometry.vertex->buffer != nullptr) {
+                    accelerationCreateGeometryInfo.maxVertexCount = geometry.vertex->count;
+                    accelerationCreateGeometryInfo.vertexFormat =
+                        ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
+                }
+                // index buffer
+                if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
+                    accelerationCreateGeometryInfo.indexType =
+                        ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
+                    accelerationCreateGeometryInfo.maxPrimitiveCount = geometry.index->count;
+                }
+                // aabb buffer
+                if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
+                    accelerationCreateGeometryInfo.maxPrimitiveCount = geometry.aabb->count;
+                }
+                accelerationGeometries.push_back(accelerationCreateGeometryInfo);
+            };
+        }
+
+        // top-level instances
+        if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
+            accelerationGeometries.reserve(1);
             VkAccelerationStructureCreateGeometryTypeInfoKHR accelerationCreateGeometryInfo;
             accelerationCreateGeometryInfo.sType =
                 VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_GEOMETRY_TYPE_INFO_KHR;
             accelerationCreateGeometryInfo.pNext = nullptr;
-            accelerationCreateGeometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
+            accelerationCreateGeometryInfo.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
             accelerationCreateGeometryInfo.allowsTransforms = VK_FALSE;
             accelerationCreateGeometryInfo.maxVertexCount = 0;
             accelerationCreateGeometryInfo.vertexFormat = VK_FORMAT_UNDEFINED;
             accelerationCreateGeometryInfo.indexType = VK_INDEX_TYPE_NONE_KHR;
-            // vertex buffer
-            if (geometry.vertex != nullptr && geometry.vertex->buffer != nullptr) {
-                accelerationCreateGeometryInfo.maxVertexCount = geometry.vertex->count;
-                accelerationCreateGeometryInfo.vertexFormat =
-                    ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
-            }
-            // index buffer
-            if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
-                accelerationCreateGeometryInfo.indexType =
-                    ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
-                accelerationCreateGeometryInfo.maxPrimitiveCount = geometry.index->count;
-            }
-            // aabb buffer
-            if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
-                accelerationCreateGeometryInfo.maxPrimitiveCount = geometry.aabb->count;
-            }
+            accelerationCreateGeometryInfo.maxPrimitiveCount = descriptor->instanceCount;
             accelerationGeometries.push_back(accelerationCreateGeometryInfo);
-        };
+        }
 
         VkAccelerationStructureCreateInfoKHR accelerationStructureInfo;
         accelerationStructureInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -375,7 +429,7 @@ namespace dawn_native { namespace vulkan {
         accelerationStructureInfo.compactedSize = 0;
         accelerationStructureInfo.flags =
             ToVulkanBuildAccelerationContainerFlags(descriptor->flags);
-        accelerationStructureInfo.maxGeometryCount = descriptor->geometryCount;
+        accelerationStructureInfo.maxGeometryCount = accelerationGeometries.size();
         accelerationStructureInfo.pGeometryInfos = accelerationGeometries.data();
         accelerationStructureInfo.type = ToVulkanAccelerationContainerLevel(descriptor->level);
         accelerationStructureInfo.deviceAddress = 0;
@@ -394,17 +448,6 @@ namespace dawn_native { namespace vulkan {
         return mInstanceMemory;
     }
 
-    MaybeError RayTracingAccelerationContainer::FetchHandle(uint64_t* handle) {
-        Device* device = ToBackend(GetDevice());
-        VkAccelerationStructureDeviceAddressInfoKHR devAddrInfo;
-        devAddrInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-        devAddrInfo.pNext = nullptr;
-        devAddrInfo.accelerationStructure = mAccelerationStructure;
-        *handle = device->fn.GetAccelerationStructureDeviceAddressKHR(device->GetVkDevice(),
-                                                                      &devAddrInfo);
-        return {};
-    }
-
     MaybeError RayTracingAccelerationContainer::UpdateInstanceImpl(
         uint32_t instanceIndex,
         const RayTracingAccelerationInstanceDescriptor* descriptor) {
@@ -419,7 +462,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     uint64_t RayTracingAccelerationContainer::GetHandle() const {
-        return mHandle;
+        return mAccelerationHandle;
     }
 
     VkAccelerationStructureKHR RayTracingAccelerationContainer::GetAccelerationStructure() const {
@@ -429,6 +472,11 @@ namespace dawn_native { namespace vulkan {
     std::vector<VkAccelerationStructureGeometryKHR>&
     RayTracingAccelerationContainer::GetGeometries() {
         return mGeometries;
+    }
+
+    std::vector<VkAccelerationStructureBuildOffsetInfoKHR>&
+    RayTracingAccelerationContainer::GetBuildOffsets() {
+        return mBuildOffsets;
     }
 
     ScratchMemoryPool& RayTracingAccelerationContainer::GetScratchMemory() {

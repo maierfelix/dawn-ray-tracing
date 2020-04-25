@@ -575,6 +575,7 @@ namespace dawn_native {
             case spv::ExecutionModelGLCompute:
                 mExecutionModel = SingleShaderStage::Compute;
                 break;
+            // TODO: translate to KHR (spvc uses older glslang without KHR_ray_tracing)
             case spv::ExecutionModelRayGenerationNV:
                 mExecutionModel = SingleShaderStage::RayGeneration;
                 break;
