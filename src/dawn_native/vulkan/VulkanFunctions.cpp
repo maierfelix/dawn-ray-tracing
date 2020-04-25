@@ -325,6 +325,7 @@ namespace dawn_native { namespace vulkan {
             GET_DEVICE_PROC(CreateAccelerationStructureKHR);
             GET_DEVICE_PROC(CreateRayTracingPipelinesKHR);
             GET_DEVICE_PROC(CmdBuildAccelerationStructureKHR);
+            GET_DEVICE_PROC(CmdCopyAccelerationStructureKHR);
             GET_DEVICE_PROC(DestroyAccelerationStructureKHR);
             GET_DEVICE_PROC(GetRayTracingShaderGroupHandlesKHR);
             GET_DEVICE_PROC(CmdTraceRaysKHR);

@@ -433,7 +433,7 @@ namespace dawn_native { namespace vulkan {
         size_t nextPassNumber = 0;
 
         bool hasBottomLevelContainerBuild = false;
-        /*bool hasBottomLevelContainerUpdate = false;*/
+        bool hasBottomLevelContainerUpdate = false;
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
@@ -484,32 +484,27 @@ namespace dawn_native { namespace vulkan {
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {
-                    /*CopyRayTracingAccelerationContainerCmd* copy =
+                    CopyRayTracingAccelerationContainerCmd* copy =
                         mCommands.NextCommand<CopyRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* srcContainer =
                         ToBackend(copy->srcContainer.Get());
                     RayTracingAccelerationContainer* dstContainer =
                         ToBackend(copy->dstContainer.Get());
 
-                    device->fn.CmdCopyAccelerationStructureNV(
-                        commands, dstContainer->GetAccelerationStructure(),
-                        srcContainer->GetAccelerationStructure(),
-                        VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV);
-                    */
+                    VkCopyAccelerationStructureInfoKHR copyInfo;
+                    copyInfo.sType = VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR;
+                    copyInfo.pNext = nullptr;
+                    copyInfo.src = srcContainer->GetAccelerationStructure();
+                    copyInfo.dst = dstContainer->GetAccelerationStructure();
+                    copyInfo.mode = VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_KHR;
+
+                    device->fn.CmdCopyAccelerationStructureKHR(commands, &copyInfo);
                 } break;
 
                 case Command::UpdateRayTracingAccelerationContainer: {
-                    /*UpdateRayTracingAccelerationContainerCmd* update =
+                    UpdateRayTracingAccelerationContainerCmd* update =
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(update->container.Get());
-
-                    VkMemoryBarrier barrier;
-                    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-                    barrier.pNext = nullptr;
-                    barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-                    barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV |
-                                            VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 
                     // we can destroy the scratch build memory after the first update
                     if (container->IsBuilt() && !container->IsUpdated()) {
@@ -517,62 +512,44 @@ namespace dawn_native { namespace vulkan {
                         container->SetUpdateState(true);
                     }
 
-                    // bottom-level AS
-                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-                        std::vector<VkGeometryNV>& geometries = container->GetGeometries();
+                    std::vector<VkAccelerationStructureGeometryKHR>& geometries =
+                        container->GetGeometries();
+                    const VkAccelerationStructureGeometryKHR* ppGeometries = geometries.data();
 
-                        VkAccelerationStructureInfoNV asInfo;
-                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-                        asInfo.pNext = nullptr;
-                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
-                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-                        asInfo.instanceCount = 0;
-                        asInfo.geometryCount = geometries.size();
-                        asInfo.pGeometries = geometries.data();
+                    VkAccelerationStructureBuildGeometryInfoKHR asInfo;
+                    asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+                    asInfo.pNext = nullptr;
+                    asInfo.type = ToVulkanAccelerationContainerLevel(container->GetLevel());
+                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
+                    asInfo.update = VK_TRUE;
+                    asInfo.srcAccelerationStructure = container->GetAccelerationStructure();
+                    asInfo.dstAccelerationStructure = container->GetAccelerationStructure();
+                    asInfo.geometryArrayOfPointers = VK_FALSE;
+                    asInfo.geometryCount = geometries.size();
+                    asInfo.ppGeometries = &ppGeometries;
+                    asInfo.scratchData.deviceAddress =
+                        container->GetScratchMemory().build.deviceAddress;
 
-                        device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, VK_NULL_HANDLE, 0, true,
-                            container->GetAccelerationStructure(),
-                            container->GetAccelerationStructure(),
-                            container->GetScratchMemory().update.buffer,
-                            0);
+                    std::vector<VkAccelerationStructureBuildOffsetInfoKHR>& buildOffsets =
+                        container->GetBuildOffsets();
+                    const VkAccelerationStructureBuildOffsetInfoKHR* ppBuildOffsets =
+                        buildOffsets.data();
 
+                    device->fn.CmdBuildAccelerationStructureKHR(commands, 1, &asInfo,
+                                                                &ppBuildOffsets);
+
+                    container->SetBuildState(true);
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom)
                         hasBottomLevelContainerUpdate = true;
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
+                        hasBottomLevelContainerUpdate) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Acceleration containers of different levels must be updated in "
+                            "separate passes");
                     }
-                    // top-level AS
-                    else if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top) {
 
-                        VkAccelerationStructureInfoNV asInfo;
-                        asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-                        asInfo.pNext = nullptr;
-                        asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
-                        asInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-                        asInfo.instanceCount = container->GetInstanceCount();
-                        asInfo.geometryCount = 0;
-                        asInfo.pGeometries = nullptr;
-
-                        if (hasBottomLevelContainerUpdate) {
-                            // TODO: is this really necessary?
-                            return DAWN_VALIDATION_ERROR(
-                                "Acceleration containers of different levels must be updated in "
-                                "seperate passes");
-                        }
-
-                        device->fn.CmdBuildAccelerationStructureNV(
-                            commands, &asInfo, container->GetInstanceMemory().buffer, 0, true,
-                            container->GetAccelerationStructure(),
-                            container->GetAccelerationStructure(),
-                            container->GetScratchMemory().update.buffer,
-                            0);
-
-                        device->fn.CmdPipelineBarrier(
-                            commands, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-                            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV |
-                                VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
-                            0, 1, &barrier, 0, 0, 0, 0);
-
-                    }
-                    */
                 } break;
 
                 case Command::CopyBufferToBuffer: {

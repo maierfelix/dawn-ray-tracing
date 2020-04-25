@@ -113,6 +113,11 @@ namespace dawn_native {
                     if (geometry.vertex->count == 0) {
                         return DAWN_VALIDATION_ERROR("Vertex count must not be zero");
                     }
+                    if ((geometry.vertex->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) ==
+                        0) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Vertex buffer must have RayTracing usage flag");
+                    }
                 }
                 // validate index input
                 if (geometry.index != nullptr) {
@@ -124,6 +129,11 @@ namespace dawn_native {
                     }
                     if (geometry.index->count == 0) {
                         return DAWN_VALIDATION_ERROR("Index count must not be zero");
+                    }
+                    if ((geometry.index->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) ==
+                        0) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Index buffer must have RayTracing usage flag");
                     }
                 }
                 // validate aabb input
@@ -141,6 +151,10 @@ namespace dawn_native {
                     }
                     if (geometry.aabb->count == 0) {
                         return DAWN_VALIDATION_ERROR("AABB count must not be zero");
+                    }
+                    if ((geometry.aabb->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) == 0) {
+                        return DAWN_VALIDATION_ERROR(
+                            "AABB buffer must have RayTracing usage flag");
                     }
                 }
                 if (geometry.vertex == nullptr && geometry.index == nullptr &&

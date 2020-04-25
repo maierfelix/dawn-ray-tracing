@@ -293,6 +293,7 @@ namespace dawn_native { namespace vulkan {
         PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR = nullptr;
         PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR = nullptr;
         PFN_vkCmdBuildAccelerationStructureKHR CmdBuildAccelerationStructureKHR = nullptr;
+        PFN_vkCmdCopyAccelerationStructureKHR CmdCopyAccelerationStructureKHR = nullptr;
         PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructureKHR = nullptr;
         PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR = nullptr;
         PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR = nullptr;
