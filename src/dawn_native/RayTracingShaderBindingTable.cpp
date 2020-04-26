@@ -61,7 +61,7 @@ namespace dawn_native {
                 case wgpu::ShaderStage::Vertex:
                 case wgpu::ShaderStage::Fragment:
                     return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
-            };
+            }
         }
         return {};
     }
