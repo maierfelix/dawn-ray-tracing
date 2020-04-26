@@ -15,11 +15,11 @@
 #ifndef DAWNNATIVE_VULKAN_RAY_TRACING_SHADER_BINDING_TABLE_H_
 #define DAWNNATIVE_VULKAN_RAY_TRACING_SHADER_BINDING_TABLE_H_
 
+#include <vector>
+
 #include "common/vulkan_platform.h"
 #include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/ResourceMemoryAllocation.h"
-
-#include <vector>
 
 namespace dawn_native { namespace vulkan {
 
@@ -27,16 +27,18 @@ namespace dawn_native { namespace vulkan {
 
     class RayTracingShaderBindingTable : public RayTracingShaderBindingTableBase {
       public:
-        static ResultOrError<RayTracingShaderBindingTable*> Create(Device* device, const RayTracingShaderBindingTableDescriptor* descriptor);
+        static ResultOrError<RayTracingShaderBindingTable*> Create(
+            Device* device,
+            const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable() override;
 
         std::vector<VkPipelineShaderStageCreateInfo>& GetStages();
         std::vector<VkRayTracingShaderGroupCreateInfoKHR>& GetGroups();
 
+        uint32_t GetShaderGroupHandleSize() const;
+
         VkBuffer GetGroupBufferHandle() const;
         ResourceMemoryAllocation GetGroupBufferResource() const;
-
-        uint32_t GetShaderGroupHandleSize() const;
 
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
@@ -46,11 +48,11 @@ namespace dawn_native { namespace vulkan {
         std::vector<VkPipelineShaderStageCreateInfo> mStages;
         std::vector<VkRayTracingShaderGroupCreateInfoKHR> mGroups;
 
-        VkPhysicalDeviceRayTracingPropertiesKHR mRayTracingProperties;
-
         // group handle buffer
         VkBuffer mGroupBuffer = VK_NULL_HANDLE;
         ResourceMemoryAllocation mGroupBufferResource;
+
+        uint32_t mShaderGroupHandleSize;
 
         bool IsValidGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
 

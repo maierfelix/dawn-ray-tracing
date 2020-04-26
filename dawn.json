@@ -152,7 +152,7 @@
             {"name": "buffer", "type": "buffer"},
             {"name": "format", "type": "vertex format"},
             {"name": "stride", "type": "uint32_t"},
-            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "offset", "type": "uint32_t", "default": "0"},
             {"name": "count", "type": "uint32_t"}
         ]
     },
@@ -162,7 +162,7 @@
         "members": [
             {"name": "buffer", "type": "buffer"},
             {"name": "format", "type": "index format"},
-            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "offset", "type": "uint32_t", "default": "0"},
             {"name": "count", "type": "uint32_t"}
         ]
     },
@@ -172,7 +172,7 @@
         "members": [
             {"name": "buffer", "type": "buffer"},
             {"name": "stride", "type": "uint32_t"},
-            {"name": "offset", "type": "uint64_t", "default": "0"},
+            {"name": "offset", "type": "uint32_t", "default": "0"},
             {"name": "count", "type": "uint32_t"}
         ]
     },

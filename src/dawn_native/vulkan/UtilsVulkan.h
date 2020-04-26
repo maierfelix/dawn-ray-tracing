@@ -45,12 +45,6 @@ namespace dawn_native { namespace vulkan {
                                                    const TextureCopy& textureCopy,
                                                    const Extent3D& copySize);
 
-    MaybeError CreateBufferFromResourceMemoryAllocation(Device* device,
-                                                        VkBuffer* buffer,
-                                                        uint32_t size,
-                                                        VkBufferUsageFlags usage,
-                                                        ResourceMemoryAllocation resource);
-
 }}  // namespace dawn_native::vulkan
 
 #endif  // DAWNNATIVE_VULKAN_UTILSVULKAN_H_
