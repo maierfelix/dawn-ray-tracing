@@ -52,7 +52,10 @@ namespace dawn_native { namespace vulkan {
         Device* device = ToBackend(GetDevice());
         Adapter* adapter = ToBackend(device->GetAdapter());
 
-        mRayTracingProperties = GetRayTracingProperties(*adapter);
+        VkPhysicalDeviceRayTracingPropertiesKHR rtProperties =
+            GetPhysicalDeviceRayTracingProperties(*adapter);
+
+        mShaderGroupHandleSize = rtProperties.shaderGroupHandleSize;
 
         mStages.reserve(descriptor->stagesCount);
         for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
@@ -114,7 +117,7 @@ namespace dawn_native { namespace vulkan {
             mGroups.push_back(groupInfo);
         };
 
-        uint64_t bufferSize = mGroups.size() * GetShaderGroupHandleSize();
+        uint64_t bufferSize = mGroups.size() * rtProperties.shaderGroupHandleSize;
 
         VkBufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -165,7 +168,7 @@ namespace dawn_native { namespace vulkan {
     }
 
     uint32_t RayTracingShaderBindingTable::GetShaderGroupHandleSize() const {
-        return mRayTracingProperties.shaderGroupHandleSize;
+        return mShaderGroupHandleSize;
     }
 
     bool RayTracingShaderBindingTable::IsValidGroupStageIndex(

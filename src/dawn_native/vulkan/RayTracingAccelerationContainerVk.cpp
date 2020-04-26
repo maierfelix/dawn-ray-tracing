@@ -129,31 +129,31 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.vertexFormat =
                         ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
                     geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
-                    geometryInfo.geometry.triangles.vertexData.deviceAddress =
-                        vertexBuffer->GetDeviceAddress() + geometry.vertex->offset;
+                    geometryInfo.geometry.triangles.vertexData.deviceAddress = vertexBuffer->GetDeviceAddress();
                     // index buffer
                     if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
                         Buffer* indexBuffer = ToBackend(geometry.index->buffer);
                         geometryInfo.geometry.triangles.indexType =
                             ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
-                        geometryInfo.geometry.triangles.indexData.deviceAddress =
-                            indexBuffer->GetDeviceAddress() + geometry.index->offset;
+                        geometryInfo.geometry.triangles.indexData.deviceAddress = indexBuffer->GetDeviceAddress();
                         // build offset (indexed)
-                        mBuildOffsets.push_back({geometry.index->count, 0x0, 0, 0x0});
+                        mBuildOffsets.push_back({geometry.index->count / 3, geometry.index->offset,
+                                                 geometry.vertex->offset / geometry.vertex->stride,
+                                                 0x0});
                     } else {
                         geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_NONE_KHR;
                         // build offset (unindexed)
-                        mBuildOffsets.push_back({geometry.vertex->count, 0x0, 0, 0x0});
+                        mBuildOffsets.push_back(
+                            {geometry.vertex->count, 0x0, geometry.vertex->offset, 0x0});
                     }
                 }
                 // aabb buffer
                 if (geometry.aabb != nullptr && geometry.aabb->buffer != nullptr) {
                     Buffer* aabbBuffer = ToBackend(geometry.aabb->buffer);
                     geometryInfo.geometry.aabbs.stride = geometry.aabb->stride;
-                    geometryInfo.geometry.aabbs.data.deviceAddress =
-                        aabbBuffer->GetDeviceAddress() + geometry.aabb->offset;
+                    geometryInfo.geometry.aabbs.data.deviceAddress = aabbBuffer->GetDeviceAddress();
                     // build offset
-                    mBuildOffsets.push_back({geometry.aabb->count, 0x0, 0, 0x0});
+                    mBuildOffsets.push_back({geometry.aabb->count, geometry.aabb->offset, 0, 0x0});
                 }
                 mGeometries.push_back(geometryInfo);
             };
@@ -170,7 +170,7 @@ namespace dawn_native { namespace vulkan {
             // create internal buffer holding instances
             BufferDescriptor bufDescriptor = {
                 nullptr, nullptr, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::RayTracing,
-                                              bufferSize};
+                bufferSize};
             Buffer* buffer = ToBackend(device->CreateBuffer(&bufDescriptor));
             mInstanceMemory.allocation = AcquireRef(buffer);
             mInstanceMemory.buffer = buffer->GetHandle();
@@ -255,8 +255,7 @@ namespace dawn_native { namespace vulkan {
         devAddrInfo.pNext = nullptr;
         devAddrInfo.accelerationStructure = mAccelerationStructure;
         mAccelerationHandle = device->fn.GetAccelerationStructureDeviceAddressKHR(
-            device->GetVkDevice(),
-                                                                      &devAddrInfo);
+            device->GetVkDevice(), &devAddrInfo);
 
         return {};
     }

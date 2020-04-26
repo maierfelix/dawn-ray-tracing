@@ -17,11 +17,11 @@
 #include "dawn_native/vulkan/DeviceVk.h"
 #include "dawn_native/vulkan/FencedDeleter.h"
 #include "dawn_native/vulkan/PipelineLayoutVk.h"
-#include "dawn_native/vulkan/ShaderModuleVk.h"
 #include "dawn_native/vulkan/RayTracingShaderBindingTableVk.h"
-#include "dawn_native/vulkan/VulkanError.h"
-#include "dawn_native/vulkan/UtilsVulkan.h"
 #include "dawn_native/vulkan/ResourceHeapVk.h"
+#include "dawn_native/vulkan/ShaderModuleVk.h"
+#include "dawn_native/vulkan/UtilsVulkan.h"
+#include "dawn_native/vulkan/VulkanError.h"
 
 namespace dawn_native { namespace vulkan {
 
@@ -37,6 +37,10 @@ namespace dawn_native { namespace vulkan {
 
     MaybeError RayTracingPipeline::Initialize(const RayTracingPipelineDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
+        Adapter* adapter = ToBackend(device->GetAdapter());
+
+        VkPhysicalDeviceRayTracingPropertiesKHR rtProperties =
+            GetPhysicalDeviceRayTracingProperties(*adapter);
 
         RayTracingShaderBindingTable* shaderBindingTable =
             ToBackend(descriptor->rayTracingState->shaderBindingTable);
@@ -65,20 +69,21 @@ namespace dawn_native { namespace vulkan {
 
             MaybeError result = CheckVkSuccess(
                 device->fn.CreateRayTracingPipelinesKHR(device->GetVkDevice(), VK_NULL_HANDLE, 1,
-                                                       &createInfo, nullptr, &*mHandle),
+                                                        &createInfo, nullptr, &*mHandle),
                 "vkCreateRayTracingPipelinesKHR");
             if (result.IsError())
                 return result.AcquireError();
         }
-        
-        {
-            uint64_t bufferSize = groups.size() * shaderBindingTable->GetShaderGroupHandleSize();
 
-            MaybeError result =
-                CheckVkSuccess(device->fn.GetRayTracingShaderGroupHandlesKHR(
-                                   device->GetVkDevice(), mHandle, 0, groups.size(), bufferSize,
-                                   shaderBindingTable->GetGroupBufferResource().GetMappedPointer()),
-                               "vkGetRayTracingShaderGroupHandlesKHR");
+        {
+            uint64_t bufferSize = groups.size() * rtProperties.shaderGroupHandleSize;
+
+            void* sbtData = shaderBindingTable->GetGroupBufferResource().GetMappedPointer();
+
+            MaybeError result = CheckVkSuccess(
+                device->fn.GetRayTracingShaderGroupHandlesKHR(device->GetVkDevice(), mHandle, 0,
+                                                              groups.size(), bufferSize, sbtData),
+                "vkGetRayTracingShaderGroupHandlesKHR");
             if (result.IsError())
                 return result.AcquireError();
         }

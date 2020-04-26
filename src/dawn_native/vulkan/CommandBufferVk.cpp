@@ -880,7 +880,8 @@ namespace dawn_native { namespace vulkan {
                     VkBuffer sbtBuffer = sbt->GetGroupBufferHandle();
 
                     uint32_t groupHandleSize = sbt->GetShaderGroupHandleSize();
-                    uint32_t groupCount = sbt->GetGroups().size();
+                    uint32_t groupSize = sbt->GetGroups().size();
+                    uint32_t sbtSize = groupSize * groupHandleSize;
 
                     uint32_t rayGenOffset = traceRays->rayGenerationOffset;
                     uint32_t rayHitOffset = traceRays->rayHitOffset;
@@ -891,13 +892,13 @@ namespace dawn_native { namespace vulkan {
 
                     // clang-format off
                     VkStridedBufferRegionKHR rayGenSBT = {
-                        sbtBuffer, rayGenOffset * groupHandleSize, 0, groupCount * groupHandleSize
-                    };
-                    VkStridedBufferRegionKHR rayMissSBT = {
-                        sbtBuffer, rayMissOffset * groupHandleSize, 0, groupCount * groupHandleSize
+                        sbtBuffer, rayGenOffset * groupHandleSize, groupHandleSize, sbtSize
                     };
                     VkStridedBufferRegionKHR rayHitSBT = {
-                        sbtBuffer, rayHitOffset * groupHandleSize, 0, groupCount * groupHandleSize
+                        sbtBuffer, rayHitOffset * groupHandleSize, groupHandleSize, sbtSize
+                    };
+                    VkStridedBufferRegionKHR rayMissSBT = {
+                        sbtBuffer, rayMissOffset * groupHandleSize, groupHandleSize, sbtSize
                     };
                     VkStridedBufferRegionKHR rayCallSBT = {
                         VK_NULL_HANDLE, 0, 0, 0
