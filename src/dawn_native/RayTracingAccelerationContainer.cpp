@@ -31,7 +31,7 @@ namespace dawn_native {
                 if (element.Get() == el) {
                     return true;
                 }
-            };
+            }
             return false;
         }
 
@@ -83,7 +83,7 @@ namespace dawn_native {
                 if (instance.geometryContainer->IsDestroyed()) {
                     return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be destroyed");
                 }
-            };
+            }
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             if (descriptor->instanceCount > 0) {
@@ -161,7 +161,7 @@ namespace dawn_native {
                     geometry.aabb == nullptr) {
                     return DAWN_VALIDATION_ERROR("No geometry data provided");
                 }
-            };
+            }
         }
         return {};
     }
@@ -195,7 +195,7 @@ namespace dawn_native {
                     !VectorReferenceAlreadyExists(mAABBBuffers, geometry.aabb->buffer)) {
                     mAABBBuffers.push_back(geometry.aabb->buffer);
                 }
-            };
+            }
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             // save unique references to used geometry containers
@@ -207,7 +207,7 @@ namespace dawn_native {
                 if (!VectorReferenceAlreadyExists(mGeometryContainers, container)) {
                     mGeometryContainers.push_back(container);
                 }
-            };
+            }
         }
     }
 

@@ -70,7 +70,7 @@ namespace dawn_native { namespace vulkan {
             stageInfo.pName = "main";
             stageInfo.pSpecializationInfo = nullptr;
             mStages.push_back(stageInfo);
-        };
+        }
 
         mGroups.reserve(descriptor->groupsCount);
         for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
@@ -115,7 +115,7 @@ namespace dawn_native { namespace vulkan {
             }
 
             mGroups.push_back(groupInfo);
-        };
+        }
 
         uint64_t bufferSize = mGroups.size() * rtProperties.shaderGroupHandleSize;
 

@@ -156,7 +156,7 @@ namespace dawn_native { namespace vulkan {
                     mBuildOffsets.push_back({geometry.aabb->count, geometry.aabb->offset, 0, 0x0});
                 }
                 mGeometries.push_back(geometryInfo);
-            };
+            }
         }
 
         // acceleration container holds instances
@@ -195,7 +195,7 @@ namespace dawn_native { namespace vulkan {
             mInstances.reserve(descriptor->instanceCount);
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 mInstances.push_back(GetVkAccelerationInstance(descriptor->instances[ii]));
-            };
+            }
             buffer->SetSubData(0, bufferSize, mInstances.data());
 
             // build offset
@@ -403,7 +403,7 @@ namespace dawn_native { namespace vulkan {
                     accelerationCreateGeometryInfo.maxPrimitiveCount = geometry.aabb->count;
                 }
                 accelerationGeometries.push_back(accelerationCreateGeometryInfo);
-            };
+            }
         }
 
         // top-level instances
