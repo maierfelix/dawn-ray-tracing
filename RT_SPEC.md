@@ -197,7 +197,7 @@ This bitmask gets extended with the following additional properties:
 
 | Name | Description |
 | :--- | :--- |
-| RAY_TRACING | Unused yet
+| RAY_TRACING | Buffers used in acceleration containers must have been created with this flag
 
 ## Enums
 
