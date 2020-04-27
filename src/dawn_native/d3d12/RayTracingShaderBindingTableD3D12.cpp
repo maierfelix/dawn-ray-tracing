@@ -18,7 +18,6 @@
 #include "dawn_native/Error.h"
 #include "dawn_native/d3d12/AdapterD3D12.h"
 #include "dawn_native/d3d12/D3D12Error.h"
-#include "dawn_native/d3d12/DescriptorHeapAllocator.h"
 #include "dawn_native/d3d12/DeviceD3D12.h"
 
 namespace dawn_native { namespace d3d12 {
