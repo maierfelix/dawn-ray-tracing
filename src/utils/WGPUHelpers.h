@@ -20,6 +20,7 @@
 #include <array>
 #include <vector>
 #include <initializer_list>
+#include <vector>
 
 #include "common/Constants.h"
 
@@ -58,8 +59,8 @@ namespace utils {
 
     wgpu::BufferCopyView CreateBufferCopyView(wgpu::Buffer buffer,
                                               uint64_t offset,
-                                              uint32_t rowPitch,
-                                              uint32_t imageHeight);
+                                              uint32_t bytesPerRow,
+                                              uint32_t rowsPerImage);
     wgpu::TextureCopyView CreateTextureCopyView(wgpu::Texture texture,
                                                 uint32_t level,
                                                 uint32_t slice,
@@ -69,6 +70,8 @@ namespace utils {
       public:
         ComboRenderPassDescriptor(std::initializer_list<wgpu::TextureView> colorAttachmentInfo,
                                   wgpu::TextureView depthStencil = wgpu::TextureView());
+
+        ComboRenderPassDescriptor(const ComboRenderPassDescriptor& otherRenderPass);
         const ComboRenderPassDescriptor& operator=(
             const ComboRenderPassDescriptor& otherRenderPass);
 

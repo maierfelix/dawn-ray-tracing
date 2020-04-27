@@ -90,16 +90,38 @@ config("dawn_internal") {
   # Enable more warnings that were found when using Dawn in other projects
   if (is_clang) {
     cflags = [
-      "-Wstrict-prototypes",
-      "-Winconsistent-missing-destructor-override",
-      "-Wshadow-field",
-      "-Wmissing-field-initializers",
-      "-Wcstring-format-directive",
-      "-Wtautological-unsigned-zero-compare",
-      "-Wreturn-std-move-in-c++11",
       "-Wconditional-uninitialized",
+      "-Wcstring-format-directive",
       "-Wc++11-narrowing",
+      "-Wdeprecated-copy",
       "-Wextra-semi-stmt",
+      "-Winconsistent-missing-destructor-override",
+      "-Winvalid-offsetof",
+      "-Wmissing-field-initializers",
+      "-Wpessimizing-move",
+      "-Wreturn-std-move-in-c++11",
+      "-Wshadow-field",
+      "-Wstrict-prototypes",
+      "-Wtautological-unsigned-zero-compare",
+    ]
+
+    # clang-cl doesn't know -pedantic, pass it explicitly to the clang driver on Windows
+    if (is_win) {
+      cflags += [ "/clang:-pedantic" ]
+    } else {
+      cflags += [ "-pedantic" ]
+    }
+
+    # Flags for -pedantic warnings that haven't been fixed yet.
+    cflags += [
+      "-Wno-c++20-designator",
+      "-Wno-four-char-constants",
+      "-Wno-gnu-anonymous-struct",
+      "-Wno-gnu-zero-variadic-macro-arguments",
+      "-Wno-language-extension-token",
+      "-Wno-microsoft-enum-value",
+      "-Wno-nested-anon-types",
+      "-Wno-vla-extension",
     ]
   }
 }

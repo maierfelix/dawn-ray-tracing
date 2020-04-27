@@ -26,7 +26,6 @@
 #include "dawn_native/d3d12/CommandBufferD3D12.h"
 #include "dawn_native/d3d12/ComputePipelineD3D12.h"
 #include "dawn_native/d3d12/D3D12Error.h"
-#include "dawn_native/d3d12/DescriptorHeapAllocator.h"
 #include "dawn_native/d3d12/PipelineLayoutD3D12.h"
 #include "dawn_native/d3d12/PlatformFunctions.h"
 #include "dawn_native/d3d12/QueueD3D12.h"
@@ -46,8 +45,9 @@
 
 namespace dawn_native { namespace d3d12 {
 
-    // TODO(dawn:155): Figure out this value.
-    static constexpr uint16_t kStagingDescriptorHeapSize = 1024;
+    // TODO(dawn:155): Figure out these values.
+    static constexpr uint16_t kShaderVisibleDescriptorHeapSize = 1024;
+    static constexpr uint8_t kAttachmentDescriptorHeapSize = 64;
 
     // static
     ResultOrError<Device*> Device::Create(Adapter* adapter, const DeviceDescriptor* descriptor) {
@@ -86,7 +86,6 @@ namespace dawn_native { namespace d3d12 {
 
         // Initialize backend services
         mCommandAllocatorManager = std::make_unique<CommandAllocatorManager>(this);
-        mDescriptorHeapAllocator = std::make_unique<DescriptorHeapAllocator>(this);
 
         mShaderVisibleDescriptorAllocator =
             std::make_unique<ShaderVisibleDescriptorAllocator>(this);
@@ -96,12 +95,19 @@ namespace dawn_native { namespace d3d12 {
         for (uint32_t countIndex = 1; countIndex < kNumOfStagingDescriptorAllocators;
              countIndex++) {
             mViewAllocators[countIndex] = std::make_unique<StagingDescriptorAllocator>(
-                this, countIndex, kStagingDescriptorHeapSize,
+                this, countIndex, kShaderVisibleDescriptorHeapSize,
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
             mSamplerAllocators[countIndex] = std::make_unique<StagingDescriptorAllocator>(
-                this, countIndex, kStagingDescriptorHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+                this, countIndex, kShaderVisibleDescriptorHeapSize,
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
         }
+
+        mRenderTargetViewAllocator = std::make_unique<StagingDescriptorAllocator>(
+            this, 1, kAttachmentDescriptorHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        mDepthStencilViewAllocator = std::make_unique<StagingDescriptorAllocator>(
+            this, 1, kAttachmentDescriptorHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
         mMapRequestTracker = std::make_unique<MapRequestTracker>(this);
         mResidencyManager = std::make_unique<ResidencyManager>(this);
@@ -168,10 +174,6 @@ namespace dawn_native { namespace d3d12 {
         return mDrawIndexedIndirectSignature;
     }
 
-    DescriptorHeapAllocator* Device::GetDescriptorHeapAllocator() const {
-        return mDescriptorHeapAllocator.get();
-    }
-
     ComPtr<IDXGIFactory4> Device::GetFactory() const {
         return ToBackend(GetAdapter())->GetBackend()->GetFactory();
     }
@@ -220,6 +222,8 @@ namespace dawn_native { namespace d3d12 {
         mResourceAllocatorManager->Tick(mCompletedSerial);
         DAWN_TRY(mCommandAllocatorManager->Tick(mCompletedSerial));
         mShaderVisibleDescriptorAllocator->Tick(mCompletedSerial);
+        mRenderTargetViewAllocator->Tick(mCompletedSerial);
+        mDepthStencilViewAllocator->Tick(mCompletedSerial);
         mMapRequestTracker->Tick(mCompletedSerial);
         mUsedComObjectRefs.ClearUpTo(mCompletedSerial);
         DAWN_TRY(ExecutePendingCommandContext());
@@ -310,7 +314,7 @@ namespace dawn_native { namespace d3d12 {
         const SwapChainDescriptor* descriptor) {
         return DAWN_VALIDATION_ERROR("New swapchains not implemented.");
     }
-    ResultOrError<TextureBase*> Device::CreateTextureImpl(const TextureDescriptor* descriptor) {
+    ResultOrError<Ref<TextureBase>> Device::CreateTextureImpl(const TextureDescriptor* descriptor) {
         return Texture::Create(this, descriptor);
     }
     ResultOrError<TextureViewBase*> Device::CreateTextureViewImpl(
@@ -357,11 +361,11 @@ namespace dawn_native { namespace d3d12 {
                                                          initialUsage);
     }
 
-    TextureBase* Device::WrapSharedHandle(const ExternalImageDescriptor* descriptor,
-                                          HANDLE sharedHandle,
-                                          uint64_t acquireMutexKey,
-                                          bool isSwapChainTexture) {
-        TextureBase* dawnTexture;
+    Ref<TextureBase> Device::WrapSharedHandle(const ExternalImageDescriptor* descriptor,
+                                              HANDLE sharedHandle,
+                                              uint64_t acquireMutexKey,
+                                              bool isSwapChainTexture) {
+        Ref<TextureBase> dawnTexture;
         if (ConsumedError(Texture::Create(this, descriptor, sharedHandle, acquireMutexKey,
                                           isSwapChainTexture),
                           &dawnTexture))
@@ -504,4 +508,13 @@ namespace dawn_native { namespace d3d12 {
         ASSERT(descriptorCount < kNumOfStagingDescriptorAllocators);
         return mSamplerAllocators[descriptorCount].get();
     }
+
+    StagingDescriptorAllocator* Device::GetRenderTargetViewAllocator() const {
+        return mRenderTargetViewAllocator.get();
+    }
+
+    StagingDescriptorAllocator* Device::GetDepthStencilViewAllocator() const {
+        return mDepthStencilViewAllocator.get();
+    }
+
 }}  // namespace dawn_native::d3d12

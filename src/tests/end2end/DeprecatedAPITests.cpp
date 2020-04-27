@@ -19,6 +19,7 @@
 
 #include "tests/DawnTest.h"
 
+#include "common/Constants.h"
 #include "utils/ComboRenderPipelineDescriptor.h"
 #include "utils/WGPUHelpers.h"
 
@@ -74,74 +75,80 @@ TEST_P(DeprecationTests, CreateQueueReturnsFunctionalQueue) {
 
 // Test that creating a BGL with textureDimension produces a deprecation warning.
 TEST_P(DeprecationTests, BGLEntryTextureDimensionIsDeprecated) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::SampledTexture,
-        .textureDimension = wgpu::TextureViewDimension::e2D,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::SampledTexture;
+    entryDesc.textureDimension = wgpu::TextureViewDimension::e2D;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 0;
+    bglDesc.bindings = nullptr;
+    bglDesc.entryCount = 1;
+    bglDesc.entries = &entryDesc;
     EXPECT_DEPRECATION_WARNING(device.CreateBindGroupLayout(&bglDesc));
 }
 
 // Test that creating a BGL with default viewDimension and textureDimension doesn't emit a warning
 TEST_P(DeprecationTests, BGLEntryTextureDimensionAndViewUndefinedEmitsNoWarning) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::Sampler,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::Sampler;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 0;
+    bglDesc.bindings = nullptr;
+    bglDesc.entryCount = 1;
+    bglDesc.entries = &entryDesc;
     device.CreateBindGroupLayout(&bglDesc);
 }
 // Test that creating a BGL with both textureDimension and viewDimension is an error
 TEST_P(DeprecationTests, BGLEntryTextureAndViewDimensionIsInvalid) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::SampledTexture,
-        .textureDimension = wgpu::TextureViewDimension::e2D,
-        .viewDimension = wgpu::TextureViewDimension::e2D,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::SampledTexture;
+    entryDesc.textureDimension = wgpu::TextureViewDimension::e2D;
+    entryDesc.viewDimension = wgpu::TextureViewDimension::e2D;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 0;
+    bglDesc.bindings = nullptr;
+    bglDesc.entryCount = 1;
+    bglDesc.entries = &entryDesc;
     ASSERT_DEVICE_ERROR(device.CreateBindGroupLayout(&bglDesc));
 }
 
 // Test that creating a BGL with both textureDimension still does correct state tracking
 TEST_P(DeprecationTests, BGLEntryTextureDimensionStateTracking) {
     // Create a BGL that expects a cube map
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::SampledTexture,
-        .textureDimension = wgpu::TextureViewDimension::Cube,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc = {};
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::SampledTexture;
+    entryDesc.textureDimension = wgpu::TextureViewDimension::Cube;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc = {};
+    bglDesc.bindingCount = 0;
+    bglDesc.bindings = nullptr;
+    bglDesc.entryCount = 1;
+    bglDesc.entries = &entryDesc;
     wgpu::BindGroupLayout layout;
     EXPECT_DEPRECATION_WARNING(layout = device.CreateBindGroupLayout(&bglDesc));
 
     // Create a 2D array view and a cube view
-    wgpu::TextureDescriptor textureDesc = {
-        .usage = wgpu::TextureUsage::Sampled,
-        .size = {1, 1, 1},
-        .arrayLayerCount = 6,
-        .format = wgpu::TextureFormat::RGBA8Unorm,
-    };
+    wgpu::TextureDescriptor textureDesc = {};
+    textureDesc.usage = wgpu::TextureUsage::Sampled;
+    textureDesc.size = {1, 1, 1};
+    textureDesc.arrayLayerCount = 6;
+    textureDesc.format = wgpu::TextureFormat::RGBA8Unorm;
     wgpu::Texture texture = device.CreateTexture(&textureDesc);
 
-    wgpu::TextureViewDescriptor viewDesc = {
-        .dimension = wgpu::TextureViewDimension::e2DArray,
-        .baseArrayLayer = 0,
-        .arrayLayerCount = 6,
-    };
+    wgpu::TextureViewDescriptor viewDesc = {};
+    viewDesc.dimension = wgpu::TextureViewDimension::e2DArray;
+    viewDesc.baseArrayLayer = 0;
+    viewDesc.arrayLayerCount = 6;
     wgpu::TextureView arrayView = texture.CreateView(&viewDesc);
 
     viewDesc.dimension = wgpu::TextureViewDimension::Cube;
@@ -157,68 +164,67 @@ TEST_P(DeprecationTests, BGLEntryTextureDimensionStateTracking) {
 
 // Test that creating a BGL with bindings emits a deprecation warning.
 TEST_P(DeprecationTests, BGLDescBindingIsDeprecated) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::Sampler,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::Sampler;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 1;
+    bglDesc.bindings = &entryDesc;
+    bglDesc.entryCount = 0;
+    bglDesc.entries = nullptr;
     EXPECT_DEPRECATION_WARNING(device.CreateBindGroupLayout(&bglDesc));
 }
 
 // Test that creating a BGL with both entries and bindings is an error
 TEST_P(DeprecationTests, BGLDescBindingAndEntriesIsInvalid) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .type = wgpu::BindingType::Sampler,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.visibility = wgpu::ShaderStage::None;
+    entryDesc.type = wgpu::BindingType::Sampler;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 1;
+    bglDesc.bindings = &entryDesc;
+    bglDesc.entryCount = 1;
+    bglDesc.entries = &entryDesc;
     ASSERT_DEVICE_ERROR(device.CreateBindGroupLayout(&bglDesc));
 }
 
 // Test that creating a BGL with both entries and bindings to 0 doesn't emit warnings
 TEST_P(DeprecationTests, BGLDescBindingAndEntriesBothZeroEmitsNoWarning) {
-    // TODO(cwallez@chromium.org): In Vulkan it is disallowed to create 0-sized descriptor pools
-    // but the Vulkan backend doesn't special case it yet.
-    DAWN_SKIP_TEST_IF(IsVulkan());
-
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .bindingCount = 0,
-        .bindings = nullptr,
-        .entryCount = 0,
-        .entries = nullptr,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 0;
+    bglDesc.bindings = nullptr;
+    bglDesc.entryCount = 0;
+    bglDesc.entries = nullptr;
     device.CreateBindGroupLayout(&bglDesc);
 }
 
 // Test that creating a BGL with bindings still does correct state tracking
 TEST_P(DeprecationTests, BGLDescBindingStateTracking) {
-    wgpu::BindGroupLayoutEntry entryDesc = {
-        .binding = 0,
-        .type = wgpu::BindingType::Sampler,
-    };
+    wgpu::BindGroupLayoutEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.type = wgpu::BindingType::Sampler;
+    entryDesc.visibility = wgpu::ShaderStage::None;
 
-    wgpu::BindGroupLayoutDescriptor bglDesc = {
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-    };
+    wgpu::BindGroupLayoutDescriptor bglDesc;
+    bglDesc.bindingCount = 1;
+    bglDesc.bindings = &entryDesc;
+    bglDesc.entryCount = 0;
+    bglDesc.entries = nullptr;
     wgpu::BindGroupLayout layout;
     EXPECT_DEPRECATION_WARNING(layout = device.CreateBindGroupLayout(&bglDesc));
 
     // Test a case where if |bindings| wasn't taken into account, no validation error would happen
     // because the layout would be empty
-    wgpu::BindGroupDescriptor badBgDesc = {
-        .layout = layout,
-        .entryCount = 0,
-        .entries = nullptr,
-    };
+    wgpu::BindGroupDescriptor badBgDesc;
+    badBgDesc.layout = layout;
+    badBgDesc.bindingCount = 0;
+    badBgDesc.bindings = nullptr;
+    badBgDesc.entryCount = 0;
+    badBgDesc.entries = nullptr;
     ASSERT_DEVICE_ERROR(device.CreateBindGroup(&badBgDesc));
 }
 
@@ -232,16 +238,16 @@ TEST_P(DeprecationTests, BGDescBindingIsDeprecated) {
     wgpu::BindGroupLayout layout = utils::MakeBindGroupLayout(
         device, {{0, wgpu::ShaderStage::Fragment, wgpu::BindingType::Sampler}});
 
-    wgpu::BindGroupEntry entryDesc = {
-        .binding = 0,
-        .sampler = sampler,
-    };
+    wgpu::BindGroupEntry entryDesc;
+    entryDesc.binding = 0;
+    entryDesc.sampler = sampler;
 
-    wgpu::BindGroupDescriptor bgDesc = {
-        .layout = layout,
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-    };
+    wgpu::BindGroupDescriptor bgDesc;
+    bgDesc.layout = layout;
+    bgDesc.bindingCount = 1;
+    bgDesc.bindings = &entryDesc;
+    bgDesc.entryCount = 0;
+    bgDesc.entries = nullptr;
     EXPECT_DEPRECATION_WARNING(device.CreateBindGroup(&bgDesc));
 }
 
@@ -253,36 +259,29 @@ TEST_P(DeprecationTests, BGDescBindingAndEntriesIsInvalid) {
     wgpu::BindGroupLayout layout = utils::MakeBindGroupLayout(
         device, {{0, wgpu::ShaderStage::Fragment, wgpu::BindingType::Sampler}});
 
-    wgpu::BindGroupEntry entryDesc = {
-        .binding = 0,
-        .sampler = sampler,
-    };
+    wgpu::BindGroupEntry entryDesc = {};
+    entryDesc.binding = 0;
+    entryDesc.sampler = sampler;
 
-    wgpu::BindGroupDescriptor bgDesc = {
-        .layout = layout,
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-        .entryCount = 1,
-        .entries = &entryDesc,
-    };
+    wgpu::BindGroupDescriptor bgDesc;
+    bgDesc.layout = layout;
+    bgDesc.bindingCount = 1;
+    bgDesc.bindings = &entryDesc;
+    bgDesc.entryCount = 1;
+    bgDesc.entries = &entryDesc;
     ASSERT_DEVICE_ERROR(device.CreateBindGroup(&bgDesc));
 }
 
 // Test that creating a BG with both entries and bindings to 0 doesn't emit warnings
 TEST_P(DeprecationTests, BGDescBindingAndEntriesBothZeroEmitsNoWarning) {
-    // TODO(cwallez@chromium.org): In Vulkan it is disallowed to create 0-sized descriptor pools
-    // but the Vulkan backend doesn't special case it yet.
-    DAWN_SKIP_TEST_IF(IsVulkan());
-
     wgpu::BindGroupLayout layout = utils::MakeBindGroupLayout(device, {});
 
-    wgpu::BindGroupDescriptor bgDesc = {
-        .layout = layout,
-        .bindingCount = 0,
-        .bindings = nullptr,
-        .entryCount = 0,
-        .entries = nullptr,
-    };
+    wgpu::BindGroupDescriptor bgDesc;
+    bgDesc.layout = layout;
+    bgDesc.bindingCount = 0;
+    bgDesc.bindings = nullptr;
+    bgDesc.entryCount = 0;
+    bgDesc.entries = nullptr;
     device.CreateBindGroup(&bgDesc);
 }
 
@@ -295,16 +294,16 @@ TEST_P(DeprecationTests, BGDescBindingStateTracking) {
     wgpu::SamplerDescriptor samplerDesc = {};
     wgpu::Sampler sampler = device.CreateSampler(&samplerDesc);
 
-    wgpu::BindGroupEntry entryDesc = {
-        .binding = 0,
-        .sampler = sampler,
-    };
+    wgpu::BindGroupEntry entryDesc = {};
+    entryDesc.binding = 0;
+    entryDesc.sampler = sampler;
 
-    wgpu::BindGroupDescriptor bgDesc = {
-        .layout = layout,
-        .bindingCount = 1,
-        .bindings = &entryDesc,
-    };
+    wgpu::BindGroupDescriptor bgDesc;
+    bgDesc.layout = layout;
+    bgDesc.bindingCount = 1;
+    bgDesc.bindings = &entryDesc;
+    bgDesc.entryCount = 0;
+    bgDesc.entries = nullptr;
     EXPECT_DEPRECATION_WARNING(ASSERT_DEVICE_ERROR(device.CreateBindGroup(&bgDesc)));
 }
 
@@ -319,10 +318,9 @@ TEST_P(DeprecationTests, ShaderModuleNoSubDescriptorIsDeprecated) {
     std::vector<uint32_t> spirv =
         CompileGLSLToSpirv(utils::SingleShaderStage::Compute, kEmptyShader);
 
-    wgpu::ShaderModuleDescriptor descriptor = {
-        .codeSize = static_cast<uint32_t>(spirv.size()),
-        .code = spirv.data(),
-    };
+    wgpu::ShaderModuleDescriptor descriptor;
+    descriptor.codeSize = static_cast<uint32_t>(spirv.size());
+    descriptor.code = spirv.data();
     EXPECT_DEPRECATION_WARNING(device.CreateShaderModule(&descriptor));
 }
 
@@ -335,11 +333,10 @@ TEST_P(DeprecationTests, ShaderModuleBothInlinedAndChainedIsInvalid) {
     spirvDesc.codeSize = static_cast<uint32_t>(spirv.size());
     spirvDesc.code = spirv.data();
 
-    wgpu::ShaderModuleDescriptor descriptor = {
-        .nextInChain = &spirvDesc,
-        .codeSize = static_cast<uint32_t>(spirv.size()),
-        .code = spirv.data(),
-    };
+    wgpu::ShaderModuleDescriptor descriptor;
+    descriptor.nextInChain = &spirvDesc;
+    descriptor.codeSize = static_cast<uint32_t>(spirv.size());
+    descriptor.code = spirv.data();
     ASSERT_DEVICE_ERROR(device.CreateShaderModule(&descriptor));
 }
 
@@ -348,21 +345,17 @@ TEST_P(DeprecationTests, ShaderModuleInlinedCodeStateTracking) {
     std::vector<uint32_t> spirv =
         CompileGLSLToSpirv(utils::SingleShaderStage::Compute, kEmptyShader);
 
-    wgpu::ShaderModuleDescriptor descriptor = {
-        .codeSize = static_cast<uint32_t>(spirv.size()),
-        .code = spirv.data(),
-    };
+    wgpu::ShaderModuleDescriptor descriptor;
+    descriptor.codeSize = static_cast<uint32_t>(spirv.size());
+    descriptor.code = spirv.data();
     wgpu::ShaderModule module;
     EXPECT_DEPRECATION_WARNING(module = device.CreateShaderModule(&descriptor));
 
     // Creating a compute pipeline works, because it is a compute module.
-    wgpu::ComputePipelineDescriptor computePipelineDesc = {
-        .computeStage =
-            {
-                .module = module,
-                .entryPoint = "main",
-            },
-    };
+    wgpu::ComputePipelineDescriptor computePipelineDesc;
+    computePipelineDesc.layout = nullptr;
+    computePipelineDesc.computeStage.module = module;
+    computePipelineDesc.computeStage.entryPoint = "main";
     device.CreateComputePipeline(&computePipelineDesc);
 
     utils::ComboRenderPipelineDescriptor renderPipelineDesc(device);
@@ -371,6 +364,127 @@ TEST_P(DeprecationTests, ShaderModuleInlinedCodeStateTracking) {
     renderPipelineDesc.cFragmentStage.module = module;
     ASSERT_DEVICE_ERROR(device.CreateRenderPipeline(&renderPipelineDesc));
 }
+
+// Tests for BufferCopyView.rowPitch/imageHeight -> bytesPerRow/rowsPerImage
+
+class BufferCopyViewDeprecationTests : public DeprecationTests {
+  protected:
+    void TestSetUp() override {
+        DeprecationTests::TestSetUp();
+
+        wgpu::BufferDescriptor bufferDesc;
+        bufferDesc.usage = wgpu::BufferUsage::CopySrc | wgpu::BufferUsage::CopyDst;
+        bufferDesc.size = kTextureBytesPerRowAlignment * 2;
+        buffer = device.CreateBuffer(&bufferDesc);
+
+        wgpu::TextureDescriptor textureDesc;
+        textureDesc.usage = wgpu::TextureUsage::CopySrc | wgpu::TextureUsage::CopyDst;
+        textureDesc.size = {2, 2, 1};
+        textureDesc.format = wgpu::TextureFormat::RGBA8Unorm;
+        texture = device.CreateTexture(&textureDesc);
+    }
+
+    enum CopyType {
+        B2T,
+        T2B,
+    };
+    void DoCopy(CopyType type, const wgpu::BufferCopyView& bufferView) {
+        wgpu::TextureCopyView textureCopyView;
+        textureCopyView.texture = texture;
+        textureCopyView.mipLevel = 0;
+        textureCopyView.arrayLayer = 0;
+        textureCopyView.origin = {0, 0};
+        wgpu::Extent3D copySize = {2, 2, 1};
+
+        wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
+        switch (type) {
+            case B2T:
+                encoder.CopyBufferToTexture(&bufferView, &textureCopyView, &copySize);
+                break;
+            case T2B:
+                encoder.CopyTextureToBuffer(&textureCopyView, &bufferView, &copySize);
+                break;
+        }
+        encoder.Finish();
+    }
+
+    wgpu::Buffer buffer;
+    wgpu::Texture texture;
+};
+
+// Test that using rowPitch produces a deprecation warning.
+TEST_P(BufferCopyViewDeprecationTests, RowPitchIsDeprecated) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.rowPitch = 256;
+    EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view));
+    EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view));
+}
+
+// Test that using imageHeight produces a deprecation warning.
+TEST_P(BufferCopyViewDeprecationTests, ImageHeightIsDeprecated) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.imageHeight = 2;
+    view.bytesPerRow = 256;
+    EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view));
+    EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view));
+}
+
+// Test that using both rowPitch and bytesPerRow produces a validation error.
+TEST_P(BufferCopyViewDeprecationTests, BothRowPitchAndBytesPerRowIsInvalid) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.rowPitch = 256;
+    view.bytesPerRow = 256;
+    ASSERT_DEVICE_ERROR(DoCopy(B2T, view));
+    ASSERT_DEVICE_ERROR(DoCopy(T2B, view));
+}
+
+// Test that using both imageHeight and rowsPerImage produces a validation error.
+TEST_P(BufferCopyViewDeprecationTests, BothImageHeightAndRowsPerImageIsInvalid) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.imageHeight = 2;
+    view.bytesPerRow = 256;
+    view.rowsPerImage = 2;
+    ASSERT_DEVICE_ERROR(DoCopy(B2T, view));
+    ASSERT_DEVICE_ERROR(DoCopy(T2B, view));
+}
+
+// Test that rowPitch is correctly taken into account for validation
+TEST_P(BufferCopyViewDeprecationTests, RowPitchTakenIntoAccountForValidation) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.rowPitch = 256;
+    EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view));
+    EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view));
+
+    view.rowPitch = 128;
+    ASSERT_DEVICE_ERROR(EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view)));
+    ASSERT_DEVICE_ERROR(EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view)));
+}
+
+// Test that imageHeight is correctly taken into account for validation
+TEST_P(BufferCopyViewDeprecationTests, ImageHeightTakenIntoAccountForValidation) {
+    wgpu::BufferCopyView view;
+    view.buffer = buffer;
+    view.imageHeight = 2;
+    view.bytesPerRow = 256;
+    EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view));
+    EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view));
+
+    view.imageHeight = 1;
+    ASSERT_DEVICE_ERROR(EXPECT_DEPRECATION_WARNING(DoCopy(B2T, view)));
+    ASSERT_DEVICE_ERROR(EXPECT_DEPRECATION_WARNING(DoCopy(T2B, view)));
+}
+
+DAWN_INSTANTIATE_TEST(BufferCopyViewDeprecationTests,
+                      D3D12Backend(),
+                      MetalBackend(),
+                      NullBackend(),
+                      OpenGLBackend(),
+                      VulkanBackend());
 
 DAWN_INSTANTIATE_TEST(DeprecationTests,
                       D3D12Backend(),

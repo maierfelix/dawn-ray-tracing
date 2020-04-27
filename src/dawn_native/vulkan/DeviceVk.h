@@ -32,8 +32,8 @@
 namespace dawn_native { namespace vulkan {
 
     class Adapter;
+    class BindGroupLayout;
     class BufferUploader;
-    class DescriptorSetService;
     class FencedDeleter;
     class MapRequestTracker;
     class RenderPassCache;
@@ -56,7 +56,6 @@ namespace dawn_native { namespace vulkan {
         VkQueue GetQueue() const;
 
         BufferUploader* GetBufferUploader() const;
-        DescriptorSetService* GetDescriptorSetService() const;
         FencedDeleter* GetFencedDeleter() const;
         MapRequestTracker* GetMapRequestTracker() const;
         RenderPassCache* GetRenderPassCache() const;
@@ -64,6 +63,8 @@ namespace dawn_native { namespace vulkan {
         CommandRecordingContext* GetPendingRecordingContext();
         Serial GetPendingCommandSerial() const override;
         MaybeError SubmitPendingCommands();
+
+        void EnqueueDeferredDeallocation(BindGroupLayout* bindGroupLayout);
 
         // Dawn Native API
 
@@ -128,7 +129,8 @@ namespace dawn_native { namespace vulkan {
             Surface* surface,
             NewSwapChainBase* previousSwapChain,
             const SwapChainDescriptor* descriptor) override;
-        ResultOrError<TextureBase*> CreateTextureImpl(const TextureDescriptor* descriptor) override;
+        ResultOrError<Ref<TextureBase>> CreateTextureImpl(
+            const TextureDescriptor* descriptor) override;
         ResultOrError<TextureViewBase*> CreateTextureViewImpl(
             TextureBase* texture,
             const TextureViewDescriptor* descriptor) override;
@@ -151,7 +153,7 @@ namespace dawn_native { namespace vulkan {
         uint32_t mQueueFamily = 0;
         VkQueue mQueue = VK_NULL_HANDLE;
 
-        std::unique_ptr<DescriptorSetService> mDescriptorSetService;
+        SerialQueue<Ref<BindGroupLayout>> mBindGroupLayoutsPendingDeallocation;
         std::unique_ptr<FencedDeleter> mDeleter;
         std::unique_ptr<MapRequestTracker> mMapRequestTracker;
         std::unique_ptr<ResourceMemoryAllocator> mResourceMemoryAllocator;

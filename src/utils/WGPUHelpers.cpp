@@ -186,6 +186,10 @@ namespace utils {
         }
     }
 
+    ComboRenderPassDescriptor::ComboRenderPassDescriptor(const ComboRenderPassDescriptor& other) {
+        *this = other;
+    }
+
     const ComboRenderPassDescriptor& ComboRenderPassDescriptor::operator=(
         const ComboRenderPassDescriptor& otherRenderPass) {
         cDepthStencilAttachmentInfo = otherRenderPass.cDepthStencilAttachmentInfo;
@@ -245,13 +249,13 @@ namespace utils {
 
     wgpu::BufferCopyView CreateBufferCopyView(wgpu::Buffer buffer,
                                               uint64_t offset,
-                                              uint32_t rowPitch,
-                                              uint32_t imageHeight) {
+                                              uint32_t bytesPerRow,
+                                              uint32_t rowsPerImage) {
         wgpu::BufferCopyView bufferCopyView;
         bufferCopyView.buffer = buffer;
         bufferCopyView.offset = offset;
-        bufferCopyView.rowPitch = rowPitch;
-        bufferCopyView.imageHeight = imageHeight;
+        bufferCopyView.bytesPerRow = bytesPerRow;
+        bufferCopyView.rowsPerImage = rowsPerImage;
 
         return bufferCopyView;
     }

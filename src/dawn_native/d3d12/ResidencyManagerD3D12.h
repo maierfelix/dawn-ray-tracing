@@ -17,8 +17,11 @@
 
 #include "common/LinkedList.h"
 #include "common/Serial.h"
+#include "dawn_native/D3D12Backend.h"
 #include "dawn_native/Error.h"
 #include "dawn_native/dawn_platform.h"
+
+#include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -31,28 +34,39 @@ namespace dawn_native { namespace d3d12 {
 
         MaybeError LockHeap(Heap* heap);
         void UnlockHeap(Heap* heap);
-        MaybeError EnsureCanMakeResident(uint64_t allocationSize);
+
+        MaybeError EnsureCanAllocate(uint64_t allocationSize, MemorySegment memorySegment);
         MaybeError EnsureHeapsAreResident(Heap** heaps, size_t heapCount);
 
-        uint64_t SetExternalMemoryReservation(uint64_t requestedReservationSize);
+        uint64_t SetExternalMemoryReservation(MemorySegment segment,
+                                              uint64_t requestedReservationSize);
 
         void TrackResidentAllocation(Heap* heap);
 
-        void RestrictBudgetForTesting(uint64_t);
+        void RestrictBudgetForTesting(uint64_t artificialBudgetCap);
 
       private:
-        struct VideoMemoryInfo {
-            uint64_t dawnBudget;
-            uint64_t dawnUsage;
-            uint64_t externalReservation;
-            uint64_t externalRequest;
+        struct MemorySegmentInfo {
+            const DXGI_MEMORY_SEGMENT_GROUP dxgiSegment;
+            LinkedList<Heap> lruCache = {};
+            uint64_t budget = 0;
+            uint64_t usage = 0;
+            uint64_t externalReservation = 0;
+            uint64_t externalRequest = 0;
         };
-        ResultOrError<Heap*> RemoveSingleEntryFromLRU();
-        bool ShouldTrackHeap(Heap* heap) const;
+
+        struct VideoMemoryInfo {
+            MemorySegmentInfo local = {DXGI_MEMORY_SEGMENT_GROUP_LOCAL};
+            MemorySegmentInfo nonLocal = {DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL};
+        };
+
+        MemorySegmentInfo* GetMemorySegmentInfo(MemorySegment memorySegment);
+        MaybeError EnsureCanMakeResident(uint64_t allocationSize, MemorySegmentInfo* memorySegment);
+        ResultOrError<Heap*> RemoveSingleEntryFromLRU(MemorySegmentInfo* memorySegment);
         void UpdateVideoMemoryInfo();
+        void UpdateMemorySegmentInfo(MemorySegmentInfo* segmentInfo);
 
         Device* mDevice;
-        LinkedList<Heap> mLRUCache;
         bool mResidencyManagementEnabled = false;
         bool mRestrictBudgetForTesting = false;
         VideoMemoryInfo mVideoMemoryInfo = {};

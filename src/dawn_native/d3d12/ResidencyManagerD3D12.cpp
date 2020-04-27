@@ -20,8 +20,6 @@
 #include "dawn_native/d3d12/Forward.h"
 #include "dawn_native/d3d12/HeapD3D12.h"
 
-#include "dawn_native/d3d12/d3d12_platform.h"
-
 namespace dawn_native { namespace d3d12 {
 
     ResidencyManager::ResidencyManager(Device* device)
@@ -37,18 +35,13 @@ namespace dawn_native { namespace d3d12 {
             return {};
         }
 
-        // Depending on device architecture, the heap may not need tracked.
-        if (!ShouldTrackHeap(heap)) {
-            return {};
-        }
-
         // If the heap isn't already resident, make it resident.
         if (!heap->IsInResidencyLRUCache() && !heap->IsResidencyLocked()) {
-            DAWN_TRY(EnsureCanMakeResident(heap->GetSize()));
+            DAWN_TRY(EnsureCanMakeResident(heap->GetSize(),
+                                           GetMemorySegmentInfo(heap->GetMemorySegment())));
             ID3D12Pageable* pageable = heap->GetD3D12Pageable().Get();
             DAWN_TRY(CheckHRESULT(mDevice->GetD3D12Device()->MakeResident(1, &pageable),
-                                  "Making a scheduled-to-be-used resource resident in "
-                                  "device local memory"));
+                                  "Making a scheduled-to-be-used resource resident"));
         }
 
         // Since we can't evict the heap, it's unnecessary to track the heap in the LRU Cache.
@@ -68,40 +61,61 @@ namespace dawn_native { namespace d3d12 {
             return;
         }
 
-        // Depending on device architecture, the heap may not need tracked.
-        if (!ShouldTrackHeap(heap)) {
-            return;
-        }
-
         ASSERT(heap->IsResidencyLocked());
         ASSERT(!heap->IsInResidencyLRUCache());
         heap->DecrementResidencyLock();
 
-        // When all locks have been removed, the resource remains resident and becomes tracked in
-        // the LRU.
-        if (!heap->IsResidencyLocked()) {
-            mLRUCache.Append(heap);
-        }
-    }
-
-    // Allows an application component external to Dawn to cap Dawn's residency budget to prevent
-    // competition for device local memory. Returns the amount of memory reserved, which may be less
-    // that the requested reservation when under pressure.
-    uint64_t ResidencyManager::SetExternalMemoryReservation(uint64_t requestedReservationSize) {
-        mVideoMemoryInfo.externalRequest = requestedReservationSize;
-        UpdateVideoMemoryInfo();
-        return mVideoMemoryInfo.externalReservation;
-    }
-
-    void ResidencyManager::UpdateVideoMemoryInfo() {
-        if (!mResidencyManagementEnabled) {
+        // If another lock still exists on the heap, nothing further should be done.
+        if (heap->IsResidencyLocked()) {
             return;
         }
 
+        // When all locks have been removed, the resource remains resident and becomes tracked in
+        // the corresponding LRU.
+        TrackResidentAllocation(heap);
+    }
+
+    // Returns the appropriate MemorySegmentInfo for a given MemorySegment.
+    ResidencyManager::MemorySegmentInfo* ResidencyManager::GetMemorySegmentInfo(
+        MemorySegment memorySegment) {
+        switch (memorySegment) {
+            case MemorySegment::Local:
+                return &mVideoMemoryInfo.local;
+            case MemorySegment::NonLocal:
+                ASSERT(!mDevice->GetDeviceInfo().isUMA);
+                return &mVideoMemoryInfo.nonLocal;
+            default:
+                UNREACHABLE();
+        }
+    }
+
+    // Allows an application component external to Dawn to cap Dawn's residency budgets to prevent
+    // competition for device memory. Returns the amount of memory reserved, which may be less
+    // that the requested reservation when under pressure.
+    uint64_t ResidencyManager::SetExternalMemoryReservation(MemorySegment segment,
+                                                            uint64_t requestedReservationSize) {
+        MemorySegmentInfo* segmentInfo = GetMemorySegmentInfo(segment);
+
+        segmentInfo->externalRequest = requestedReservationSize;
+
+        UpdateMemorySegmentInfo(segmentInfo);
+
+        return segmentInfo->externalReservation;
+    }
+
+    void ResidencyManager::UpdateVideoMemoryInfo() {
+        UpdateMemorySegmentInfo(&mVideoMemoryInfo.local);
+        if (!mDevice->GetDeviceInfo().isUMA) {
+            UpdateMemorySegmentInfo(&mVideoMemoryInfo.nonLocal);
+        }
+    }
+
+    void ResidencyManager::UpdateMemorySegmentInfo(MemorySegmentInfo* segmentInfo) {
         DXGI_QUERY_VIDEO_MEMORY_INFO queryVideoMemoryInfo;
+
         ToBackend(mDevice->GetAdapter())
             ->GetHardwareAdapter()
-            ->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &queryVideoMemoryInfo);
+            ->QueryVideoMemoryInfo(0, segmentInfo->dxgiSegment, &queryVideoMemoryInfo);
 
         // The video memory budget provided by QueryVideoMemoryInfo is defined by the operating
         // system, and may be lower than expected in certain scenarios. Under memory pressure, we
@@ -109,11 +123,10 @@ namespace dawn_native { namespace d3d12 {
         // component from consuming a disproportionate share of memory and ensures that Dawn can
         // continue to make forward progress. Note the choice to halve memory is arbitrarily chosen
         // and subject to future experimentation.
-        mVideoMemoryInfo.externalReservation =
-            std::min(queryVideoMemoryInfo.Budget / 2, mVideoMemoryInfo.externalRequest);
+        segmentInfo->externalReservation =
+            std::min(queryVideoMemoryInfo.Budget / 2, segmentInfo->externalRequest);
 
-        mVideoMemoryInfo.dawnUsage =
-            queryVideoMemoryInfo.CurrentUsage - mVideoMemoryInfo.externalReservation;
+        segmentInfo->usage = queryVideoMemoryInfo.CurrentUsage - segmentInfo->externalReservation;
 
         // If we're restricting the budget for testing, leave the budget as is.
         if (mRestrictBudgetForTesting) {
@@ -125,15 +138,17 @@ namespace dawn_native { namespace d3d12 {
         // for both Dawn and other applications on the system. Note the value of 95% is arbitrarily
         // chosen and subject to future experimentation.
         static constexpr float kBudgetCap = 0.95;
-        mVideoMemoryInfo.dawnBudget =
-            (queryVideoMemoryInfo.Budget - mVideoMemoryInfo.externalReservation) * kBudgetCap;
+        segmentInfo->budget =
+            (queryVideoMemoryInfo.Budget - segmentInfo->externalReservation) * kBudgetCap;
     }
 
-    // Removes from the LRU and returns the least recently used heap when possible. Returns nullptr
-    // when nothing further can be evicted.
-    ResultOrError<Heap*> ResidencyManager::RemoveSingleEntryFromLRU() {
-        ASSERT(!mLRUCache.empty());
-        Heap* heap = mLRUCache.head()->value();
+    // Removes a heap from the LRU and returns the least recently used heap when possible. Returns
+    // nullptr when nothing further can be evicted.
+    ResultOrError<Heap*> ResidencyManager::RemoveSingleEntryFromLRU(
+        MemorySegmentInfo* memorySegment) {
+        ASSERT(!memorySegment->lruCache.empty());
+        Heap* heap = memorySegment->lruCache.head()->value();
+
         Serial lastSubmissionSerial = heap->GetLastSubmission();
 
         // If the next candidate for eviction was inserted into the LRU during the current serial,
@@ -153,30 +168,37 @@ namespace dawn_native { namespace d3d12 {
         return heap;
     }
 
-    // Any time we need to make something resident in local memory, we must check that we have
-    // enough free memory to make the new object resident while also staying within our budget.
-    // If there isn't enough memory, we should evict until there is.
-    MaybeError ResidencyManager::EnsureCanMakeResident(uint64_t sizeToMakeResident) {
+    MaybeError ResidencyManager::EnsureCanAllocate(uint64_t allocationSize,
+                                                   MemorySegment memorySegment) {
         if (!mResidencyManagementEnabled) {
             return {};
         }
 
-        UpdateVideoMemoryInfo();
+        return EnsureCanMakeResident(allocationSize, GetMemorySegmentInfo(memorySegment));
+    }
 
-        uint64_t memoryUsageAfterMakeResident = sizeToMakeResident + mVideoMemoryInfo.dawnUsage;
+    // Any time we need to make something resident, we must check that we have enough free memory to
+    // make the new object resident while also staying within budget. If there isn't enough
+    // memory, we should evict until there is.
+    MaybeError ResidencyManager::EnsureCanMakeResident(uint64_t sizeToMakeResident,
+                                                       MemorySegmentInfo* memorySegment) {
+        ASSERT(mResidencyManagementEnabled);
+
+        UpdateMemorySegmentInfo(memorySegment);
+
+        uint64_t memoryUsageAfterMakeResident = sizeToMakeResident + memorySegment->usage;
 
         // Return when we can call MakeResident and remain under budget.
-        if (memoryUsageAfterMakeResident < mVideoMemoryInfo.dawnBudget) {
+        if (memoryUsageAfterMakeResident < memorySegment->budget) {
             return {};
         }
 
         std::vector<ID3D12Pageable*> resourcesToEvict;
-        uint64_t sizeNeededToBeUnderBudget =
-            memoryUsageAfterMakeResident - mVideoMemoryInfo.dawnBudget;
+        uint64_t sizeNeededToBeUnderBudget = memoryUsageAfterMakeResident - memorySegment->budget;
         uint64_t sizeEvicted = 0;
         while (sizeEvicted < sizeNeededToBeUnderBudget) {
             Heap* heap;
-            DAWN_TRY_ASSIGN(heap, RemoveSingleEntryFromLRU());
+            DAWN_TRY_ASSIGN(heap, RemoveSingleEntryFromLRU(memorySegment));
 
             // If no heap was returned, then nothing more can be evicted.
             if (heap == nullptr) {
@@ -190,27 +212,10 @@ namespace dawn_native { namespace d3d12 {
         if (resourcesToEvict.size() > 0) {
             DAWN_TRY(CheckHRESULT(
                 mDevice->GetD3D12Device()->Evict(resourcesToEvict.size(), resourcesToEvict.data()),
-                "Evicting resident heaps to free device local memory"));
+                "Evicting resident heaps to free memory"));
         }
 
         return {};
-    }
-
-    // Ensure that we are only tracking heaps that exist in DXGI_MEMORY_SEGMENT_LOCAL.
-    bool ResidencyManager::ShouldTrackHeap(Heap* heap) const {
-        D3D12_HEAP_PROPERTIES heapProperties =
-            mDevice->GetD3D12Device()->GetCustomHeapProperties(0, heap->GetD3D12HeapType());
-
-        if (mDevice->GetDeviceInfo().isUMA) {
-            // On UMA devices, MEMORY_POOL_L0 corresponds to MEMORY_SEGMENT_LOCAL, so we must track
-            // heaps in MEMORY_POOL_L0. For UMA, all heaps types exist in MEMORY_POOL_L0.
-            return heapProperties.MemoryPoolPreference == D3D12_MEMORY_POOL_L0;
-        }
-
-        // On non-UMA devices, MEMORY_POOL_L1 corresponds to MEMORY_SEGMENT_LOCAL, so only track the
-        // heap if it is in MEMORY_POOL_L1. For non-UMA, DEFAULT heaps exist in MEMORY_POOL_L1,
-        // while READBACK and UPLOAD heaps exist in MEMORY_POOL_L0.
-        return heapProperties.MemoryPoolPreference == D3D12_MEMORY_POOL_L1;
     }
 
     // Given a list of heaps that are pending usage, this function will estimate memory needed,
@@ -222,16 +227,12 @@ namespace dawn_native { namespace d3d12 {
         }
 
         std::vector<ID3D12Pageable*> heapsToMakeResident;
-        uint64_t sizeToMakeResident = 0;
+        uint64_t localSizeToMakeResident = 0;
+        uint64_t nonLocalSizeToMakeResident = 0;
 
         Serial pendingCommandSerial = mDevice->GetPendingCommandSerial();
         for (size_t i = 0; i < heapCount; i++) {
             Heap* heap = heaps[i];
-
-            // Depending on device architecture, the heap may not need tracked.
-            if (!ShouldTrackHeap(heap)) {
-                continue;
-            }
 
             // Heaps that are locked resident are not tracked in the LRU cache.
             if (heap->IsResidencyLocked()) {
@@ -244,7 +245,11 @@ namespace dawn_native { namespace d3d12 {
                 heap->RemoveFromList();
             } else {
                 heapsToMakeResident.push_back(heap->GetD3D12Pageable().Get());
-                sizeToMakeResident += heap->GetSize();
+                if (heap->GetMemorySegment() == MemorySegment::Local) {
+                    localSizeToMakeResident += heap->GetSize();
+                } else {
+                    nonLocalSizeToMakeResident += heap->GetSize();
+                }
             }
 
             // If we submit a command list to the GPU, we must ensure that heaps referenced by that
@@ -253,12 +258,20 @@ namespace dawn_native { namespace d3d12 {
             // eligible for eviction, even though some evictions may be possible.
             heap->SetLastSubmission(pendingCommandSerial);
 
-            mLRUCache.Append(heap);
+            // Insert the heap into the appropriate LRU.
+            TrackResidentAllocation(heap);
+        }
+
+        if (localSizeToMakeResident > 0) {
+            DAWN_TRY(EnsureCanMakeResident(localSizeToMakeResident, &mVideoMemoryInfo.local));
+        }
+
+        if (nonLocalSizeToMakeResident > 0) {
+            ASSERT(!mDevice->GetDeviceInfo().isUMA);
+            DAWN_TRY(EnsureCanMakeResident(nonLocalSizeToMakeResident, &mVideoMemoryInfo.nonLocal));
         }
 
         if (heapsToMakeResident.size() != 0) {
-            DAWN_TRY(EnsureCanMakeResident(sizeToMakeResident));
-
             // Note that MakeResident is a synchronous function and can add a significant
             // overhead to command recording. In the future, it may be possible to decrease this
             // overhead by using MakeResident on a secondary thread, or by instead making use of
@@ -266,32 +279,28 @@ namespace dawn_native { namespace d3d12 {
             // platforms).
             DAWN_TRY(CheckHRESULT(mDevice->GetD3D12Device()->MakeResident(
                                       heapsToMakeResident.size(), heapsToMakeResident.data()),
-                                  "Making scheduled-to-be-used resources resident in "
-                                  "device local memory"));
+                                  "Making scheduled-to-be-used resources resident"));
         }
 
         return {};
     }
 
-    // When a new heap is allocated, the heap will be made resident upon creation. We must track
-    // when this happens to avoid calling MakeResident a second time.
+    // Inserts a heap at the bottom of the LRU. The passed heap must be resident or scheduled to
+    // become resident within the current serial.
     void ResidencyManager::TrackResidentAllocation(Heap* heap) {
         if (!mResidencyManagementEnabled) {
             return;
         }
 
-        // Depending on device architecture and heap type, the heap may not need tracked.
-        if (!ShouldTrackHeap(heap)) {
-            return;
-        }
-
-        mLRUCache.Append(heap);
+        ASSERT(heap->IsInList() == false);
+        GetMemorySegmentInfo(heap->GetMemorySegment())->lruCache.Append(heap);
     }
 
     // Places an artifical cap on Dawn's budget so we can test in a predictable manner. If used,
     // this function must be called before any resources have been created.
     void ResidencyManager::RestrictBudgetForTesting(uint64_t artificialBudgetCap) {
-        ASSERT(mLRUCache.empty());
+        ASSERT(mVideoMemoryInfo.local.lruCache.empty());
+        ASSERT(mVideoMemoryInfo.nonLocal.lruCache.empty());
         ASSERT(!mRestrictBudgetForTesting);
 
         mRestrictBudgetForTesting = true;
@@ -301,7 +310,11 @@ namespace dawn_native { namespace d3d12 {
         // value can vary depending on the environment Dawn is running in. By adding this in
         // addition to the artificial budget cap, we can create a predictable and reproducible
         // budget for testing.
-        mVideoMemoryInfo.dawnBudget = mVideoMemoryInfo.dawnUsage + artificialBudgetCap;
+        mVideoMemoryInfo.local.budget = mVideoMemoryInfo.local.usage + artificialBudgetCap;
+        if (!mDevice->GetDeviceInfo().isUMA) {
+            mVideoMemoryInfo.nonLocal.budget =
+                mVideoMemoryInfo.nonLocal.usage + artificialBudgetCap;
+        }
     }
 
 }}  // namespace dawn_native::d3d12
