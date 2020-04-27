@@ -12,7 +12,6 @@ An article covering the basic usage of the API can be found [here](http://maierf
 ## TODO
 
  - RT for D3D12 backend
- - Port current VK_NV_ray_tracing implementation to VK_KHR_ray_tracing
 
 ## Preview
 
