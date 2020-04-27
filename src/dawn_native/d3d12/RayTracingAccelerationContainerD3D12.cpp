@@ -120,7 +120,7 @@ namespace dawn_native { namespace d3d12 {
                         static_cast<uint64_t>(geometry.vertex->stride);
                 }
                 mGeometries.push_back(geometryDesc);
-            };
+            }
         }
 
         // acceleration container holds instances
@@ -133,7 +133,7 @@ namespace dawn_native { namespace d3d12 {
                 D3D12_RAYTRACING_INSTANCE_DESC instanceData =
                     GetD3D12AccelerationInstance(instance);
                 mInstances.push_back(instanceData);
-            };
+            }
         }
 
         // container requires instance buffer
