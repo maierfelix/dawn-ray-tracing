@@ -169,50 +169,8 @@ namespace dawn_native { namespace vulkan {
                             case wgpu::BindingType::Sampler:
                             case wgpu::BindingType::ComparisonSampler:
                             case wgpu::BindingType::SampledTexture:
-                                // Don't require barriers.
-
-                            default:
-                                UNREACHABLE();
-                                break;
-                        }
-                    }
-                }
-                DidApply();
-            }
-        };
-
-        class RayTracingDescriptorSetTracker
-            : public BindGroupAndStorageBarrierTrackerBase<true, uint32_t> {
-          public:
-            RayTracingDescriptorSetTracker() = default;
-
-            void Apply(Device* device,
-                       CommandRecordingContext* recordingContext,
-                       VkPipelineBindPoint bindPoint) {
-                ApplyDescriptorSets(device, recordingContext->commandBuffer, bindPoint,
-                                    ToBackend(mPipelineLayout)->GetHandle(),
-                                    mDirtyBindGroupsObjectChangedOrIsDynamic, mBindGroups,
-                                    mDynamicOffsetCounts, mDynamicOffsets);
-
-                for (uint32_t index : IterateBitSet(mBindGroupLayoutsMask)) {
-                    for (uint32_t binding : IterateBitSet(mBuffersNeedingBarrier[index])) {
-                        switch (mBindingTypes[index][binding]) {
-                            case wgpu::BindingType::StorageBuffer:
-                                ToBackend(mBuffers[index][binding])
-                                    ->TransitionUsageNow(recordingContext,
-                                                         wgpu::BufferUsage::Storage);
-                                break;
-
-                            case wgpu::BindingType::StorageTexture:
-                                // Not implemented.
-
-                            case wgpu::BindingType::UniformBuffer:
-                            case wgpu::BindingType::ReadonlyStorageBuffer:
-                            case wgpu::BindingType::Sampler:
-                            case wgpu::BindingType::SampledTexture:
                             case wgpu::BindingType::AccelerationContainer:
                                 // Don't require barriers.
-                                break;
 
                             default:
                                 UNREACHABLE();
@@ -863,7 +821,7 @@ namespace dawn_native { namespace vulkan {
         Device* device = ToBackend(GetDevice());
         VkCommandBuffer commands = recordingContext->commandBuffer;
 
-        RayTracingDescriptorSetTracker descriptorSets = {};
+        ComputeDescriptorSetTracker descriptorSets = {};
 
         RayTracingPipeline* usedPipeline = nullptr;
 
