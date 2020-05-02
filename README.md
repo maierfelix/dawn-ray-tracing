@@ -15,7 +15,7 @@ An article covering the basic usage of the API can be found [here](http://maierf
 
 ## Preview
 
-<img src="https://i.imgur.com/Z99uKSL.png" width="488"><br/>
+<img src="https://i.imgur.com/VgPB36q.png" width="488"><br/>
 *Path Tracing*<br/>
 <img src="https://i.imgur.com/BliBL3i.png" width="488"><br/>
 *Procedural Geometry*
