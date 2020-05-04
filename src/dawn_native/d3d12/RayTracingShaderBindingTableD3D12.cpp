@@ -41,11 +41,29 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
+        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
+            const RayTracingShaderBindingTableStagesDescriptor& stage = descriptor->stages[ii];
+            mStages.push_back(stage);
+        }
+        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
+            const RayTracingShaderBindingTableGroupsDescriptor& group = descriptor->groups[ii];
+            mGroups.push_back(group);
+        }
         return {};
     }
 
     RayTracingShaderBindingTable::~RayTracingShaderBindingTable() {
         DestroyInternal();
+    }
+
+    std::vector<RayTracingShaderBindingTableStagesDescriptor>&
+    RayTracingShaderBindingTable::GetStages() {
+        return mStages;
+    }
+
+    std::vector<RayTracingShaderBindingTableGroupsDescriptor>&
+    RayTracingShaderBindingTable::GetGroups() {
+        return mGroups;
     }
 
 }}  // namespace dawn_native::d3d12

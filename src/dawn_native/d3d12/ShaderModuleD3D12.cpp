@@ -70,7 +70,6 @@ namespace dawn_native { namespace d3d12 {
     ResultOrError<std::string> ShaderModule::GetHLSLSource(PipelineLayout* layout) {
         ASSERT(!IsError());
         const std::vector<uint32_t>& spirv = GetSpirv();
-
         std::unique_ptr<spirv_cross::CompilerHLSL> compilerImpl;
         spirv_cross::CompilerHLSL* compiler = nullptr;
         if (!GetDevice()->IsToggleEnabled(Toggle::UseSpvc)) {

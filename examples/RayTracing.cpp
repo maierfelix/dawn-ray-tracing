@@ -74,11 +74,16 @@ void init() {
     const char* rayGen = R"(
         #version 460
         #extension GL_EXT_ray_tracing  : require
-        layout(location = 0) rayPayloadEXT vec4 payload;
+
+        struct RayPayload { vec3 color; };
+        layout(location = 0) rayPayloadEXT RayPayload payload;
+
         layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
+
         layout(std140, set = 0, binding = 1) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
+
         void main() {
             const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
             const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
@@ -86,30 +91,42 @@ void init() {
             const float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
             const vec3 origin = vec3(0, 0, -1.5);
             const vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, 1));
-            payload = vec4(0);
+            payload.color = vec3(0);
             traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
             const uint pixelIndex = (gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y) * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
-            pixelBuffer.pixels[pixelIndex] = payload;
+            pixelBuffer.pixels[pixelIndex] = vec4(payload.color, 1.0);
         }
     )";
 
     const char* rayCHit = R"(
         #version 460 core
         #extension GL_EXT_ray_tracing : enable
-        layout(location = 0) rayPayloadInEXT vec4 payload;
-        hitAttributeEXT vec3 attribs;
+
+        struct RayPayload { vec3 color; };
+        layout(location = 0) rayPayloadInEXT RayPayload payload;
+
+        struct HitAttributeData { vec2 bary; };
+        hitAttributeEXT HitAttributeData attribs;
+
         void main() {
-          vec3 bary = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
-          payload = vec4(bary, 0);
+            vec3 bary = vec3(
+                1.0 - attribs.bary.x - attribs.bary.y,
+                attribs.bary.x,
+                attribs.bary.y
+            );
+            payload.color = bary;
         }
     )";
 
     const char* rayMiss = R"(
         #version 460 core
         #extension GL_EXT_ray_tracing : enable
-        layout(location = 0) rayPayloadInEXT vec4 payload;
+
+        struct RayPayload { vec3 color; };
+        layout(location = 0) rayPayloadInEXT RayPayload payload;
+
         void main() {
-          payload = vec4(0.15);
+            payload.color = vec3(0.15);
         }
     )";
 

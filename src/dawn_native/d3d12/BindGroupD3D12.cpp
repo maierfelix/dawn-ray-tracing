@@ -146,7 +146,7 @@ namespace dawn_native { namespace d3d12 {
                     desc.RaytracingAccelerationStructure.Location = result->GetGPUVirtualAddress();
 
                     d3d12Device->CreateShaderResourceView(
-                        result, &desc,
+                        nullptr, &desc,
                         viewAllocation.OffsetFrom(viewSizeIncrement, bindingOffsets[bindingIndex]));
                 } break;
 

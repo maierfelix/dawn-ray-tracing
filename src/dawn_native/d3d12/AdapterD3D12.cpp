@@ -92,6 +92,7 @@ namespace dawn_native { namespace d3d12 {
 
     void Adapter::InitializeSupportedExtensions() {
         mSupportedExtensions.EnableExtension(Extension::TextureCompressionBC);
+        mSupportedExtensions.EnableExtension(Extension::RayTracing);
     }
 
     ResultOrError<DeviceBase*> Adapter::CreateDeviceImpl(const DeviceDescriptor* descriptor) {

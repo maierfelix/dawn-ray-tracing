@@ -575,20 +575,19 @@ namespace dawn_native {
             case spv::ExecutionModelGLCompute:
                 mExecutionModel = SingleShaderStage::Compute;
                 break;
-            // TODO: translate to KHR (spvc uses older glslang without KHR_ray_tracing)
-            case spv::ExecutionModelRayGenerationNV:
+            case spv::ExecutionModelRayGenerationKHR:
                 mExecutionModel = SingleShaderStage::RayGeneration;
                 break;
-            case spv::ExecutionModelAnyHitNV:
+            case spv::ExecutionModelAnyHitKHR:
                 mExecutionModel = SingleShaderStage::RayAnyHit;
                 break;
-            case spv::ExecutionModelClosestHitNV:
+            case spv::ExecutionModelClosestHitKHR:
                 mExecutionModel = SingleShaderStage::RayClosestHit;
                 break;
-            case spv::ExecutionModelMissNV:
+            case spv::ExecutionModelMissKHR:
                 mExecutionModel = SingleShaderStage::RayMiss;
                 break;
-            case spv::ExecutionModelIntersectionNV:
+            case spv::ExecutionModelIntersectionKHR:
                 mExecutionModel = SingleShaderStage::RayIntersection;
                 break;
             default:
