@@ -57,7 +57,7 @@ uint64_t pixelBufferSize = width * height * 4 * sizeof(float);
 
 void init() {
     std::vector<const char*> requiredExtensions = {"ray_tracing"};
-    device = CreateCppDawnDevice(wgpu::BackendType::Vulkan, requiredExtensions).Release();
+    device = CreateCppDawnDevice(wgpu::BackendType::D3D12, requiredExtensions).Release();
     queue = wgpuDeviceGetDefaultQueue(device);
 
     {
