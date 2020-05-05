@@ -206,7 +206,7 @@ void init() {
         indexBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
         wgpuBufferSetSubData(indexBuffer, 0, sizeof(indexData), indexData);
     }
-    
+
     {
         WGPUBufferDescriptor descriptor;
         descriptor.label = nullptr;
@@ -216,7 +216,7 @@ void init() {
 
         pixelBuffer = wgpuDeviceCreateBuffer(device, &descriptor);
     }
-    
+
     {
         WGPURayTracingAccelerationGeometryVertexDescriptor vertexDescriptor;
         vertexDescriptor.offset = 0;
@@ -288,7 +288,7 @@ void init() {
         wgpuCommandEncoderRelease(encoder);
         wgpuCommandBufferRelease(commandBuffer);
     }
-    
+
     {
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device, nullptr);
         wgpuCommandEncoderBuildRayTracingAccelerationContainer(encoder, instanceContainer);

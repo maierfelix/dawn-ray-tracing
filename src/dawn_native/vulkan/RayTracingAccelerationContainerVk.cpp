@@ -129,13 +129,15 @@ namespace dawn_native { namespace vulkan {
                     geometryInfo.geometry.triangles.vertexFormat =
                         ToVulkanAccelerationContainerVertexFormat(geometry.vertex->format);
                     geometryInfo.geometry.triangles.vertexStride = geometry.vertex->stride;
-                    geometryInfo.geometry.triangles.vertexData.deviceAddress = vertexBuffer->GetDeviceAddress();
+                    geometryInfo.geometry.triangles.vertexData.deviceAddress =
+                        vertexBuffer->GetDeviceAddress();
                     // index buffer
                     if (geometry.index != nullptr && geometry.index->buffer != nullptr) {
                         Buffer* indexBuffer = ToBackend(geometry.index->buffer);
                         geometryInfo.geometry.triangles.indexType =
                             ToVulkanAccelerationContainerIndexFormat(geometry.index->format);
-                        geometryInfo.geometry.triangles.indexData.deviceAddress = indexBuffer->GetDeviceAddress();
+                        geometryInfo.geometry.triangles.indexData.deviceAddress =
+                            indexBuffer->GetDeviceAddress();
                         // build offset (indexed)
                         mBuildOffsets.push_back({geometry.index->count / 3, geometry.index->offset,
                                                  geometry.vertex->offset / geometry.vertex->stride,

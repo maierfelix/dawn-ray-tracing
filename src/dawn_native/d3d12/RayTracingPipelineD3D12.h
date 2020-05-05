@@ -15,8 +15,12 @@
 #ifndef DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_
 #define DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_
 
-#include "dawn_native/RayTracingPipeline.h"
+#include <d3dcompiler.h>
+#include <dxsc/dxcapi.h>
 
+#include <vector>
+
+#include "dawn_native/RayTracingPipeline.h"
 #include "dawn_native/d3d12/d3d12_platform.h"
 
 namespace dawn_native { namespace d3d12 {
@@ -35,7 +39,11 @@ namespace dawn_native { namespace d3d12 {
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
+
         ComPtr<ID3D12PipelineState> mPipelineState;
+        std::vector<ComPtr<IDxcBlob>> mDXILLibraries;
+
+        MaybeError CompileHLSLRayTracingShader(std::string& hlslSource, IDxcBlob** pShaderBlob);
     };
 
 }}  // namespace dawn_native::d3d12

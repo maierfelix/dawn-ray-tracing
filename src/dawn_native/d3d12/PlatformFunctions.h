@@ -58,6 +58,12 @@ namespace dawn_native { namespace d3d12 {
                                                           _COM_Outptr_ void** ppFactory);
         PFN_CREATE_DXGI_FACTORY2 createDxgiFactory2 = nullptr;
 
+        // Functions from dxcompiler.dll
+        using PFN_DXC_CREATE_INSTANCE = HRESULT(WINAPI*)(REFCLSID rclsid,
+                                                         REFIID riid,
+                                                         _COM_Outptr_ void** ppCompiler);
+        PFN_DXC_CREATE_INSTANCE dxcCreateInstance = nullptr;
+
         // Functions from d3d3compiler.dll
         pD3DCompile d3dCompile = nullptr;
 
@@ -85,12 +91,14 @@ namespace dawn_native { namespace d3d12 {
         MaybeError LoadD3D11();
         MaybeError LoadDXGI();
         MaybeError LoadD3DCompiler();
+        MaybeError LoadD3DSDKCompiler();
         void LoadPIXRuntime();
 
         DynamicLib mD3D12Lib;
         DynamicLib mD3D11Lib;
         DynamicLib mDXGILib;
         DynamicLib mD3DCompilerLib;
+        DynamicLib mD3DSDKCompilerLib;
         DynamicLib mPIXEventRuntimeLib;
     };
 

@@ -27,6 +27,7 @@ namespace dawn_native { namespace d3d12 {
         DAWN_TRY(LoadD3D12());
         DAWN_TRY(LoadDXGI());
         DAWN_TRY(LoadD3DCompiler());
+        DAWN_TRY(LoadD3DSDKCompiler());
         DAWN_TRY(LoadD3D11());
         LoadPIXRuntime();
         return {};
@@ -74,8 +75,18 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError PlatformFunctions::LoadD3DCompiler() {
         std::string error;
-        if (!mD3DCompilerLib.Open("d3dcompiler_47.dll", &error) ||
-            !mD3DCompilerLib.GetProc(&d3dCompile, "D3DCompile", &error)) {
+        if (!mD3DCompilerLib.Open("dxcompiler.dll", &error) ||
+            !mD3DCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
+            return DAWN_INTERNAL_ERROR(error.c_str());
+        }
+
+        return {};
+    }
+
+    MaybeError PlatformFunctions::LoadD3DSDKCompiler() {
+        std::string error;
+        if (!mD3DSDKCompilerLib.Open("d3dcompiler_47.dll", &error) ||
+            !mD3DSDKCompilerLib.GetProc(&d3dCompile, "D3DCompile", &error)) {
             return DAWN_INTERNAL_ERROR(error.c_str());
         }
 
