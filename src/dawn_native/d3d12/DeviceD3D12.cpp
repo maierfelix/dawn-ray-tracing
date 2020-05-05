@@ -64,7 +64,6 @@ namespace dawn_native { namespace d3d12 {
         ASSERT(mD3d12Device != nullptr);
 
         // Warn if DXC toggle enabled, but dynamic library not available
-        SetToggle(Toggle::UseD3D12DXCompiler, true);
         if (IsToggleEnabled(Toggle::UseD3D12DXCompiler)) {
             const PlatformFunctions* functions = GetFunctions();
             if (functions->dxcCreateInstance == nullptr) {
