@@ -90,15 +90,15 @@ namespace dawn_native { namespace d3d12 {
         MaybeError LoadD3D12();
         MaybeError LoadD3D11();
         MaybeError LoadDXGI();
-        MaybeError LoadD3DCompiler();
-        MaybeError LoadD3DSDKCompiler();
+        MaybeError LoadDXCCompiler();
+        MaybeError LoadFXCCompiler();
         void LoadPIXRuntime();
 
         DynamicLib mD3D12Lib;
         DynamicLib mD3D11Lib;
         DynamicLib mDXGILib;
-        DynamicLib mD3DCompilerLib;
-        DynamicLib mD3DSDKCompilerLib;
+        DynamicLib mDXCCompilerLib;
+        DynamicLib mFXCCompilerLib;
         DynamicLib mPIXEventRuntimeLib;
     };
 

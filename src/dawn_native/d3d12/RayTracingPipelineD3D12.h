@@ -16,7 +16,7 @@
 #define DAWNNATIVE_D3D12_RAY_TRACING_PIPELINE_H_
 
 #include <d3dcompiler.h>
-#include <dxsc/dxcapi.h>
+#include <dxcapi.h>
 
 #include <vector>
 

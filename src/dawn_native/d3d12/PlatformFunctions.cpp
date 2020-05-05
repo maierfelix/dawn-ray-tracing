@@ -26,8 +26,8 @@ namespace dawn_native { namespace d3d12 {
     MaybeError PlatformFunctions::LoadFunctions() {
         DAWN_TRY(LoadD3D12());
         DAWN_TRY(LoadDXGI());
-        DAWN_TRY(LoadD3DCompiler());
-        DAWN_TRY(LoadD3DSDKCompiler());
+        DAWN_TRY(LoadDXCCompiler());
+        DAWN_TRY(LoadFXCCompiler());
         DAWN_TRY(LoadD3D11());
         LoadPIXRuntime();
         return {};
@@ -73,20 +73,20 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    MaybeError PlatformFunctions::LoadD3DCompiler() {
+    MaybeError PlatformFunctions::LoadDXCCompiler() {
         std::string error;
-        if (!mD3DCompilerLib.Open("dxcompiler.dll", &error) ||
-            !mD3DCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
+        if (!mDXCCompilerLib.Open("dxcompiler.dll", &error) ||
+            !mDXCCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
             return DAWN_INTERNAL_ERROR(error.c_str());
         }
 
         return {};
     }
 
-    MaybeError PlatformFunctions::LoadD3DSDKCompiler() {
+    MaybeError PlatformFunctions::LoadFXCCompiler() {
         std::string error;
-        if (!mD3DSDKCompilerLib.Open("d3dcompiler_47.dll", &error) ||
-            !mD3DSDKCompilerLib.GetProc(&d3dCompile, "D3DCompile", &error)) {
+        if (!mFXCCompilerLib.Open("d3dcompiler_47.dll", &error) ||
+            !mFXCCompilerLib.GetProc(&d3dCompile, "D3DCompile", &error)) {
             return DAWN_INTERNAL_ERROR(error.c_str());
         }
 

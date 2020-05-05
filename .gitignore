@@ -95,6 +95,6 @@ ehthumbs.db
 ehthumbs_vista.db
 Desktop.ini
 $RECYCLE.BIN/
-third_party/microsoft/bin
 
 .vs
+.vscode

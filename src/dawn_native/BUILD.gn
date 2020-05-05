@@ -282,8 +282,6 @@ source_set("dawn_native_sources") {
 
   if (dawn_enable_d3d12) {
     libs += [ "dxguid.lib" ]
-    public_deps +=
-        [ "${dawn_root}/third_party/microsoft:directx_shader_compiler" ]
     sources += [
       "d3d12/AdapterD3D12.cpp",
       "d3d12/AdapterD3D12.h",
