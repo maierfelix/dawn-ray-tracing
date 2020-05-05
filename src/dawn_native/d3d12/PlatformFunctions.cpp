@@ -75,9 +75,12 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError PlatformFunctions::LoadDXCompiler() {
         std::string error;
-        if (!mDXCompilerLib.Open("dxcompiler.dll", &error) ||
-            !mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
-            return DAWN_INTERNAL_ERROR(error.c_str());
+        // Do not throw if failed, DXC is optional
+        if (mDXCompilerLib.Open("dxcompiler.dll", &error)) {
+            // Only load procs when DXC is available
+            if (!mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
+                return DAWN_INTERNAL_ERROR(error.c_str());
+            }
         }
 
         return {};

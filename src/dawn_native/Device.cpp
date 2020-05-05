@@ -1035,6 +1035,7 @@ namespace dawn_native {
     void DeviceBase::SetDefaultToggles() {
         SetToggle(Toggle::LazyClearResourceOnFirstUse, true);
         SetToggle(Toggle::UseSpvc, false);
+        SetToggle(Toggle::UseD3D12DXCompiler, false);
     }
 
     void DeviceBase::ApplyToggleOverrides(const DeviceDescriptor* deviceDescriptor) {

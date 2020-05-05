@@ -15,6 +15,7 @@
 #include "dawn_native/d3d12/DeviceD3D12.h"
 
 #include "common/Assert.h"
+#include "common/Log.h"
 #include "dawn_native/BackendConnection.h"
 #include "dawn_native/ErrorData.h"
 #include "dawn_native/d3d12/AdapterD3D12.h"
@@ -61,6 +62,16 @@ namespace dawn_native { namespace d3d12 {
 
         mD3d12Device = ToBackend(GetAdapter())->GetDevice();
         ASSERT(mD3d12Device != nullptr);
+
+        // Warn if DXC toggle enabled, but dynamic library not available
+        SetToggle(Toggle::UseD3D12DXCompiler, true);
+        if (IsToggleEnabled(Toggle::UseD3D12DXCompiler)) {
+            const PlatformFunctions* functions = GetFunctions();
+            if (functions->dxcCreateInstance == nullptr) {
+                dawn::WarningLog()
+                    << std::string("UseD3D12DXCompiler toggle enabled, but library not loaded");
+            }
+        }
 
         DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
                               "D3D12 query ID3D12Device to ID3D12Device5"));
