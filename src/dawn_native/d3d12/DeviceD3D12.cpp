@@ -72,8 +72,10 @@ namespace dawn_native { namespace d3d12 {
             }
         }
 
-        DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
-                              "D3D12 query ID3D12Device to ID3D12Device5"));
+        if (IsExtensionEnabled(Extension::RayTracing)) {
+            DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
+                                  "D3D12 QueryInterface ID3D12Device to ID3D12Device5"));
+        }
 
         // Create device-global objects
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};

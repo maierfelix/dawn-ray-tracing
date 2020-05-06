@@ -77,13 +77,13 @@ void init() {
 
         struct RayPayload { vec3 color; };
         layout(location = 0) rayPayloadEXT RayPayload payload;
-
+/*
         layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 
         layout(std140, set = 0, binding = 1) buffer PixelBuffer {
             vec4 pixels[];
         } pixelBuffer;
-
+*/
         void main() {
             const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
             const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
@@ -92,9 +92,9 @@ void init() {
             const vec3 origin = vec3(0, 0, -1.5);
             const vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, 1));
             payload.color = vec3(0);
-            traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
+            //traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
             const uint pixelIndex = (gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y) * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
-            pixelBuffer.pixels[pixelIndex] = vec4(payload.color, 1.0);
+            //pixelBuffer.pixels[pixelIndex] = vec4(payload.color, 1.0);
         }
     )";
 
