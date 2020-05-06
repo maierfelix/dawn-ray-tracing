@@ -34,13 +34,13 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingPipelineDescriptor* descriptor);
         ~RayTracingPipeline() override;
 
-        ComPtr<ID3D12PipelineState> GetPipelineState();
+        ComPtr<ID3D12StateObject> GetPipelineState();
 
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
 
-        ComPtr<ID3D12PipelineState> mPipelineState;
+        ComPtr<ID3D12StateObject> mPipelineState;
         ComPtr<ID3D12StateObjectProperties> mPipelineInfo;
         std::vector<ComPtr<IDxcBlob>> mDXILLibraries;
 
