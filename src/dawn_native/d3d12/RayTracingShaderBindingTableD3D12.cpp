@@ -101,26 +101,31 @@ namespace dawn_native { namespace d3d12 {
                                              D3D12_RESOURCE_STATE_GENERIC_READ));
         mTableBuffer = mTableResource.GetD3D12Resource();
 
+        // TODO: Make dynamic
+
         // Map the SBT
         uint8_t* pData;
         DAWN_TRY(CheckHRESULT(mTableBuffer->Map(0, nullptr, (void**)&pData), "Map SBT"));
 
         // Write Entry 0: ray generation id
-        memcpy(pData, pipelineInfo->GetShaderIdentifier(L"rgen_main"),
+        uint8_t* pGenEntry = pData + mTableSize * 0;
+        memcpy(pGenEntry, pipelineInfo->GetShaderIdentifier(L"rgen_main"),
                D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
         // Write descriptor heap offset
         ID3D12DescriptorHeap* descriptorHeap =
             device->GetViewShaderVisibleDescriptorAllocator()->GetShaderVisibleHeap();
         uint64_t heapStart = descriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
         *(uint64_t*)(pData + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = heapStart;
 
-        // Write Entry 1: miss id
-        memcpy(pData + mTableSize, pipelineInfo->GetShaderIdentifier(L"rmiss_main"),
+        // Write Entry 2: hit group id
+        uint8_t* pHitEntry = pData + mTableSize * 1;
+        memcpy(pHitEntry, pipelineInfo->GetShaderIdentifier(L"HitGroup_0"),
                D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
-        // Write Entry 2: hit group id
-        uint8_t* pHitEntry = pData + mTableSize * 2;  // +2 skips the ray-gen and miss entries
-        memcpy(pHitEntry, pipelineInfo->GetShaderIdentifier(L"HitGroup_0"),
+        // Write Entry 1: miss id
+        uint8_t* pMissEntry = pData + mTableSize * 2;
+        memcpy(pMissEntry, pipelineInfo->GetShaderIdentifier(L"rmiss_main"),
                D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
         // Unmap the SBT

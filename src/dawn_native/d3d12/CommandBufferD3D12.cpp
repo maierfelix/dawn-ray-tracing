@@ -918,22 +918,24 @@ namespace dawn_native { namespace d3d12 {
                     desc.Height = traceRays->height;
                     desc.Depth = traceRays->depth;
 
+                    // TODO: Make dynamic
+
                     // RGEN
                     size_t genOffset = traceRays->rayGenerationOffset * sbtTableSize;
                     desc.RayGenerationShaderRecord.StartAddress = sbtTableBufferAddress + genOffset;
                     desc.RayGenerationShaderRecord.SizeInBytes = sbtTableSize;
-
-                    // RMISS
-                    size_t missOffset = traceRays->rayMissOffset * sbtTableSize;
-                    desc.MissShaderTable.StartAddress = sbtTableBufferAddress + missOffset;
-                    desc.MissShaderTable.StrideInBytes = sbtTableSize;
-                    desc.MissShaderTable.SizeInBytes = sbtTableSize;
 
                     // RHIT
                     size_t hitOffset = traceRays->rayHitOffset * sbtTableSize;
                     desc.HitGroupTable.StartAddress = sbtTableBufferAddress + hitOffset;
                     desc.HitGroupTable.StrideInBytes = sbtTableSize;
                     desc.HitGroupTable.SizeInBytes = sbtTableSize;
+
+                    // RMISS
+                    size_t missOffset = traceRays->rayMissOffset * sbtTableSize;
+                    desc.MissShaderTable.StartAddress = sbtTableBufferAddress + missOffset;
+                    desc.MissShaderTable.StrideInBytes = sbtTableSize;
+                    desc.MissShaderTable.SizeInBytes = sbtTableSize;
 
                     commandList4->DispatchRays(&desc);
                 } break;

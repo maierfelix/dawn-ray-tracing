@@ -76,6 +76,8 @@ namespace dawn_native { namespace d3d12 {
 
         std::vector<RayTracingShaderBindingTableStagesDescriptor>& stages = sbt->GetStages();
 
+        // TODO: Make dynamic
+
         // Compile shaders
         std::string rgenSource;
         DAWN_TRY_ASSIGN(rgenSource, ToBackend(stages[0].module)->GetHLSLSource(layout));
