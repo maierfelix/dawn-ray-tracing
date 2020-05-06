@@ -34,6 +34,7 @@ namespace dawn_native { namespace d3d12 {
             infoLog[pBlob->GetBufferSize()] = 0;
             return std::string(infoLog.data());
         }
+
         bool IsSignedDXIL(LPVOID buffer) {
             uint32_t offset = 0x0;
             UINT32* dataU32 = (UINT32*)buffer;
@@ -63,6 +64,7 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError RayTracingPipeline::Initialize(const RayTracingPipelineDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
+
         PipelineLayout* layout = ToBackend(descriptor->layout);
 
         ComPtr<IDxcBlob> pRayGenByteCode;
@@ -200,8 +202,7 @@ namespace dawn_native { namespace d3d12 {
                                   &stateObjectDesc, IID_PPV_ARGS(&mPipelineState)),
                               "Create RT pipeline"));
 
-        DAWN_TRY(CheckHRESULT(mPipelineState->QueryInterface(IID_PPV_ARGS(&mPipelineInfo)),
-                              "Query RT pipeline info"));
+        sbt->Generate(this, layout);
 
         return {};
     }

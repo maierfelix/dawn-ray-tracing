@@ -890,16 +890,52 @@ namespace dawn_native { namespace d3d12 {
     MaybeError CommandBuffer::RecordRayTracingPass(CommandRecordingContext* commandContext,
                                                    BindGroupStateTracker* bindingTracker) {
         PipelineLayout* lastLayout = nullptr;
+        RayTracingPipeline* usedPipeline = nullptr;
+
         ID3D12GraphicsCommandList* commandList = commandContext->GetCommandList();
+        ID3D12GraphicsCommandList4* commandList4 = commandContext->GetCommandList4();
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
             switch (type) {
                 case Command::TraceRays: {
-                    // TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+                    TraceRaysCmd* traceRays = mCommands.NextCommand<TraceRaysCmd>();
+
+                    ASSERT(usedPipeline != nullptr);
+
+                    RayTracingShaderBindingTable* sbt =
+                        ToBackend(usedPipeline->GetShaderBindingTable());
+
+                    uint32_t sbtTableSize = sbt->GetTableSize();
+                    ComPtr<ID3D12Resource> sbtTableBuffer = sbt->GetTableBuffer();
+                    D3D12_GPU_VIRTUAL_ADDRESS sbtTableBufferAddress =
+                        sbtTableBuffer.Get()->GetGPUVirtualAddress();
 
                     DAWN_TRY(bindingTracker->Apply(commandContext));
-                    // commandList->TraceRays(traceRays.width);
+
+                    D3D12_DISPATCH_RAYS_DESC desc = {};
+                    desc.Width = traceRays->width;
+                    desc.Height = traceRays->height;
+                    desc.Depth = traceRays->depth;
+
+                    // RGEN
+                    size_t genOffset = traceRays->rayGenerationOffset * sbtTableSize;
+                    desc.RayGenerationShaderRecord.StartAddress = sbtTableBufferAddress + genOffset;
+                    desc.RayGenerationShaderRecord.SizeInBytes = sbtTableSize;
+
+                    // RMISS
+                    size_t missOffset = traceRays->rayMissOffset * sbtTableSize;
+                    desc.MissShaderTable.StartAddress = sbtTableBufferAddress + missOffset;
+                    desc.MissShaderTable.StrideInBytes = sbtTableSize;
+                    desc.MissShaderTable.SizeInBytes = sbtTableSize;
+
+                    // RHIT
+                    size_t hitOffset = traceRays->rayHitOffset * sbtTableSize;
+                    desc.HitGroupTable.StartAddress = sbtTableBufferAddress + hitOffset;
+                    desc.HitGroupTable.StrideInBytes = sbtTableSize;
+                    desc.HitGroupTable.SizeInBytes = sbtTableSize;
+
+                    commandList4->DispatchRays(&desc);
                 } break;
 
                 case Command::EndRayTracingPass: {
@@ -913,13 +949,14 @@ namespace dawn_native { namespace d3d12 {
 
                     RayTracingPipeline* pipeline = ToBackend(cmd->pipeline).Get();
                     PipelineLayout* layout = ToBackend(pipeline->GetLayout());
-                    /*
-                    commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
-                    commandList->SetPipelineState(pipeline->GetPipelineState().Get());
 
-                    bindingTracker->OnSetPipeline(pipeline);*/
+                    commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
+                    commandList4->SetPipelineState1(pipeline->GetPipelineState().Get());
+
+                    bindingTracker->OnSetPipeline(pipeline);
 
                     lastLayout = layout;
+                    usedPipeline = pipeline;
                 } break;
 
                 case Command::SetBindGroup: {
@@ -971,9 +1008,7 @@ namespace dawn_native { namespace d3d12 {
                     }
                 } break;
 
-                default: {
-                    UNREACHABLE();
-                } break;
+                default: { UNREACHABLE(); } break;
             }
         }
 

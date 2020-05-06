@@ -93,7 +93,7 @@ void init() {
             payload.color = vec3(0);
             traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
             const uint pixelIndex = (gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y) * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
-            pixelBuffer.pixels[pixelIndex] = vec4(1.0, 0.25, 0.5, 1.0);
+            pixelBuffer.pixels[pixelIndex] = vec4(payload.color, 1.0);
         }
     )";
 

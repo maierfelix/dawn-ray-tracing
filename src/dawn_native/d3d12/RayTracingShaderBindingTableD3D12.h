@@ -19,6 +19,8 @@
 
 #include "dawn_native/RayTracingShaderBindingTable.h"
 #include "dawn_native/d3d12/BufferD3D12.h"
+#include "dawn_native/d3d12/PipelineLayoutD3D12.h"
+#include "dawn_native/d3d12/RayTracingPipelineD3D12.h"
 #include "dawn_native/d3d12/ShaderModuleD3D12.h"
 #include "dawn_native/d3d12/d3d12_platform.h"
 
@@ -33,6 +35,11 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingShaderBindingTableDescriptor* descriptor);
         ~RayTracingShaderBindingTable() override;
 
+        uint32_t GetTableSize() const;
+        ComPtr<ID3D12Resource> GetTableBuffer();
+
+        MaybeError Generate(RayTracingPipeline* pipeline, PipelineLayout* pipelineLayout);
+
         std::vector<RayTracingShaderBindingTableStagesDescriptor>& GetStages();
         std::vector<RayTracingShaderBindingTableGroupsDescriptor>& GetGroups();
 
@@ -41,6 +48,10 @@ namespace dawn_native { namespace d3d12 {
 
         std::vector<RayTracingShaderBindingTableStagesDescriptor> mStages;
         std::vector<RayTracingShaderBindingTableGroupsDescriptor> mGroups;
+
+        ResourceHeapAllocation mTableResource;
+        ComPtr<ID3D12Resource> mTableBuffer;
+        uint32_t mTableSize;
 
         void DestroyImpl() override;
 
