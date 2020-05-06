@@ -26,55 +26,6 @@
 
 namespace dawn_native { namespace d3d12 {
 
-    static const char* hlslSource = R"(
-        struct RayPayload
-        {
-            float3 color;
-        };
-
-        //RaytracingAccelerationStructure topLevelAS : register(t0, space0);
-        RWTexture2D<float4> pixelBuffer : register(u0, space0);
-
-        static RayPayload payload;
-        [shader("raygeneration")] void rgen_main() {
-        float2 pixelCenter = float2(DispatchRaysIndex().xy) + 0.5f.xx;
-        float2 uv = pixelCenter / float2(DispatchRaysDimensions().xy);
-        float2 d = (uv * 2.0f) - 1.0f.xx;
-        float aspectRatio =
-            float(DispatchRaysDimensions().x) / float(DispatchRaysDimensions().y);
-        float3 direction = normalize(float3(d.x * aspectRatio, d.y, 1.0f));
-        payload.color = 0.0f.xxx;
-        {
-            RayDesc ray;
-            ray.Origin = float3(0.0f, 0.0f, -1.5f);
-            ray.Direction = direction;
-            ray.TMin = 0.001000000047497451305389404296875f;
-            ray.TMax = 100.0f;
-            //TraceRay(topLevelAS, 1u, 255u, 0u, 0u, 0u, ray, payload);
-        }
-        uint pixelIndex = ((DispatchRaysDimensions().y - DispatchRaysIndex().y) *
-                            DispatchRaysDimensions().x) +
-                            DispatchRaysIndex().x;
-        pixelBuffer[int2(int3(DispatchRaysIndex()).xy)] = float4(payload.color, 1.0);
-        }
-
-        struct HitAttributeData
-        {
-            float2 bary;
-        };
-
-        [shader("closesthit")] void rchit_main(inout RayPayload payload, in HitAttributeData attribs)
-        {
-            float3 bary = float3((1.0f - attribs.bary.x) - attribs.bary.y, attribs.bary.x, attribs.bary.y);
-            payload.color = bary;
-        }
-
-        [shader("miss")] void rmiss_main(inout RayPayload payload)
-        {
-            payload.color = 0.1500000059604644775390625f.xxx;
-        }
-    )";
-
     namespace {
 
         std::string ConvertBlobToString(IDxcBlobEncoding* pBlob) {
@@ -83,7 +34,7 @@ namespace dawn_native { namespace d3d12 {
             infoLog[pBlob->GetBufferSize()] = 0;
             return std::string(infoLog.data());
         }
-        bool isSignedDXIL(LPVOID buffer) {
+        bool IsSignedDXIL(LPVOID buffer) {
             uint32_t offset = 0x0;
             UINT32* dataU32 = (UINT32*)buffer;
             UINT32 DXBC_MAGIC = (('D' << 0) + ('X' << 8) + ('B' << 16) + ('C' << 24));
@@ -114,48 +65,94 @@ namespace dawn_native { namespace d3d12 {
         Device* device = ToBackend(GetDevice());
         PipelineLayout* layout = ToBackend(descriptor->layout);
 
-        // Combined shader
-        std::string hlslSourceStr = hlslSource;
-        ComPtr<IDxcBlob> pHLSLByteCode;
-        DAWN_TRY(CompileHLSLRayTracingShader(hlslSourceStr, &pHLSLByteCode));
+        ComPtr<IDxcBlob> pRayGenByteCode;
+        ComPtr<IDxcBlob> pRayClosestHitByteCode;
+        ComPtr<IDxcBlob> pRayMissByteCode;
 
-        if (!isSignedDXIL(pHLSLByteCode->GetBufferPointer())) {
+        RayTracingShaderBindingTable* sbt =
+            ToBackend(descriptor->rayTracingState->shaderBindingTable);
+
+        std::vector<RayTracingShaderBindingTableStagesDescriptor>& stages = sbt->GetStages();
+
+        // Compile shaders
+        std::string rgenSource;
+        DAWN_TRY_ASSIGN(rgenSource, ToBackend(stages[0].module)->GetHLSLSource(layout));
+        DAWN_TRY(CompileHLSLRayTracingShader(rgenSource, &pRayGenByteCode));
+        std::string rchitSource;
+        DAWN_TRY_ASSIGN(rchitSource, ToBackend(stages[1].module)->GetHLSLSource(layout));
+        DAWN_TRY(CompileHLSLRayTracingShader(rchitSource, &pRayClosestHitByteCode));
+        std::string rmissSource;
+        DAWN_TRY_ASSIGN(rmissSource, ToBackend(stages[2].module)->GetHLSLSource(layout));
+        DAWN_TRY(CompileHLSLRayTracingShader(rmissSource, &pRayMissByteCode));
+
+        // Validate each shader
+        if (!IsSignedDXIL(pRayGenByteCode->GetBufferPointer())) {
+            return DAWN_VALIDATION_ERROR("DXIL is unsigned or invalid");
+        }
+        if (!IsSignedDXIL(pRayClosestHitByteCode->GetBufferPointer())) {
+            return DAWN_VALIDATION_ERROR("DXIL is unsigned or invalid");
+        }
+        if (!IsSignedDXIL(pRayMissByteCode->GetBufferPointer())) {
             return DAWN_VALIDATION_ERROR("DXIL is unsigned or invalid");
         }
 
-        std::vector<D3D12_STATE_SUBOBJECT> subObjects(6);
+        std::vector<D3D12_STATE_SUBOBJECT> subObjects(8);
 
-        std::vector<std::wstring> entryPoints;
-        entryPoints.push_back(L"rgen_main");
-        entryPoints.push_back(L"rchit_main");
-        entryPoints.push_back(L"rmiss_main");
-        entryPoints.push_back(L"HitGroup_0");
+        // Ray Generation Object
+        D3D12_EXPORT_DESC rayGenExportDesc;
+        rayGenExportDesc.Name = L"rgen_main";
+        rayGenExportDesc.ExportToRename = L"main";
+        rayGenExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
+        D3D12_DXIL_LIBRARY_DESC rayGenDesc;
+        rayGenDesc.DXILLibrary.BytecodeLength = pRayGenByteCode->GetBufferSize();
+        rayGenDesc.DXILLibrary.pShaderBytecode = pRayGenByteCode->GetBufferPointer();
+        rayGenDesc.NumExports = 1;
+        rayGenDesc.pExports = &rayGenExportDesc;
+        D3D12_STATE_SUBOBJECT rayGenObject;
+        rayGenObject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+        rayGenObject.pDesc = &rayGenDesc;
+        subObjects[0] = rayGenObject;
 
-        std::vector<D3D12_EXPORT_DESC> exportDesc;
-        exportDesc.push_back({entryPoints[0].c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
-        exportDesc.push_back({entryPoints[1].c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
-        exportDesc.push_back({entryPoints[2].c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
+        // Ray Closest-Hit Object
+        D3D12_EXPORT_DESC rayClosestHitExportDesc;
+        rayClosestHitExportDesc.Name = L"rchit_main";
+        rayClosestHitExportDesc.ExportToRename = L"main";
+        rayClosestHitExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
+        D3D12_DXIL_LIBRARY_DESC rayClosestHitDesc;
+        rayClosestHitDesc.DXILLibrary.BytecodeLength = pRayClosestHitByteCode->GetBufferSize();
+        rayClosestHitDesc.DXILLibrary.pShaderBytecode = pRayClosestHitByteCode->GetBufferPointer();
+        rayClosestHitDesc.NumExports = 1;
+        rayClosestHitDesc.pExports = &rayClosestHitExportDesc;
+        D3D12_STATE_SUBOBJECT rayClosestHitObject;
+        rayClosestHitObject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+        rayClosestHitObject.pDesc = &rayClosestHitDesc;
+        subObjects[1] = rayClosestHitObject;
 
-        D3D12_DXIL_LIBRARY_DESC dxilLibDesc;
-        D3D12_STATE_SUBOBJECT stateSubobject;
-        stateSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-        stateSubobject.pDesc = &dxilLibDesc;
-        dxilLibDesc.DXILLibrary.pShaderBytecode = pHLSLByteCode->GetBufferPointer();
-        dxilLibDesc.DXILLibrary.BytecodeLength = pHLSLByteCode->GetBufferSize();
-        dxilLibDesc.NumExports = exportDesc.size();
-        dxilLibDesc.pExports = exportDesc.data();
-        subObjects[0] = stateSubobject;
+        // Ray Miss Object
+        D3D12_EXPORT_DESC rayMissExportDesc;
+        rayMissExportDesc.Name = L"rmiss_main";
+        rayMissExportDesc.ExportToRename = L"main";
+        rayMissExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
+        D3D12_DXIL_LIBRARY_DESC rayMissDesc;
+        rayMissDesc.DXILLibrary.BytecodeLength = pRayMissByteCode->GetBufferSize();
+        rayMissDesc.DXILLibrary.pShaderBytecode = pRayMissByteCode->GetBufferPointer();
+        rayMissDesc.NumExports = 1;
+        rayMissDesc.pExports = &rayMissExportDesc;
+        D3D12_STATE_SUBOBJECT rayMissObject;
+        rayMissObject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+        rayMissObject.pDesc = &rayMissDesc;
+        subObjects[2] = rayMissObject;
 
         D3D12_HIT_GROUP_DESC hitDesc;
         hitDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
         hitDesc.AnyHitShaderImport = nullptr;
-        hitDesc.ClosestHitShaderImport = entryPoints[1].c_str();
+        hitDesc.ClosestHitShaderImport = L"rchit_main";
         hitDesc.IntersectionShaderImport = nullptr;
-        hitDesc.HitGroupExport = entryPoints[3].c_str();
+        hitDesc.HitGroupExport = L"HitGroup_0";
         D3D12_STATE_SUBOBJECT hitSubObject;
         hitSubObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
         hitSubObject.pDesc = &hitDesc;
-        subObjects[1] = hitSubObject;
+        subObjects[3] = hitSubObject;
 
         // Create shader configuration
         D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
@@ -165,27 +162,25 @@ namespace dawn_native { namespace d3d12 {
         D3D12_STATE_SUBOBJECT shaderConfigObject;
         shaderConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
         shaderConfigObject.pDesc = &shaderConfig;
-        subObjects[2] = shaderConfigObject;
+        subObjects[4] = shaderConfigObject;
 
         // Associate shaders with the payload config
-        // List of shader using the shaderConfig payload
-        const WCHAR* shaderPayloadExports[] = {entryPoints[2].c_str(), entryPoints[1].c_str(),
-                                               entryPoints[0].c_str()};
+        const WCHAR* shaderPayloadExports[] = {L"rgen_main", L"HitGroup_0", L"rmiss_main"};
         D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION payloadAssocDesc;
         payloadAssocDesc.NumExports = _countof(shaderPayloadExports);
         payloadAssocDesc.pExports = shaderPayloadExports;
-        payloadAssocDesc.pSubobjectToAssociate = &subObjects[2];
+        payloadAssocDesc.pSubobjectToAssociate = &subObjects[4];
         D3D12_STATE_SUBOBJECT payloadAssocObject;
         payloadAssocObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
         payloadAssocObject.pDesc = &payloadAssocDesc;
-        subObjects[3] = payloadAssocObject;
+        subObjects[5] = payloadAssocObject;
 
         // create global root signature
         ID3D12RootSignature* pInterface = layout->GetRootSignature().Get();
         D3D12_STATE_SUBOBJECT globalRootSignatureObject;
         globalRootSignatureObject.pDesc = &pInterface;
         globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
-        subObjects[4] = globalRootSignatureObject;
+        subObjects[6] = globalRootSignatureObject;
 
         // Create Pipeline config
         D3D12_RAYTRACING_PIPELINE_CONFIG rtPipelineConfig;
@@ -193,7 +188,7 @@ namespace dawn_native { namespace d3d12 {
         D3D12_STATE_SUBOBJECT rtPipelineConfigObject;
         rtPipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
         rtPipelineConfigObject.pDesc = &rtPipelineConfig;
-        subObjects[5] = rtPipelineConfigObject;
+        subObjects[7] = rtPipelineConfigObject;
 
         // Create Pipeline
         D3D12_STATE_OBJECT_DESC stateObjectDesc;
@@ -210,101 +205,6 @@ namespace dawn_native { namespace d3d12 {
 
         return {};
     }
-
-    /*
-    {
-        std::vector<D3D12_STATE_SUBOBJECT> subObjects;
-
-        // Add libs
-        for (unsigned int ii = 0; ii < mDXILLibraries.size(); ++ii) {
-            ComPtr<IDxcBlob> pShaderBlob = mDXILLibraries[ii];
-            D3D12_DXIL_LIBRARY_DESC dxilLibDesc;
-            dxilLibDesc.NumExports = 1;
-            dxilLibDesc.pExports = &shaderExportDesc;
-
-            // Add shader blob
-            D3D12_SHADER_BYTECODE dxilShaderByteCode;
-            dxilShaderByteCode.pShaderBytecode = pShaderBlob.Get()->GetBufferPointer();
-            dxilShaderByteCode.BytecodeLength = pShaderBlob.Get()->GetBufferSize();
-            dxilLibDesc.DXILLibrary = dxilShaderByteCode;
-
-            // Write subobject
-            D3D12_STATE_SUBOBJECT dxilLibObject;
-            dxilLibObject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-            dxilLibObject.pDesc = &dxilLibDesc;
-            subObjects.push_back(dxilLibObject);
-        }
-
-        // Add hit groups
-        for (unsigned int ii = 0; ii < hitGroups.size(); ++ii) {
-            bool isAnyHit = hitGroups[ii].stage == wgpu::ShaderStage::RayAnyHit;
-            bool isClosestHit = hitGroups[ii].stage == wgpu::ShaderStage::RayClosestHit;
-
-            if (!isAnyHit && !isClosestHit)
-                continue;
-            D3D12_HIT_GROUP_DESC hitGroupDesc;
-            hitGroupDesc.HitGroupExport = L"HitGroup";
-            hitGroupDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
-            hitGroupDesc.AnyHitShaderImport = isAnyHit ? L"main" : L"";
-            hitGroupDesc.ClosestHitShaderImport = isClosestHit ? L"main" : L"";
-            hitGroupDesc.IntersectionShaderImport = L"";
-
-            // Write subobject
-            D3D12_STATE_SUBOBJECT hitGroupObject;
-            hitGroupObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-            hitGroupObject.pDesc = &hitGroupDesc;
-            subObjects.push_back(hitGroupObject);
-        }
-
-        // Add global root signature
-        {
-            ComPtr<ID3D12RootSignature> rootSignature = layout->GetRootSignature();
-
-            // Write subobject
-            D3D12_STATE_SUBOBJECT globalRootSignatureObject;
-            globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
-            globalRootSignatureObject.pDesc = rootSignature.Get();
-            subObjects.push_back(globalRootSignatureObject);
-        }
-
-        // Add local root signature
-        {
-            // Write subobject
-            D3D12_STATE_SUBOBJECT localRootSignatureObject;
-            localRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-            localRootSignatureObject.pDesc = nullptr;
-            subObjects.push_back(localRootSignatureObject);
-        }
-
-        // Add shader config
-        {
-            D3D12_RAYTRACING_SHADER_CONFIG rtShaderConfig;
-            rtShaderConfig.MaxPayloadSizeInBytes = 4 * sizeof(float);    // TODO: dynamic
-            rtShaderConfig.MaxAttributeSizeInBytes = 2 * sizeof(float);  // TODO: dynamic
-
-            D3D12_STATE_SUBOBJECT rtShaderConfigObject;
-            rtShaderConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
-            rtShaderConfigObject.pDesc = &rtShaderConfig;
-
-            // Write subobject
-            subObjects.push_back(rtShaderConfigObject);
-        }
-
-        // Add pipeline config
-        {
-            D3D12_RAYTRACING_PIPELINE_CONFIG rtPipelineConfig;
-            rtPipelineConfig.MaxTraceRecursionDepth = 1;
-
-            D3D12_STATE_SUBOBJECT rtPipelineConfigObject;
-            rtPipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
-            rtPipelineConfigObject.pDesc = &rtPipelineConfig;
-
-            // Write subobject
-            subObjects.push_back(rtPipelineConfigObject);
-        }
-
-    }
-    */
 
     RayTracingPipeline::~RayTracingPipeline() {
         ToBackend(GetDevice())->ReferenceUntilUnused(mPipelineState);
