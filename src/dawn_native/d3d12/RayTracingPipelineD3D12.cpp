@@ -158,7 +158,7 @@ namespace dawn_native { namespace d3d12 {
         hitSubObject.pDesc = &hitDesc;
         subObjects[3] = hitSubObject;
 
-        // Create shader configuration
+        // Create shader config
         D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
         shaderConfig.MaxPayloadSizeInBytes = 4 * sizeof(float);  // TODO: dynamic
         shaderConfig.MaxAttributeSizeInBytes =
@@ -168,7 +168,7 @@ namespace dawn_native { namespace d3d12 {
         shaderConfigObject.pDesc = &shaderConfig;
         subObjects[4] = shaderConfigObject;
 
-        // Associate shaders with the payload config
+        // Associate shaders with the shader config
         const WCHAR* shaderPayloadExports[] = {L"rgen_main", L"HitGroup_0", L"rmiss_main"};
         D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION payloadAssocDesc;
         payloadAssocDesc.NumExports = _countof(shaderPayloadExports);
@@ -186,15 +186,15 @@ namespace dawn_native { namespace d3d12 {
         globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
         subObjects[6] = globalRootSignatureObject;
 
-        // Create Pipeline config
+        // Create pipeline config
         D3D12_RAYTRACING_PIPELINE_CONFIG rtPipelineConfig;
-        rtPipelineConfig.MaxTraceRecursionDepth = 1;
+        rtPipelineConfig.MaxTraceRecursionDepth = descriptor->rayTracingState->maxRecursionDepth;
         D3D12_STATE_SUBOBJECT rtPipelineConfigObject;
         rtPipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
         rtPipelineConfigObject.pDesc = &rtPipelineConfig;
         subObjects[7] = rtPipelineConfigObject;
 
-        // Create Pipeline
+        // Create pipeline
         D3D12_STATE_OBJECT_DESC stateObjectDesc;
         stateObjectDesc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
         stateObjectDesc.NumSubobjects = subObjects.size();

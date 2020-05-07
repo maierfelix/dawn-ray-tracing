@@ -913,12 +913,15 @@ namespace dawn_native { namespace d3d12 {
 
                     DAWN_TRY(bindingTracker->Apply(commandContext));
 
-                    D3D12_DISPATCH_RAYS_DESC desc = {};
+                    D3D12_DISPATCH_RAYS_DESC desc;
                     desc.Width = traceRays->width;
                     desc.Height = traceRays->height;
                     desc.Depth = traceRays->depth;
 
-                    // TODO: Make dynamic
+                    // CALL
+                    desc.CallableShaderTable.SizeInBytes = 0;
+                    desc.CallableShaderTable.StrideInBytes = 0;
+                    desc.CallableShaderTable.StartAddress = 0;
 
                     // RGEN
                     size_t genOffset = traceRays->rayGenerationOffset * sbtTableSize;
