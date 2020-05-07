@@ -768,6 +768,22 @@ namespace dawn_native {
                 mFragmentOutputFormatBaseTypes[location] = formatType;
             }
         }
+
+        // Extract the ray payload size
+        if (mExecutionModel == SingleShaderStage::RayGeneration ||
+            mExecutionModel == SingleShaderStage::RayClosestHit ||
+            mExecutionModel == SingleShaderStage::RayAnyHit ||
+            mExecutionModel == SingleShaderStage::RayMiss) {
+            for (const auto& payload : resources.ray_payloads) {
+                const spirv_cross::SPIRType type = compiler.get_type(payload.base_type_id);
+                uint32_t size = 0;
+                unsigned int ii = 0;
+                for (auto t : type.member_types) {
+                    size += compiler.get_declared_struct_member_size(type, ii++);
+                }
+                mMaxRayPayloadSize = std::max(mMaxRayPayloadSize, size);
+            }
+        }
         return {};
     }
 
@@ -785,6 +801,10 @@ namespace dawn_native {
         const {
         ASSERT(!IsError());
         return mFragmentOutputFormatBaseTypes;
+    }
+
+    uint32_t ShaderModuleBase::GetMaxRayPayloadSize() const {
+        return mMaxRayPayloadSize;
     }
 
     SingleShaderStage ShaderModuleBase::GetExecutionModel() const {
@@ -832,17 +852,18 @@ namespace dawn_native {
             const BindingInfo& bindingInfo = layout->GetBindingInfo(bindingIndex);
 
             if (bindingInfo.type != moduleInfo.type) {
-                // Binding mismatch between shader and bind group is invalid. For example, a
-                // writable binding in the shader with a readonly storage buffer in the bind group
-                // layout is invalid. However, a readonly binding in the shader with a writable
-                // storage buffer in the bind group layout is valid.
+                // Binding mismatch between shader and bind group is invalid. For
+                // example, a writable binding in the shader with a readonly storage
+                // buffer in the bind group layout is invalid. However, a readonly
+                // binding in the shader with a writable storage buffer in the bind
+                // group layout is valid.
                 bool validBindingConversion =
                     bindingInfo.type == wgpu::BindingType::StorageBuffer &&
                     moduleInfo.type == wgpu::BindingType::ReadonlyStorageBuffer;
 
-                // TODO(crbug.com/dawn/367): Temporarily allow using either a sampler or a
-                // comparison sampler until we can perform the proper shader analysis of what type
-                // is used in the shader module.
+                // TODO(crbug.com/dawn/367): Temporarily allow using either a sampler or
+                // a comparison sampler until we can perform the proper shader analysis
+                // of what type is used in the shader module.
                 validBindingConversion |= (bindingInfo.type == wgpu::BindingType::Sampler &&
                                            moduleInfo.type == wgpu::BindingType::ComparisonSampler);
                 validBindingConversion |=

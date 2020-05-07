@@ -89,6 +89,13 @@ namespace dawn_native { namespace d3d12 {
         DAWN_TRY_ASSIGN(rmissSource, ToBackend(stages[2].module)->GetHLSLSource(layout));
         DAWN_TRY(CompileHLSLRayTracingShader(rmissSource, &pRayMissByteCode));
 
+        // Find the largest ray payload of all SBT shaders
+        uint32_t maxPayloadSize = 0;
+        for (auto stage : stages) {
+            ShaderModule* module = ToBackend(stage.module);
+            maxPayloadSize = std::max(maxPayloadSize, module->GetMaxRayPayloadSize());
+        }
+
         // Validate each shader
         if (!IsSignedDXIL(pRayGenByteCode->GetBufferPointer())) {
             return DAWN_VALIDATION_ERROR("DXIL is unsigned or invalid");
@@ -160,9 +167,9 @@ namespace dawn_native { namespace d3d12 {
 
         // Create shader config
         D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
-        shaderConfig.MaxPayloadSizeInBytes = 4 * sizeof(float);  // TODO: dynamic
+        shaderConfig.MaxPayloadSizeInBytes = maxPayloadSize;
         shaderConfig.MaxAttributeSizeInBytes =
-            D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES;  // TODO: dynamic
+            D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES;  // TODO: dynamic?
         D3D12_STATE_SUBOBJECT shaderConfigObject;
         shaderConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
         shaderConfigObject.pDesc = &shaderConfig;
