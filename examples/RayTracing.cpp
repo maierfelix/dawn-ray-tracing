@@ -300,19 +300,33 @@ void init() {
 
     WGPURayTracingShaderBindingTable sbt;
     {
-        // clang-format off
-        WGPURayTracingShaderBindingTableStagesDescriptor stagesDescriptor[3] = {
-            {WGPUShaderStage_RayGeneration, rayGenModule},
-            {WGPUShaderStage_RayClosestHit, rayCHitModule},
-            {WGPUShaderStage_RayMiss,       rayMissModule}
-        };
+        WGPURayTracingShaderBindingTableStagesDescriptor stagesDescriptor[3];
+        stagesDescriptor[0].stage = WGPUShaderStage_RayGeneration;
+        stagesDescriptor[0].module = rayGenModule;
+        stagesDescriptor[1].stage = WGPUShaderStage_RayClosestHit;
+        stagesDescriptor[1].module = rayCHitModule;
+        stagesDescriptor[2].stage = WGPUShaderStage_RayMiss;
+        stagesDescriptor[2].module = rayMissModule;
 
-        WGPURayTracingShaderBindingTableGroupsDescriptor groupsDescriptor[3] = {
-            {WGPURayTracingShaderBindingTableGroupType_General, 0, -1, -1, -1},
-            {WGPURayTracingShaderBindingTableGroupType_TrianglesHitGroup, -1, 1, -1, -1},
-            {WGPURayTracingShaderBindingTableGroupType_General, 2, -1, -1, -1}
-        };
-        // clang-format on
+        WGPURayTracingShaderBindingTableGroupsDescriptor groupsDescriptor[3];
+        // gen
+        groupsDescriptor[0].type = WGPURayTracingShaderBindingTableGroupType_General;
+        groupsDescriptor[0].generalIndex = 0;
+        groupsDescriptor[0].closestHitIndex = -1;
+        groupsDescriptor[0].anyHitIndex = -1;
+        groupsDescriptor[0].intersectionIndex = -1;
+        // hit
+        groupsDescriptor[1].type = WGPURayTracingShaderBindingTableGroupType_TrianglesHitGroup;
+        groupsDescriptor[1].generalIndex = -1;
+        groupsDescriptor[1].closestHitIndex = 1;
+        groupsDescriptor[1].anyHitIndex = -1;
+        groupsDescriptor[1].intersectionIndex = -1;
+        // miss
+        groupsDescriptor[2].type = WGPURayTracingShaderBindingTableGroupType_General;
+        groupsDescriptor[2].generalIndex = 2;
+        groupsDescriptor[2].closestHitIndex = -1;
+        groupsDescriptor[2].anyHitIndex = -1;
+        groupsDescriptor[2].intersectionIndex = -1;
 
         WGPURayTracingShaderBindingTableDescriptor descriptor{};
         descriptor.stagesCount = 3;

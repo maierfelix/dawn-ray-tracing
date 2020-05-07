@@ -69,11 +69,7 @@ namespace dawn_native { namespace d3d12 {
                                                       PipelineLayout* pipelineLayout) {
         Device* device = ToBackend(GetDevice());
 
-        ID3D12StateObject* pipelineState = pipeline->GetPipelineState().Get();
-
-        ComPtr<ID3D12StateObjectProperties> pipelineInfo;
-        DAWN_TRY(CheckHRESULT(pipelineState->QueryInterface(IID_PPV_ARGS(&pipelineInfo)),
-                              "Query RT pipeline info"));
+        ID3D12StateObjectProperties* pipelineInfo = pipeline->GetPipelineInfo().Get();
 
         uint32_t shaderTableEntrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
         shaderTableEntrySize += 8;  // The ray-gen's descriptor table
@@ -109,8 +105,7 @@ namespace dawn_native { namespace d3d12 {
 
         // Write Entry 0: ray generation id
         uint8_t* pGenEntry = pData + mTableSize * 0;
-        memcpy(pGenEntry, pipelineInfo->GetShaderIdentifier(L"rgen_main"),
-               D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+        memcpy(pGenEntry, pipeline->GetShaderIdentifier(0), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
         // Write descriptor heap offset
         ID3D12DescriptorHeap* descriptorHeap =
@@ -125,8 +120,7 @@ namespace dawn_native { namespace d3d12 {
 
         // Write Entry 1: miss id
         uint8_t* pMissEntry = pData + mTableSize * 2;
-        memcpy(pMissEntry, pipelineInfo->GetShaderIdentifier(L"rmiss_main"),
-               D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+        memcpy(pMissEntry, pipeline->GetShaderIdentifier(2), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
         // Unmap the SBT
         mTableBuffer->Unmap(0, nullptr);

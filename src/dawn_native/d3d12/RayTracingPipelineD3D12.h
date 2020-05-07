@@ -34,14 +34,21 @@ namespace dawn_native { namespace d3d12 {
             const RayTracingPipelineDescriptor* descriptor);
         ~RayTracingPipeline() override;
 
+        void* GetShaderIdentifier(uint32_t shaderIndex);
+
         ComPtr<ID3D12StateObject> GetPipelineState();
+        ComPtr<ID3D12StateObjectProperties> GetPipelineInfo();
 
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
         MaybeError Initialize(const RayTracingPipelineDescriptor* descriptor);
 
         ComPtr<ID3D12StateObject> mPipelineState;
-        std::vector<ComPtr<IDxcBlob>> mDXILLibraries;
+        ComPtr<ID3D12StateObjectProperties> mPipelineInfo;
+
+        const wchar_t* mMainShaderEntry = L"main";
+
+        std::vector<void*> mShaderExportIdentifiers;
 
         MaybeError CompileHLSLRayTracingShader(std::string& hlslSource, IDxcBlob** pShaderBlob);
     };
