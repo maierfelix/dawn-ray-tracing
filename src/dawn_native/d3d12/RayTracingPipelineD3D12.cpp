@@ -35,10 +35,12 @@ namespace dawn_native { namespace d3d12 {
             return std::string(infoLog.data());
         }
 
-        bool IsSignedDXIL(LPVOID buffer) {
+        bool IsValidDXBC(void* buffer) {
+            if (buffer == NULL)
+                return false;
             uint32_t offset = 0x0;
-            UINT32* dataU32 = (UINT32*)buffer;
-            UINT32 DXBC_MAGIC = (('D' << 0) + ('X' << 8) + ('B' << 16) + ('C' << 24));
+            uint32_t* dataU32 = (uint32_t*)buffer;
+            uint32_t DXBC_MAGIC = (('D' << 0) + ('X' << 8) + ('B' << 16) + ('C' << 24));
             bool out = false;
             // validate header
             out |= dataU32[offset++] != DXBC_MAGIC;
@@ -71,6 +73,9 @@ namespace dawn_native { namespace d3d12 {
             ToBackend(descriptor->rayTracingState->shaderBindingTable);
 
         std::vector<RayTracingShaderBindingTableStagesDescriptor>& stages = sbt->GetStages();
+        std::vector<RayTracingShaderBindingTableGroupsDescriptor>& groups = sbt->GetGroups();
+
+        const wchar_t* mainShaderEntry = L"main";
 
         // Find the largest ray payload of all SBT shaders
         uint32_t maxPayloadSize = 0;
@@ -79,26 +84,44 @@ namespace dawn_native { namespace d3d12 {
             maxPayloadSize = std::max(maxPayloadSize, module->GetMaxRayPayloadSize());
         }
 
-        // Generate a unique wchar id for each shader
-        std::vector<const wchar_t*> uniqueShaderIdentifiers;
+        // Generate unique wchar ids for all stages
+        std::vector<std::wstring> uniqueShaderStageIds(stages.size());
+        std::vector<const wchar_t*> uniqueShaderStageIdPointers(stages.size());
         for (unsigned int ii = 0; ii < stages.size(); ++ii) {
             std::string id = std::to_string(ii);
-            std::wstring wideId = std::wstring(id.begin(), id.end());
-            // TODO: improve this
-            wchar_t* heapId = new wchar_t[id.size()];
-            wcscpy(heapId, wideId.c_str());
-            uniqueShaderIdentifiers.push_back(heapId);
+            std::wstring name = L"S" + std::wstring(id.begin(), id.end());
+            uniqueShaderStageIds[ii] = name;
+            uniqueShaderStageIdPointers[ii] = uniqueShaderStageIds[ii].c_str();
+        }
+
+        // Generate unique wchar ids for all groups
+        std::vector<std::wstring> uniqueShaderGroupIds(groups.size());
+        std::vector<const wchar_t*> uniqueShaderGroupIdPointers(groups.size());
+        for (unsigned int ii = 0; ii < groups.size(); ++ii) {
+            std::string id = std::to_string(ii);
+            std::wstring name = L"G" + std::wstring(id.begin(), id.end());
+            uniqueShaderGroupIds[ii] = name;
+            uniqueShaderGroupIdPointers[ii] = uniqueShaderGroupIds[ii].c_str();
+        }
+
+        // Find hitgroup count
+        uint32_t hitGroupCount = 0;
+        for (auto group : groups) {
+            if (group.anyHitIndex != -1 || group.closestHitIndex != -1 ||
+                group.intersectionIndex != -1) {
+                hitGroupCount++;
+            }
         }
 
         uint32_t subObjectIndex = 0;
         // clang-format off
         uint32_t subObjectCount = (
-            stages.size() + // stages
-            1 +             // hit group
-            1 +             // shader config
-            1 +             // shader config association
-            1 +             // global root signature
-            1               // pipeline config
+            stages.size() +    // stages
+            hitGroupCount +    // hitgroups
+            1 +                // shader config
+            1 +                // shader config association
+            1 +                // global root signature
+            1                  // pipeline config
         );
         // clang-format on
         std::vector<D3D12_STATE_SUBOBJECT> subObjects(subObjectCount);
@@ -116,12 +139,12 @@ namespace dawn_native { namespace d3d12 {
             // Compile to DXBC
             DAWN_TRY(CompileHLSLRayTracingShader(shaderSource, &shaderBlobs[ii]));
             // Validate DXBC
-            if (!IsSignedDXIL(shaderBlobs[ii]->GetBufferPointer())) {
-                return DAWN_VALIDATION_ERROR("DXIL is unsigned or invalid");
+            if (!IsValidDXBC(shaderBlobs[ii]->GetBufferPointer())) {
+                return DAWN_VALIDATION_ERROR("DXBC is corrupted or unsigned");
             }
             // Shader export
-            shaderExportDescs[ii].Name = uniqueShaderIdentifiers[ii];
-            shaderExportDescs[ii].ExportToRename = mMainShaderEntry;
+            shaderExportDescs[ii].Name = uniqueShaderStageIdPointers[ii];
+            shaderExportDescs[ii].ExportToRename = mainShaderEntry;
             shaderExportDescs[ii].Flags = D3D12_EXPORT_FLAG_NONE;
             // Shader library
             dxilLibraryDescs[ii].DXILLibrary.BytecodeLength = shaderBlobs[ii]->GetBufferSize();
@@ -135,17 +158,34 @@ namespace dawn_native { namespace d3d12 {
             subObjects[subObjectIndex++] = shaderObject;
         }
 
-        // Ray hit group
-        D3D12_HIT_GROUP_DESC hitDesc;
-        hitDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
-        hitDesc.AnyHitShaderImport = nullptr;
-        hitDesc.ClosestHitShaderImport = uniqueShaderIdentifiers[1];
-        hitDesc.IntersectionShaderImport = nullptr;
-        hitDesc.HitGroupExport = L"HitGroup_0";
-        D3D12_STATE_SUBOBJECT hitSubObject;
-        hitSubObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-        hitSubObject.pDesc = &hitDesc;
-        subObjects[subObjectIndex++] = hitSubObject;
+        // Lifetime objects
+        std::vector<D3D12_HIT_GROUP_DESC> shaderHitGroups(groups.size());
+        // Write hitgroups
+        for (unsigned int ii = 0; ii < groups.size(); ++ii) {
+            RayTracingShaderBindingTableGroupsDescriptor& group = groups[ii];
+            if (group.anyHitIndex != -1 || group.closestHitIndex != -1 ||
+                group.intersectionIndex != -1) {
+                shaderHitGroups[ii].Type = ToD3D12ShaderBindingTableGroupType(group.type);
+                if (group.anyHitIndex != -1) {
+                    shaderHitGroups[ii].AnyHitShaderImport =
+                        uniqueShaderStageIdPointers[group.anyHitIndex];
+                }
+                if (group.closestHitIndex != -1) {
+                    shaderHitGroups[ii].ClosestHitShaderImport =
+                        uniqueShaderStageIdPointers[group.closestHitIndex];
+                }
+                if (group.intersectionIndex != -1) {
+                    shaderHitGroups[ii].IntersectionShaderImport =
+                        uniqueShaderStageIdPointers[group.intersectionIndex];
+                }
+                shaderHitGroups[ii].HitGroupExport = uniqueShaderGroupIdPointers[ii];
+                // Write hitgroup object
+                D3D12_STATE_SUBOBJECT hitObject;
+                hitObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
+                hitObject.pDesc = &shaderHitGroups[ii];
+                subObjects[subObjectIndex++] = hitObject;
+            }
+        }
 
         // Create shader config
         D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
@@ -159,8 +199,8 @@ namespace dawn_native { namespace d3d12 {
 
         // Associate shaders with the shader config
         D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION payloadAssocDesc;
-        payloadAssocDesc.NumExports = uniqueShaderIdentifiers.size();
-        payloadAssocDesc.pExports = uniqueShaderIdentifiers.data();
+        payloadAssocDesc.NumExports = uniqueShaderStageIdPointers.size();
+        payloadAssocDesc.pExports = uniqueShaderStageIdPointers.data();
         payloadAssocDesc.pSubobjectToAssociate = &subObjects[subObjectIndex - 1];
         D3D12_STATE_SUBOBJECT payloadAssocObject;
         payloadAssocObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
@@ -195,19 +235,20 @@ namespace dawn_native { namespace d3d12 {
         DAWN_TRY(CheckHRESULT(mPipelineState->QueryInterface(IID_PPV_ARGS(&mPipelineInfo)),
                               "Query RT pipeline info"));
 
-        // Pre-generate shader identifier
-        for (unsigned int ii = 0; ii < stages.size(); ++ii) {
+        // Pre-generate shader identifiers
+        for (unsigned int ii = 0; ii < groups.size(); ++ii) {
+            RayTracingShaderBindingTableGroupsDescriptor& group = groups[ii];
+            std::wstring prefix = group.generalIndex != -1 ? L"S" : L"G";
             std::string id = std::to_string(ii);
-            std::wstring wideId = std::wstring(id.begin(), id.end());
+            std::wstring wideId = prefix + std::wstring(id.begin(), id.end());
             void* shaderIdentifier = mPipelineInfo.Get()->GetShaderIdentifier(wideId.c_str());
+            if (shaderIdentifier == nullptr) {
+                return DAWN_VALIDATION_ERROR("Failed to fetch SBT shader identifier");
+            }
             mShaderExportIdentifiers.push_back(shaderIdentifier);
         }
 
         sbt->Generate(this, layout);
-
-        // free unique wchar ids
-        for (auto id : uniqueShaderIdentifiers)
-            delete id;
 
         return {};
     }
@@ -219,28 +260,29 @@ namespace dawn_native { namespace d3d12 {
     MaybeError RayTracingPipeline::CompileHLSLRayTracingShader(std::string& hlslSource,
                                                                IDxcBlob** pShaderBlob) {
         Device* device = ToBackend(GetDevice());
-        // TODO: can these be cached?
+
         ComPtr<IDxcCompiler> pCompiler;
+        ComPtr<IDxcLibrary> pLibrary;
+        ComPtr<IDxcBlobEncoding> pHlslBlob;
+        ComPtr<IDxcOperationResult> pHlslResult;
+
         DAWN_TRY(CheckHRESULT(
             device->GetFunctions()->dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)),
             "DXC create compiler"));
-        ComPtr<IDxcLibrary> pLibrary;
+
         DAWN_TRY(CheckHRESULT(
             device->GetFunctions()->dxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)),
             "DXC create library"));
 
-        ComPtr<IDxcBlobEncoding> pHlslBlob;
-        DAWN_TRY(CheckHRESULT(
-            pLibrary->CreateBlobWithEncodingFromPinned(
-                (BYTE*)hlslSource.c_str(), (UINT32)hlslSource.size(), 0, pHlslBlob.GetAddressOf()),
-            "Create HLSL Blob"));
+        DAWN_TRY(CheckHRESULT(pLibrary->CreateBlobWithEncodingFromPinned(
+                                  (unsigned char*)hlslSource.c_str(), (uint32_t)hlslSource.size(),
+                                  0, pHlslBlob.GetAddressOf()),
+                              "Create HLSL Blob"));
 
-        ComPtr<IDxcOperationResult> pHlslResult;
         DAWN_TRY(CheckHRESULT(pCompiler->Compile(pHlslBlob.Get(), L"", L"", L"lib_6_3", nullptr, 0,
                                                  nullptr, 0, nullptr, &pHlslResult),
                               "Compile HLSL Blob"));
 
-        // Verify the result
         HRESULT resultCode;
         DAWN_TRY(
             CheckHRESULT(pHlslResult->GetStatus(&resultCode), "Verify HLSL compilation status"));
@@ -257,8 +299,8 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    void* RayTracingPipeline::GetShaderIdentifier(uint32_t shaderIndex) {
-        return mShaderExportIdentifiers.at(shaderIndex);
+    void* RayTracingPipeline::GetShaderIdentifier(uint32_t index) {
+        return mShaderExportIdentifiers.at(index);
     }
 
     ComPtr<ID3D12StateObject> RayTracingPipeline::GetPipelineState() {

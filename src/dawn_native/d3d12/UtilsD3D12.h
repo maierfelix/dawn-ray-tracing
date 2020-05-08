@@ -27,6 +27,8 @@ namespace dawn_native { namespace d3d12 {
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE ToD3D12RayTracingAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level);
+    D3D12_HIT_GROUP_TYPE ToD3D12ShaderBindingTableGroupType(
+        wgpu::RayTracingShaderBindingTableGroupType type);
     D3D12_RAYTRACING_GEOMETRY_TYPE ToD3D12RayTracingGeometryType(
         wgpu::RayTracingAccelerationGeometryType geometryType);
     DXGI_FORMAT ToD3D12RayTracingAccelerationContainerIndexFormat(wgpu::IndexFormat format);
@@ -49,8 +51,6 @@ namespace dawn_native { namespace d3d12 {
         const uint64_t offset,
         const uint32_t rowPitch);
     D3D12_BOX ComputeD3D12BoxFromOffsetAndSize(const Origin3D& offset, const Extent3D& copySize);
-
-
 
 }}  // namespace dawn_native::d3d12
 

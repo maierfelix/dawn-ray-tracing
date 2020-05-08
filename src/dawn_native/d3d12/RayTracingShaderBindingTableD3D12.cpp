@@ -69,58 +69,64 @@ namespace dawn_native { namespace d3d12 {
                                                       PipelineLayout* pipelineLayout) {
         Device* device = ToBackend(GetDevice());
 
-        ID3D12StateObjectProperties* pipelineInfo = pipeline->GetPipelineInfo().Get();
+        uint32_t genSectionSize = 0;
+        uint32_t hitSectionSize = 0;
+        uint32_t missSectionSize = 0;
+        for (unsigned int ii = 0; ii < mGroups.size(); ++ii) {
+            RayTracingShaderBindingTableGroupsDescriptor& group = mGroups[ii];
+            // we don't use local root sigs yet, so the entry size is the same for all entries
+            uint32_t baseEntrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+            // general
+            if (group.generalIndex != -1) {
+                auto& stage = mStages.at(group.generalIndex);
+                // gen
+                if (stage.stage == wgpu::ShaderStage::RayGeneration) {
+                    genSectionSize += baseEntrySize;
+                }
+                // miss
+                else if (stage.stage == wgpu::ShaderStage::RayMiss) {
+                    missSectionSize += baseEntrySize;
+                }
+            }
+            // hit
+            else {
+                hitSectionSize += baseEntrySize;
+            }
+        }
+        // align each section
+        genSectionSize = Align(genSectionSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+        hitSectionSize = Align(hitSectionSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+        missSectionSize = Align(missSectionSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
-        uint32_t shaderTableEntrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-        shaderTableEntrySize += 8;  // The ray-gen's descriptor table
-        shaderTableEntrySize =
-            Align(D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT, shaderTableEntrySize);
+        mTableSize = genSectionSize + hitSectionSize + missSectionSize;
 
-        mTableSize = shaderTableEntrySize * 3;
+        D3D12_RESOURCE_DESC resourceDesc;
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resourceDesc.Alignment = 0;
+        resourceDesc.Width = mTableSize;
+        resourceDesc.Height = 1;
+        resourceDesc.DepthOrArraySize = 1;
+        resourceDesc.MipLevels = 1;
+        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+        resourceDesc.SampleDesc.Count = 1;
+        resourceDesc.SampleDesc.Quality = 0;
+        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        D3D12_RESOURCE_DESC resourceDescriptor;
-        resourceDescriptor.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        resourceDescriptor.Alignment = 0;
-        resourceDescriptor.Width = mTableSize;
-        resourceDescriptor.Height = 1;
-        resourceDescriptor.DepthOrArraySize = 1;
-        resourceDescriptor.MipLevels = 1;
-        resourceDescriptor.Format = DXGI_FORMAT_UNKNOWN;
-        resourceDescriptor.SampleDesc.Count = 1;
-        resourceDescriptor.SampleDesc.Quality = 0;
-        resourceDescriptor.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        resourceDescriptor.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-        DAWN_TRY_ASSIGN(mTableResource,
-                        ToBackend(GetDevice())
-                            ->AllocateMemory(D3D12_HEAP_TYPE_UPLOAD, resourceDescriptor,
-                                             D3D12_RESOURCE_STATE_GENERIC_READ));
+        DAWN_TRY_ASSIGN(mTableResource, device->AllocateMemory(D3D12_HEAP_TYPE_UPLOAD, resourceDesc,
+                                                               D3D12_RESOURCE_STATE_GENERIC_READ));
         mTableBuffer = mTableResource.GetD3D12Resource();
-
-        // TODO: Make dynamic
 
         // Map the SBT
         uint8_t* pData;
         DAWN_TRY(CheckHRESULT(mTableBuffer->Map(0, nullptr, (void**)&pData), "Map SBT"));
 
-        // Write Entry 0: ray generation id
-        uint8_t* pGenEntry = pData + mTableSize * 0;
-        memcpy(pGenEntry, pipeline->GetShaderIdentifier(0), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-
-        // Write descriptor heap offset
-        ID3D12DescriptorHeap* descriptorHeap =
-            device->GetViewShaderVisibleDescriptorAllocator()->GetShaderVisibleHeap();
-        uint64_t heapStart = descriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
-        *(uint64_t*)(pData + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES) = heapStart;
-
-        // Write Entry 2: hit group id
-        uint8_t* pHitEntry = pData + mTableSize * 1;
-        memcpy(pHitEntry, pipelineInfo->GetShaderIdentifier(L"HitGroup_0"),
-               D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-
-        // Write Entry 1: miss id
-        uint8_t* pMissEntry = pData + mTableSize * 2;
-        memcpy(pMissEntry, pipeline->GetShaderIdentifier(2), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+        uint32_t offset = 0;
+        for (unsigned int ii = 0; ii < mGroups.size(); ++ii) {
+            memcpy(pData + offset, pipeline->GetShaderIdentifier(ii),
+                   D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+            offset = Align(offset + mTableSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+        }
 
         // Unmap the SBT
         mTableBuffer->Unmap(0, nullptr);

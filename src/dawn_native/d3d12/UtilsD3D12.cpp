@@ -53,6 +53,18 @@ namespace dawn_native { namespace d3d12 {
         }
     }
 
+    D3D12_HIT_GROUP_TYPE ToD3D12ShaderBindingTableGroupType(
+        wgpu::RayTracingShaderBindingTableGroupType type) {
+        switch (type) {
+            case wgpu::RayTracingShaderBindingTableGroupType::TrianglesHitGroup:
+                return D3D12_HIT_GROUP_TYPE_TRIANGLES;
+            case wgpu::RayTracingShaderBindingTableGroupType::ProceduralHitGroup:
+                return D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE;
+            default:
+                UNREACHABLE();
+        }
+    }
+
     D3D12_RAYTRACING_GEOMETRY_TYPE ToD3D12RayTracingGeometryType(
         wgpu::RayTracingAccelerationGeometryType geometryType) {
         switch (geometryType) {
@@ -75,7 +87,7 @@ namespace dawn_native { namespace d3d12 {
                 UNREACHABLE();
         }
     }
- 
+
     DXGI_FORMAT ToD3D12RayTracingAccelerationContainerIndexFormat(wgpu::IndexFormat format) {
         switch (format) {
             case wgpu::IndexFormat::None:
