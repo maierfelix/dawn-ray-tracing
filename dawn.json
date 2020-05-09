@@ -785,7 +785,8 @@
         "extensible": false,
         "members": [
             {"name": "shader binding table", "type": "ray tracing shader binding table"},
-            {"name": "max recursion depth", "type": "uint32_t", "default": "1"}
+            {"name": "max recursion depth", "type": "uint32_t", "default": "1"},
+            {"name": "max payload size", "type": "uint32_t"}
         ]
     },
     "ray tracing pipeline descriptor": {

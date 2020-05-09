@@ -407,6 +407,7 @@ void init() {
     {
         WGPURayTracingStateDescriptor rtStateDescriptor;
         rtStateDescriptor.maxRecursionDepth = 1;
+        rtStateDescriptor.maxPayloadSize = 3 * sizeof(float);
         rtStateDescriptor.shaderBindingTable = sbt;
 
         WGPURayTracingPipelineDescriptor descriptor;

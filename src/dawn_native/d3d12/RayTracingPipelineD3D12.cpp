@@ -77,13 +77,6 @@ namespace dawn_native { namespace d3d12 {
 
         const wchar_t* mainShaderEntry = L"main";
 
-        // Find the largest ray payload of all SBT shaders
-        uint32_t maxPayloadSize = 0;
-        for (auto stage : stages) {
-            ShaderModule* module = ToBackend(stage.module);
-            maxPayloadSize = std::max(maxPayloadSize, module->GetMaxRayPayloadSize());
-        }
-
         // Generate unique wchar ids for all stages
         std::vector<std::wstring> uniqueShaderStageIds(stages.size());
         std::vector<const wchar_t*> uniqueShaderStageIdPointers(stages.size());
@@ -189,7 +182,7 @@ namespace dawn_native { namespace d3d12 {
 
         // Create shader config
         D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
-        shaderConfig.MaxPayloadSizeInBytes = maxPayloadSize;
+        shaderConfig.MaxPayloadSizeInBytes = descriptor->rayTracingState->maxPayloadSize;
         shaderConfig.MaxAttributeSizeInBytes =
             D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES;  // TODO: dynamic?
         D3D12_STATE_SUBOBJECT shaderConfigObject;

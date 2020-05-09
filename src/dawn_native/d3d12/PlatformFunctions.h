@@ -87,12 +87,16 @@ namespace dawn_native { namespace d3d12 {
         PFN_D3D11ON12_CREATE_DEVICE d3d11on12CreateDevice = nullptr;
 
       private:
+        MaybeError LoadModuleDirectory();
         MaybeError LoadD3D12();
         MaybeError LoadD3D11();
         MaybeError LoadDXGI();
         MaybeError LoadDXCompiler();
         MaybeError LoadFXCompiler();
         void LoadPIXRuntime();
+
+        HMODULE mModuleHandle;
+        std::string mModulePath;
 
         DynamicLib mD3D12Lib;
         DynamicLib mD3D11Lib;

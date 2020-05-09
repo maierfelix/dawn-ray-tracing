@@ -947,9 +947,7 @@ namespace dawn_native { namespace vulkan {
                     }
                 } break;
 
-                default: {
-                    UNREACHABLE();
-                } break;
+                default: { UNREACHABLE(); } break;
             }
         }
 

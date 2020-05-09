@@ -75,10 +75,6 @@ namespace dawn_native {
 
         bool IsCompatibleWithPipelineLayout(const PipelineLayoutBase* layout) const;
 
-        // The maximum used payload size within the shader
-        // This is needed for the DXR implementation (see MaxPayloadSizeInBytes)
-        uint32_t GetMaxRayPayloadSize() const;
-
         // Functors necessary for the unordered_set<ShaderModuleBase*>-based cache.
         struct HashFunc {
             size_t operator()(const ShaderModuleBase* module) const;
@@ -113,8 +109,6 @@ namespace dawn_native {
         SingleShaderStage mExecutionModel;
 
         FragmentOutputBaseTypes mFragmentOutputFormatBaseTypes;
-
-        uint32_t mMaxRayPayloadSize = 0;
     };
 
 }  // namespace dawn_native
