@@ -956,7 +956,7 @@ namespace dawn_native { namespace d3d12 {
                     PipelineLayout* layout = ToBackend(pipeline->GetLayout());
 
                     commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
-                    commandList4->SetPipelineState1(pipeline->GetPipelineState().Get());
+                    commandList4->SetPipelineState1(pipeline->GetPipelineState());
 
                     bindingTracker->OnSetPipeline(pipeline);
 

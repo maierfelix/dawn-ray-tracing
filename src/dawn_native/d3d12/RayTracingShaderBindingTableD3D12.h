@@ -36,7 +36,7 @@ namespace dawn_native { namespace d3d12 {
         ~RayTracingShaderBindingTable() override;
 
         uint32_t GetTableSize() const;
-        ComPtr<ID3D12Resource> GetTableBuffer();
+        ID3D12Resource* GetTableBuffer();
 
         MaybeError Generate(RayTracingPipeline* pipeline, PipelineLayout* pipelineLayout);
 

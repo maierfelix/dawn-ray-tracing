@@ -61,8 +61,8 @@ namespace dawn_native { namespace d3d12 {
         return mTableSize;
     }
 
-    ComPtr<ID3D12Resource> RayTracingShaderBindingTable::GetTableBuffer() {
-        return mTableBuffer;
+    ID3D12Resource* RayTracingShaderBindingTable::GetTableBuffer() {
+        return mTableBuffer.Get();
     }
 
     MaybeError RayTracingShaderBindingTable::Generate(RayTracingPipeline* pipeline,

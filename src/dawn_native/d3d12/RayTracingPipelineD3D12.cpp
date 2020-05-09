@@ -296,12 +296,12 @@ namespace dawn_native { namespace d3d12 {
         return mShaderExportIdentifiers.at(index);
     }
 
-    ComPtr<ID3D12StateObject> RayTracingPipeline::GetPipelineState() {
-        return mPipelineState;
+    ID3D12StateObject* RayTracingPipeline::GetPipelineState() {
+        return mPipelineState.Get();
     }
 
-    ComPtr<ID3D12StateObjectProperties> RayTracingPipeline::GetPipelineInfo() {
-        return mPipelineInfo;
+    ID3D12StateObjectProperties* RayTracingPipeline::GetPipelineInfo() {
+        return mPipelineInfo.Get();
     }
 
 }}  // namespace dawn_native::d3d12

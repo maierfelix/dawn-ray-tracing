@@ -36,8 +36,8 @@ namespace dawn_native { namespace d3d12 {
 
         void* GetShaderIdentifier(uint32_t shaderIndex);
 
-        ComPtr<ID3D12StateObject> GetPipelineState();
-        ComPtr<ID3D12StateObjectProperties> GetPipelineInfo();
+        ID3D12StateObject* GetPipelineState();
+        ID3D12StateObjectProperties* GetPipelineInfo();
 
       private:
         using RayTracingPipelineBase::RayTracingPipelineBase;
