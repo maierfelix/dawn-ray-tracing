@@ -173,9 +173,21 @@ namespace dawn_native { namespace d3d12 {
                                                                  wgpu::BufferUsage::Storage);
                                 break;
 
-                            case wgpu::BindingType::StorageTexture:
                             case wgpu::BindingType::ReadonlyStorageTexture:
+                                ToBackend(static_cast<TextureView*>(mBindings[index][binding])
+                                              ->GetTexture())
+                                    ->TrackUsageAndTransitionNow(commandContext,
+                                                                 kReadonlyStorageTexture);
+                                break;
+
                             case wgpu::BindingType::WriteonlyStorageTexture:
+                                ToBackend(static_cast<TextureView*>(mBindings[index][binding])
+                                              ->GetTexture())
+                                    ->TrackUsageAndTransitionNow(commandContext,
+                                                                 wgpu::TextureUsage::Storage);
+                                break;
+
+                            case wgpu::BindingType::StorageTexture:
                                 // Not implemented.
 
                             case wgpu::BindingType::UniformBuffer:
@@ -485,7 +497,7 @@ namespace dawn_native { namespace d3d12 {
                 // Clear textures that are not output attachments. Output attachments will be
                 // cleared during record render pass if the texture subresource has not been
                 // initialized before the render pass.
-                if (!(usages.textureUsages[i] & wgpu::TextureUsage::OutputAttachment)) {
+                if (!(usages.textureUsages[i].usage & wgpu::TextureUsage::OutputAttachment)) {
                     texture->EnsureSubresourceContentInitialized(commandContext, 0,
                                                                  texture->GetNumMipLevels(), 0,
                                                                  texture->GetArrayLayers());
@@ -498,10 +510,10 @@ namespace dawn_native { namespace d3d12 {
                 D3D12_RESOURCE_BARRIER barrier;
                 if (ToBackend(usages.textures[i])
                         ->TrackUsageAndGetResourceBarrier(commandContext, &barrier,
-                                                          usages.textureUsages[i])) {
+                                                          usages.textureUsages[i].usage)) {
                     barriers.push_back(barrier);
                 }
-                textureUsages |= usages.textureUsages[i];
+                textureUsages |= usages.textureUsages[i].usage;
             }
 
             if (barriers.size()) {

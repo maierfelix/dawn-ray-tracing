@@ -86,12 +86,22 @@ namespace dawn_native { namespace vulkan {
                         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 }
             }
-            if (usage & wgpu::TextureUsage::Present) {
-                // There is no access flag for present because the VK_KHR_SWAPCHAIN extension says
-                // that vkQueuePresentKHR makes the memory of the image visible to the presentation
-                // engine. There's also a note explicitly saying dstAccessMask should be 0. On the
-                // other side srcAccessMask can also be 0 because synchronization is required to
-                // happen with a semaphore instead.
+            if (usage & kPresentTextureUsage) {
+                // The present usage is only used internally by the swapchain and is never used in
+                // combination with other usages.
+                ASSERT(usage == kPresentTextureUsage);
+                // The Vulkan spec has the following note:
+                //
+                //   When transitioning the image to VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR or
+                //   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, there is no need to delay subsequent
+                //   processing, or perform any visibility operations (as vkQueuePresentKHR performs
+                //   automatic visibility operations). To achieve this, the dstAccessMask member of
+                //   the VkImageMemoryBarrier should be set to 0, and the dstStageMask parameter
+                //   should be set to VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
+                //
+                // So on the transition to Present we don't need an access flag. The other
+                // direction doesn't matter because swapchain textures always start a new frame
+                // as uninitialized.
                 flags |= 0;
             }
 
@@ -132,7 +142,7 @@ namespace dawn_native { namespace vulkan {
                     } else {
                         return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                     }
-                case wgpu::TextureUsage::Present:
+                case kPresentTextureUsage:
                     return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 default:
                     UNREACHABLE();
@@ -171,13 +181,22 @@ namespace dawn_native { namespace vulkan {
                     flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
                 }
             }
-            if (usage & wgpu::TextureUsage::Present) {
-                // There is no pipeline stage for present but a pipeline stage is required so we use
-                // "bottom of pipe" to block as little as possible and vkQueuePresentKHR will make
-                // the memory visible to the presentation engine. The spec explicitly mentions that
-                // "bottom of pipe" is ok. On the other direction, synchronization happens with a
-                // semaphore so bottom of pipe is ok too (but maybe it could be "top of pipe" to
-                // block less?)
+            if (usage & kPresentTextureUsage) {
+                // The present usage is only used internally by the swapchain and is never used in
+                // combination with other usages.
+                ASSERT(usage == kPresentTextureUsage);
+                // The Vulkan spec has the following note:
+                //
+                //   When transitioning the image to VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR or
+                //   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, there is no need to delay subsequent
+                //   processing, or perform any visibility operations (as vkQueuePresentKHR performs
+                //   automatic visibility operations). To achieve this, the dstAccessMask member of
+                //   the VkImageMemoryBarrier should be set to 0, and the dstStageMask parameter
+                //   should be set to VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
+                //
+                // So on the transition to Present we use the "bottom of pipe" stage. The other
+                // direction doesn't matter because swapchain textures always start a new frame
+                // as uninitialized.
                 flags |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             }
 
@@ -433,6 +452,16 @@ namespace dawn_native { namespace vulkan {
         return texture.Detach();
     }
 
+    // static
+    Ref<Texture> Texture::CreateForSwapChain(Device* device,
+                                             const TextureDescriptor* descriptor,
+                                             VkImage nativeImage) {
+        Ref<Texture> texture =
+            AcquireRef(new Texture(device, descriptor, TextureState::OwnedExternal));
+        texture->InitializeForSwapChain(nativeImage);
+        return std::move(texture);
+    }
+
     MaybeError Texture::InitializeAsInternalTexture() {
         Device* device = ToBackend(GetDevice());
 
@@ -492,11 +521,6 @@ namespace dawn_native { namespace vulkan {
         return {};
     }
 
-    // With this constructor, the lifetime of the resource is externally managed.
-    Texture::Texture(Device* device, const TextureDescriptor* descriptor, VkImage nativeImage)
-        : TextureBase(device, descriptor, TextureState::OwnedExternal), mHandle(nativeImage) {
-    }
-
     // Internally managed, but imported from external handle
     MaybeError Texture::InitializeFromExternal(const ExternalImageDescriptor* descriptor,
                                                external_memory::Service* externalMemoryService) {
@@ -528,6 +552,10 @@ namespace dawn_native { namespace vulkan {
 
         DAWN_TRY_ASSIGN(mHandle, externalMemoryService->CreateImage(descriptor, baseCreateInfo));
         return {};
+    }
+
+    void Texture::InitializeForSwapChain(VkImage nativeImage) {
+        mHandle = nativeImage;
     }
 
     MaybeError Texture::BindExternalMemory(const ExternalImageDescriptor* descriptor,
