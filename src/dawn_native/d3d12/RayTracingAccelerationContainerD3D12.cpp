@@ -67,6 +67,24 @@ namespace dawn_native { namespace d3d12 {
     }
 
     void RayTracingAccelerationContainer::DestroyImpl() {
+        Device* device = ToBackend(GetDevice());
+        DestroyScratchBuildMemory();
+
+        if (mScratchMemory.result.buffer != nullptr) {
+            device->DeallocateMemory(mScratchMemory.result.resource);
+            mScratchMemory.result.buffer = nullptr;
+        }
+        if (mScratchMemory.update.buffer != nullptr) {
+            device->DeallocateMemory(mScratchMemory.update.resource);
+            mScratchMemory.update.buffer = nullptr;
+        }
+        if (mInstanceMemory.buffer != nullptr) {
+            Buffer* buffer = mInstanceMemory.allocation.Get();
+            if (buffer != nullptr) {
+                buffer->Destroy();
+            }
+            mInstanceMemory.buffer = nullptr;
+        }
     }
 
     MaybeError RayTracingAccelerationContainer::Initialize(
@@ -169,20 +187,24 @@ namespace dawn_native { namespace d3d12 {
             device->GetD3D12Device5()->GetRaytracingAccelerationStructurePrebuildInfo(
                 &mBuildInformation, &prebuildInfo);
 
-            // allocate result memory
-            DAWN_TRY(AllocateScratchMemory(mScratchMemory.result,
-                                           prebuildInfo.ResultDataMaxSizeInBytes,
+            // align memory
+            uint64_t resultMemorySize =
+                Align(prebuildInfo.ResultDataMaxSizeInBytes,
+                      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+            uint64_t buildMemorySize =
+                Align(prebuildInfo.ScratchDataSizeInBytes,
+                      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+            uint64_t updateMemorySize =
+                Align(prebuildInfo.UpdateScratchDataSizeInBytes,
+                      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
+
+            // allocate memory
+            DAWN_TRY(AllocateScratchMemory(mScratchMemory.result, resultMemorySize,
                                            D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE));
-
-            // allocate build memory
-            DAWN_TRY(AllocateScratchMemory(mScratchMemory.build,
-                                           prebuildInfo.ScratchDataSizeInBytes,
+            DAWN_TRY(AllocateScratchMemory(mScratchMemory.build, buildMemorySize,
                                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-
-            // allocate update memory
             if (prebuildInfo.UpdateScratchDataSizeInBytes > 0) {
-                DAWN_TRY(AllocateScratchMemory(mScratchMemory.update,
-                                               prebuildInfo.UpdateScratchDataSizeInBytes,
+                DAWN_TRY(AllocateScratchMemory(mScratchMemory.update, updateMemorySize,
                                                D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
             }
         }
@@ -231,9 +253,23 @@ namespace dawn_native { namespace d3d12 {
         DestroyInternal();
     }
 
+    void RayTracingAccelerationContainer::DestroyScratchBuildMemory() {
+        Device* device = ToBackend(GetDevice());
+        // delete scratch build memory
+        if (mScratchMemory.build.buffer != nullptr) {
+            device->DeallocateMemory(mScratchMemory.build.resource);
+            mScratchMemory.build.buffer = nullptr;
+        }
+    }
+
     MaybeError RayTracingAccelerationContainer::UpdateInstanceImpl(
         uint32_t instanceIndex,
         const RayTracingAccelerationInstanceDescriptor* descriptor) {
+        uint32_t start = instanceIndex * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+        uint32_t count = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+        D3D12_RAYTRACING_INSTANCE_DESC instanceData = GetD3D12AccelerationInstance(*descriptor);
+        mInstanceMemory.allocation.Get()->SetSubData(start, count,
+                                                     reinterpret_cast<void*>(&instanceData));
         return {};
     }
 

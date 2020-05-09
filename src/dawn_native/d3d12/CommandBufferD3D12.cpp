@@ -589,11 +589,13 @@ namespace dawn_native { namespace d3d12 {
                     commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
                     // barrier for result memory
-                    D3D12_RESOURCE_BARRIER uavBarrier{};
+                    D3D12_RESOURCE_BARRIER uavBarrier;
                     uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                     uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
                     uavBarrier.UAV.pResource = resultMemory->buffer.Get();
                     commandList->ResourceBarrier(1, &uavBarrier);
+
+                    container->SetBuildState(true);
 
                     if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
                         hasBottomLevelContainerBuild) {
@@ -608,30 +610,65 @@ namespace dawn_native { namespace d3d12 {
                 } break;
 
                 case Command::CopyRayTracingAccelerationContainer: {
-                    /*CopyRayTracingAccelerationContainerCmd* copy =
+                    CopyRayTracingAccelerationContainerCmd* copy =
                         mCommands.NextCommand<CopyRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* srcContainer =
                         ToBackend(copy->srcContainer.Get());
                     RayTracingAccelerationContainer* dstContainer =
-                        ToBackend(copy->dstContainer.Get());*/
-                    // TODO
+                        ToBackend(copy->dstContainer.Get());
+
+                    MemoryEntry* srcMemory = &srcContainer->GetScratchMemory().result;
+                    MemoryEntry* dstMemory = &dstContainer->GetScratchMemory().result;
+
+                    commandList4->CopyRaytracingAccelerationStructure(
+                        dstMemory->address, srcMemory->address,
+                        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
                 } break;
 
                 case Command::UpdateRayTracingAccelerationContainer: {
                     UpdateRayTracingAccelerationContainerCmd* update =
                         mCommands.NextCommand<UpdateRayTracingAccelerationContainerCmd>();
                     RayTracingAccelerationContainer* container = ToBackend(update->container.Get());
-                    // TODO
+
+                    // we can destroy the scratch build memory after the first update
+                    if (container->IsBuilt() && !container->IsUpdated()) {
+                        container->DestroyScratchBuildMemory();
+                        container->SetUpdateState(true);
+                    }
+
+                    MemoryEntry* resultMemory = &container->GetScratchMemory().result;
+                    MemoryEntry* updateMemory = &container->GetScratchMemory().update;
+
+                    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
+                    buildDesc.Inputs = container->GetBuildInformation();
+                    buildDesc.SourceAccelerationStructureData = resultMemory->address;
+                    buildDesc.DestAccelerationStructureData = resultMemory->address;
+                    buildDesc.ScratchAccelerationStructureData = updateMemory->address;
+
+                    buildDesc.Inputs.Flags |=
+                        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+
+                    commandList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+                    // barrier for result memory
+                    D3D12_RESOURCE_BARRIER uavBarrier;
+                    uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                    uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+                    uavBarrier.UAV.pResource = resultMemory->buffer.Get();
+                    commandList->ResourceBarrier(1, &uavBarrier);
+
+                    container->SetBuildState(true);
+
+                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom)
+                        hasBottomLevelContainerUpdate = true;
+
                     if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
                         hasBottomLevelContainerUpdate) {
                         return DAWN_VALIDATION_ERROR(
                             "Acceleration containers of different levels must be updated in "
                             "separate passes");
                     }
-                    if (container->GetLevel() ==
-                        wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-                        hasBottomLevelContainerUpdate = true;
-                    }
+
                 } break;
 
                 case Command::CopyBufferToBuffer: {

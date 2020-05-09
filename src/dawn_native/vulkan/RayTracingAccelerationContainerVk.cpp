@@ -455,10 +455,8 @@ namespace dawn_native { namespace vulkan {
         uint32_t start = instanceIndex * sizeof(VkAccelerationStructureInstanceKHR);
         uint32_t count = sizeof(VkAccelerationStructureInstanceKHR);
         VkAccelerationStructureInstanceKHR instanceData = GetVkAccelerationInstance(*descriptor);
-
         mInstanceMemory.allocation.Get()->SetSubData(start, count,
                                                      reinterpret_cast<void*>(&instanceData));
-
         return {};
     }
 

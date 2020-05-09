@@ -493,7 +493,7 @@ namespace dawn_native { namespace vulkan {
                     asInfo.geometryCount = geometries.size();
                     asInfo.ppGeometries = &ppGeometries;
                     asInfo.scratchData.deviceAddress =
-                        container->GetScratchMemory().build.deviceAddress;
+                        container->GetScratchMemory().update.deviceAddress;
 
                     std::vector<VkAccelerationStructureBuildOffsetInfoKHR>& buildOffsets =
                         container->GetBuildOffsets();

@@ -38,6 +38,9 @@ namespace dawn_native { namespace d3d12 {
     }
 
     void RayTracingShaderBindingTable::DestroyImpl() {
+        Device* device = ToBackend(GetDevice());
+        device->DeallocateMemory(mTableResource);
+        mTableBuffer = nullptr;
     }
 
     MaybeError RayTracingShaderBindingTable::Initialize(

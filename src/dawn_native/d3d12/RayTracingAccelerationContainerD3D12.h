@@ -46,6 +46,8 @@ namespace dawn_native { namespace d3d12 {
         ScratchMemoryPool& GetScratchMemory();
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& GetBuildInformation();
 
+        void DestroyScratchBuildMemory();
+
       private:
         using RayTracingAccelerationContainerBase::RayTracingAccelerationContainerBase;
 
