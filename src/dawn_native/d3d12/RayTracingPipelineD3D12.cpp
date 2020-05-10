@@ -241,7 +241,7 @@ namespace dawn_native { namespace d3d12 {
             mShaderExportIdentifiers.push_back(shaderIdentifier);
         }
 
-        sbt->Generate(this, layout);
+        DAWN_TRY(sbt->Generate(this, layout));
 
         return {};
     }
