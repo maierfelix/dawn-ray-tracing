@@ -201,6 +201,12 @@ This bitmask gets extended with the following additional properties:
 
 ## Enums
 
+### GPUIndexFormat
+
+| Name | Description |
+| :--- | :--- |
+| none | If index type is *none*, triangle acceleration geometry will not use indexing
+
 ### GPURayTracingAccelerationGeometryType
 
 | Name | Description |
