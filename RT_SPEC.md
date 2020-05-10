@@ -292,7 +292,7 @@ This descriptor gets extended with the following properties:
 | Name | Type | Description |
 | :--- | :--- | :--- |
 | *flags* | [GPURayTracingAccelerationInstanceFlag](#GPURayTracingAccelerationInstanceFlag) | Flags for this instance
-| *mask* | Number (1 Byte) | Ignore mask (see `traceNV`)
+| *mask* | Number (8 Bit) | Ignore mask (see `traceNV`)
 | *instanceId* | Number (24 Bit) | Used to identify an instance in a shader (see `gl_InstanceCustomIndexNV`)instance
 | *instanceOffset* | Number (24 Bit) | Unused yet
 | *transform* | [GPURayTracingAccelerationInstanceTransformDescriptor](#GPURayTracingAccelerationInstanceTransformDescriptor) | Transform properties of this instance
