@@ -303,7 +303,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| *flags* | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Flags for the container
+| *flags* | [GPURayTracingAccelerationContainerFlag](#GPURayTracingAccelerationContainerFlag) | Flags for the container
 | *level* | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Level of the container
 | *geometries* | [[GPURayTracingAccelerationGeometryDescriptor](#GPURayTracingAccelerationGeometryDescriptor)] | Geometry to encapsulate by this container
 | *instances* | [[GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor)] | Geometry instances to encapsulate by this container
