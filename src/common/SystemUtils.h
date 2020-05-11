@@ -23,5 +23,6 @@ const char* GetPathSeparator();
 std::string GetEnvironmentVar(const char* variableName);
 bool SetEnvironmentVar(const char* variableName, const char* value);
 std::string GetExecutableDirectory();
+std::string GetModuleDirectory();
 
 #endif  // COMMON_SYSTEMUTILS_H_

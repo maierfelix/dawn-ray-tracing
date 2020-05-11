@@ -15,6 +15,7 @@
 #include "dawn_native/d3d12/PlatformFunctions.h"
 
 #include "common/DynamicLib.h"
+#include "common/SystemUtils.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -24,10 +25,9 @@ namespace dawn_native { namespace d3d12 {
     }
 
     MaybeError PlatformFunctions::LoadFunctions() {
-        DAWN_TRY(LoadModuleDirectory());
         DAWN_TRY(LoadD3D12());
         DAWN_TRY(LoadDXGI());
-        DAWN_TRY(LoadDXCompiler());
+        LoadDXCompiler();
         DAWN_TRY(LoadFXCompiler());
         DAWN_TRY(LoadD3D11());
         LoadPIXRuntime();
@@ -74,21 +74,19 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    MaybeError PlatformFunctions::LoadDXCompiler() {
+    void PlatformFunctions::LoadDXCompiler() {
         std::string error;
-        bool dxilAvailable = mDXCompilerLib.Open(mModulePath + "\\dxil.dll", &error);
+        std::string moduleDirPath = GetModuleDirectory();
         // Do not throw if failed, DXC is optional
-        if (mDXCompilerLib.Open(mModulePath + "\\dxcompiler.dll", &error)) {
-            // Only load procs when DXC is available
-            if (!mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
-                return DAWN_INTERNAL_ERROR(error.c_str());
-            }
-            // If dxcompiler is available, but dxil is not, throw
-            if (!dxilAvailable) {
-                return DAWN_INTERNAL_ERROR("DXIL is missing, but is required by DXC");
+        if (mDXCompilerLib.Open(moduleDirPath + "\\dxcompiler.dll", &error)) {
+            if (mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
+                // DXC requires DXIL
+                DynamicLib dxilCompilerLib;
+                if (dxilCompilerLib.Open(moduleDirPath + "\\dxil.dll", &error)) {
+                    mIsDXCAvailable = true;
+                }
             }
         }
-        return {};
     }
 
     MaybeError PlatformFunctions::LoadFXCompiler() {
@@ -101,23 +99,12 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    MaybeError PlatformFunctions::LoadModuleDirectory() {
-        if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                                  GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                              L"kernel32.dll", &mModuleHandle) == 0) {
-            return DAWN_INTERNAL_ERROR("Failed to retrieve module handle");
-        }
-        char lpFilename[MAX_PATH];
-        if (GetModuleFileNameA(mModuleHandle, lpFilename, sizeof(lpFilename)) == 0) {
-            return DAWN_INTERNAL_ERROR("Failed to retrieve module name");
-        }
-        std::string moduleFilename = lpFilename;
-        mModulePath = moduleFilename.substr(0, moduleFilename.find_last_of("\\/"));
-        return {};
-    }
-
     bool PlatformFunctions::IsPIXEventRuntimeLoaded() const {
         return mPIXEventRuntimeLib.Valid();
+    }
+
+    bool PlatformFunctions::IsDXCAvailable() const {
+        return mIsDXCAvailable;
     }
 
     void PlatformFunctions::LoadPIXRuntime() {

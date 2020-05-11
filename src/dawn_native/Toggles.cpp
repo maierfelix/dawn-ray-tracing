@@ -129,9 +129,9 @@ namespace dawn_native {
               "Enable use of a small D3D12 shader visible heap, instead of using a large one by "
               "default. This setting is used to test bindgroup encoding.",
               "https://crbug.com/dawn/155"}},
-            {Toggle::UseD3D12DXCompiler,
-             {"use_d3d12_dx_compiler", "Use the DX compiler instead of the system's FX compiler",
-              ""}},
+            {Toggle::UseDXC,
+             {"use_dxc", "Use DXC instead of FXC for compiling HLSL",
+              "https://crbug.com/dawn/402"}},
         }};
 
     }  // anonymous namespace

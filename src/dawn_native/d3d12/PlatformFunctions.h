@@ -36,6 +36,7 @@ namespace dawn_native { namespace d3d12 {
 
         MaybeError LoadFunctions();
         bool IsPIXEventRuntimeLoaded() const;
+        bool IsDXCAvailable() const;
 
         // Functions from d3d12.dll
         PFN_D3D12_CREATE_DEVICE d3d12CreateDevice = nullptr;
@@ -87,16 +88,14 @@ namespace dawn_native { namespace d3d12 {
         PFN_D3D11ON12_CREATE_DEVICE d3d11on12CreateDevice = nullptr;
 
       private:
-        MaybeError LoadModuleDirectory();
         MaybeError LoadD3D12();
         MaybeError LoadD3D11();
         MaybeError LoadDXGI();
-        MaybeError LoadDXCompiler();
+        void LoadDXCompiler();
         MaybeError LoadFXCompiler();
         void LoadPIXRuntime();
 
-        HMODULE mModuleHandle;
-        std::string mModulePath;
+        bool mIsDXCAvailable = false;
 
         DynamicLib mD3D12Lib;
         DynamicLib mD3D11Lib;

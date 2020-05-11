@@ -63,16 +63,14 @@ namespace dawn_native { namespace d3d12 {
         mD3d12Device = ToBackend(GetAdapter())->GetDevice();
         ASSERT(mD3d12Device != nullptr);
 
-        // Warn if DXC toggle enabled, but dynamic library not available
-        if (IsToggleEnabled(Toggle::UseD3D12DXCompiler)) {
-            const PlatformFunctions* functions = GetFunctions();
-            if (functions->dxcCreateInstance == nullptr) {
-                dawn::WarningLog()
-                    << std::string("UseD3D12DXCompiler toggle enabled, but library not loaded");
-            }
-        }
-
         if (IsExtensionEnabled(Extension::RayTracing)) {
+            if (!GetDeviceInfo().supportsRayTracing) {
+                return DAWN_VALIDATION_ERROR("Ray tracing extension enabled, but not supported");
+            }
+            if (!GetFunctions()->IsDXCAvailable()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Ray tracing extension enabled, but DXC/DXIL unavailable");
+            }
             DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
                                   "D3D12 QueryInterface ID3D12Device to ID3D12Device5"));
         }
@@ -465,7 +463,6 @@ namespace dawn_native { namespace d3d12 {
         const bool useResourceHeapTier2 = (GetDeviceInfo().resourceHeapTier >= 2);
         SetToggle(Toggle::UseD3D12ResourceHeapTier2, useResourceHeapTier2);
         SetToggle(Toggle::UseD3D12RenderPass, GetDeviceInfo().supportsRenderPass);
-        SetToggle(Toggle::UseD3D12RayTracing, GetDeviceInfo().supportsRayTracing);
         SetToggle(Toggle::UseD3D12ResidencyManagement, true);
         // By default use the maximum shader-visible heap size allowed.
         SetToggle(Toggle::UseD3D12SmallShaderVisibleHeapForTesting, false);

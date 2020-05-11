@@ -161,6 +161,10 @@ namespace dawn_native { namespace vulkan {
             (GetUsage() & (wgpu::BufferUsage::MapRead | wgpu::BufferUsage::MapWrite)) != 0;
         bool requestDeviceAddress = (GetUsage() & wgpu::BufferUsage::RayTracing) != 0;
 
+        if (requestDeviceAddress && !device->IsExtensionEnabled(Extension::RayTracing)) {
+            return DAWN_VALIDATION_ERROR("Ray tracing extension is not enabled");
+        }
+
         DAWN_TRY_ASSIGN(mMemoryAllocation, device->AllocateMemory(requirements, requestMappable,
                                                                   requestDeviceAddress));
 

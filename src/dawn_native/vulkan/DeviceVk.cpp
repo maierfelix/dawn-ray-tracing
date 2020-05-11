@@ -379,14 +379,15 @@ namespace dawn_native { namespace vulkan {
             usedKnobs.features.textureCompressionBC = VK_TRUE;
         }
 
-        // Make sure the minimum required extensions for RT ara available
-        // Descriptor indexing is not strictly necessary, but commonly used in RT
+        // Make sure the minimum required extensions for RT are available
+        // "descriptorIndexing" is not strictly necessary, but commonly used in RT
         if (IsExtensionEnabled(Extension::RayTracing)) {
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().rayTracingKHR == true);
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().descriptorIndexing == true);
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().deferredHostOperations == true);
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().pipelineLibrary == true);
             ASSERT(ToBackend(GetAdapter())->GetDeviceInfo().bufferDeviceAddress == true);
+            usedKnobs.rayTracingKHR = true;
         }
 
         // Find a universal queue family

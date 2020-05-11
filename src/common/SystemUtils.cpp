@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "common/SystemUtils.h"
+#include "common/Assert.h"
 
 #if defined(DAWN_PLATFORM_WINDOWS)
 #    include <Windows.h>
@@ -114,4 +115,48 @@ std::string GetExecutableDirectory() {
     std::string exePath = GetExecutablePath();
     size_t lastPathSepLoc = exePath.find_last_of(GetPathSeparator());
     return lastPathSepLoc != std::string::npos ? exePath.substr(0, lastPathSepLoc + 1) : "";
+}
+
+#if defined(DAWN_PLATFORM_WINDOWS)
+// Since kernel32 is always loaded, we use it to receive the module's handle
+static const wchar_t kTagForGetModuleHandleEx[] = L"kernel32.dll";
+std::string GetModulePath() {
+    HMODULE moduleHandle;
+    if (GetModuleHandleEx(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            kTagForGetModuleHandleEx, &moduleHandle) == 0) {
+        return "";
+    }
+    char lpFilename[MAX_PATH];
+    if (GetModuleFileNameA(moduleHandle, lpFilename, sizeof(lpFilename)) == 0) {
+        return "";
+    }
+    return std::string(lpFilename);
+}
+#elif defined(DAWN_PLATFORM_LINUX)
+std::string GetModulePath() {
+    // TODO: Implement on Linux
+    UNREACHABLE();
+    return "";
+}
+#elif defined(DAWN_PLATFORM_MACOS) || defined(DAWN_PLATFORM_IOS)
+std::string GetModulePath() {
+    // TODO: Implement on MacOS/iOS
+    UNREACHABLE();
+    return "";
+}
+#elif defined(DAWN_PLATFORM_FUCHSIA)
+std::string GetModulePath() {
+    // TODO: Implement on Fuchsia
+    UNREACHABLE();
+    return "";
+}
+#else
+#    error "Implement GetModulePath for your platform."
+#endif
+
+std::string GetModuleDirectory() {
+    std::string moduleDirPath = GetModulePath();
+    size_t lastPathSepLoc = moduleDirPath.find_last_of(GetPathSeparator());
+    return lastPathSepLoc != std::string::npos ? moduleDirPath.substr(0, lastPathSepLoc + 1) : "";
 }

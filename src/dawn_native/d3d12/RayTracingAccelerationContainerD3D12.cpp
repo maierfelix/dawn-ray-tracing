@@ -91,10 +91,6 @@ namespace dawn_native { namespace d3d12 {
         const RayTracingAccelerationContainerDescriptor* descriptor) {
         Device* device = ToBackend(GetDevice());
 
-        if (!device->IsToggleEnabled(Toggle::UseD3D12RayTracing)) {
-            return DAWN_VALIDATION_ERROR("Ray Tracing not supported on this device");
-        }
-
         // acceleration container holds geometry
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             mGeometries.reserve(descriptor->geometryCount);

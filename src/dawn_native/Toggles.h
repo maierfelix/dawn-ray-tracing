@@ -32,7 +32,6 @@ namespace dawn_native {
         UseTemporaryBufferInCompressedTextureToTextureCopy,
         UseD3D12ResourceHeapTier2,
         UseD3D12RenderPass,
-        UseD3D12RayTracing,
         UseD3D12ResidencyManagement,
         SkipValidation,
         UseSpvc,
@@ -42,7 +41,7 @@ namespace dawn_native {
         DisableBaseVertex,
         DisableBaseInstance,
         UseD3D12SmallShaderVisibleHeapForTesting,
-        UseD3D12DXCompiler,
+        UseDXC,
 
         EnumCount,
         InvalidEnum = EnumCount,

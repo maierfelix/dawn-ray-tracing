@@ -533,7 +533,8 @@ namespace dawn_native {
     }
 
     // Object creation API methods
-    RayTracingAccelerationContainerBase* DeviceBase::CreateRayTracingAccelerationContainer(const RayTracingAccelerationContainerDescriptor* descriptor) {
+    RayTracingAccelerationContainerBase* DeviceBase::CreateRayTracingAccelerationContainer(
+        const RayTracingAccelerationContainerDescriptor* descriptor) {
         RayTracingAccelerationContainerBase* result = nullptr;
 
         if (ConsumedError(CreateRayTracingAccelerationContainerInternal(&result, descriptor))) {
@@ -543,7 +544,8 @@ namespace dawn_native {
         return result;
     }
 
-    RayTracingShaderBindingTableBase* DeviceBase::CreateRayTracingShaderBindingTable(const RayTracingShaderBindingTableDescriptor* descriptor) {
+    RayTracingShaderBindingTableBase* DeviceBase::CreateRayTracingShaderBindingTable(
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
         RayTracingShaderBindingTableBase* result = nullptr;
 
         if (ConsumedError(CreateRayTracingShaderBindingTableInternal(&result, descriptor))) {
@@ -1076,7 +1078,6 @@ namespace dawn_native {
     void DeviceBase::SetDefaultToggles() {
         SetToggle(Toggle::LazyClearResourceOnFirstUse, true);
         SetToggle(Toggle::UseSpvc, false);
-        SetToggle(Toggle::UseD3D12DXCompiler, false);
     }
 
     void DeviceBase::ApplyToggleOverrides(const DeviceDescriptor* deviceDescriptor) {
