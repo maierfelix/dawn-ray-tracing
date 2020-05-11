@@ -77,12 +77,12 @@ namespace dawn_native { namespace d3d12 {
     void PlatformFunctions::LoadDXCompiler() {
         std::string error;
         std::string moduleDirPath = GetModuleDirectory();
-        // Do not throw if failed, DXC is optional
-        if (mDXCompilerLib.Open(moduleDirPath + "\\dxcompiler.dll", &error)) {
-            if (mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
-                // DXC requires DXIL
-                DynamicLib dxilCompilerLib;
-                if (dxilCompilerLib.Open(moduleDirPath + "\\dxil.dll", &error)) {
+        DynamicLib dxilCompilerLib;
+        // DXIL must be loaded before DXC, otherwise shader signing is broken
+        if (dxilCompilerLib.Open(moduleDirPath + "dxil.dll", &error)) {
+            // Now DXC can be loaded
+            if (mDXCompilerLib.Open(moduleDirPath + "dxcompiler.dll", &error)) {
+                if (mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", &error)) {
                     mIsDXCAvailable = true;
                 }
             }
