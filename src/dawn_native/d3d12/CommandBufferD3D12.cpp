@@ -527,8 +527,8 @@ namespace dawn_native { namespace d3d12 {
         const std::vector<PassResourceUsage>& passResourceUsages = GetResourceUsages().perPass;
         uint32_t nextPassNumber = 0;
 
-        bool hasBottomLevelContainerBuild = false;
-        bool hasBottomLevelContainerUpdate = false;
+        RayTracingAccelerationContainer* lastBuildContainer = nullptr;
+        RayTracingAccelerationContainer* lastUpdateContainer = nullptr;
 
         Command type;
         while (mCommands.NextCommandId(&type)) {
@@ -570,7 +570,8 @@ namespace dawn_native { namespace d3d12 {
                     DAWN_TRY(RecordRayTracingPass(commandContext, &bindingTracker));
 
                     nextPassNumber++;
-                } break;
+                    break;
+                }
 
                 case Command::BuildRayTracingAccelerationContainer: {
                     BuildRayTracingAccelerationContainerCmd* build =
@@ -597,17 +598,20 @@ namespace dawn_native { namespace d3d12 {
 
                     container->SetBuildState(true);
 
-                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
-                        hasBottomLevelContainerBuild) {
+                    if (lastUpdateContainer != nullptr) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Build and update passes for acceleration containers must be "
+                            "separated");
+                    }
+                    if (lastBuildContainer != nullptr &&
+                        lastBuildContainer->GetLevel() != container->GetLevel()) {
                         return DAWN_VALIDATION_ERROR(
                             "Acceleration containers of different levels must be built in "
                             "separate passes");
                     }
-                    if (container->GetLevel() ==
-                        wgpu::RayTracingAccelerationContainerLevel::Bottom) {
-                        hasBottomLevelContainerBuild = true;
-                    }
-                } break;
+                    lastBuildContainer = container;
+                    break;
+                }
 
                 case Command::CopyRayTracingAccelerationContainer: {
                     CopyRayTracingAccelerationContainerCmd* copy =
@@ -623,7 +627,8 @@ namespace dawn_native { namespace d3d12 {
                     commandList4->CopyRaytracingAccelerationStructure(
                         dstMemory->address, srcMemory->address,
                         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
-                } break;
+                    break;
+                }
 
                 case Command::UpdateRayTracingAccelerationContainer: {
                     UpdateRayTracingAccelerationContainerCmd* update =
@@ -659,17 +664,20 @@ namespace dawn_native { namespace d3d12 {
 
                     container->SetBuildState(true);
 
-                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Bottom)
-                        hasBottomLevelContainerUpdate = true;
-
-                    if (container->GetLevel() == wgpu::RayTracingAccelerationContainerLevel::Top &&
-                        hasBottomLevelContainerUpdate) {
+                    if (lastBuildContainer != nullptr) {
+                        return DAWN_VALIDATION_ERROR(
+                            "Build and update passes for acceleration containers must be "
+                            "separated");
+                    }
+                    if (lastUpdateContainer != nullptr &&
+                        lastUpdateContainer->GetLevel() != container->GetLevel()) {
                         return DAWN_VALIDATION_ERROR(
                             "Acceleration containers of different levels must be updated in "
                             "separate passes");
                     }
-
-                } break;
+                    lastUpdateContainer = container;
+                    break;
+                }
 
                 case Command::CopyBufferToBuffer: {
                     CopyBufferToBufferCmd* copy = mCommands.NextCommand<CopyBufferToBufferCmd>();
