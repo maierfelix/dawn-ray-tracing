@@ -67,10 +67,6 @@ namespace dawn_native { namespace d3d12 {
             if (!GetDeviceInfo().supportsRayTracing) {
                 return DAWN_VALIDATION_ERROR("Ray tracing extension enabled, but not supported");
             }
-            if (!GetFunctions()->IsDXCAvailable()) {
-                return DAWN_VALIDATION_ERROR(
-                    "Ray tracing extension enabled, but DXC/DXIL unavailable");
-            }
             DAWN_TRY(CheckHRESULT(mD3d12Device.As(&mD3d12Device5),
                                   "D3D12 QueryInterface ID3D12Device to ID3D12Device5"));
         }

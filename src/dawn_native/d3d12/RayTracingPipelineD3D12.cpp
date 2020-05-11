@@ -72,6 +72,13 @@ namespace dawn_native { namespace d3d12 {
         RayTracingShaderBindingTable* sbt =
             ToBackend(descriptor->rayTracingState->shaderBindingTable);
 
+        if (device->IsExtensionEnabled(Extension::RayTracing)) {
+            if (!device->GetFunctions()->IsDXCAvailable()) {
+                return DAWN_VALIDATION_ERROR(
+                    "Ray tracing extension enabled, but DXC/DXIL unavailable");
+            }
+        }
+
         std::vector<RayTracingShaderBindingTableStagesDescriptor>& stages = sbt->GetStages();
         std::vector<RayTracingShaderBindingTableGroupsDescriptor>& groups = sbt->GetGroups();
 
