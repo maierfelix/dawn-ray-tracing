@@ -119,19 +119,19 @@ std::string GetExecutableDirectory() {
 
 #if defined(DAWN_PLATFORM_WINDOWS)
 // Since kernel32 is always loaded, we use it to receive the module's handle
-static const wchar_t kTagForGetModuleHandleEx[] = L"kernel32.dll";
+static const char kTagForGetModuleHandleEx[] = "kernel32.dll";
 std::string GetModulePath() {
     HMODULE moduleHandle;
-    if (GetModuleHandleEx(
+    if (GetModuleHandleExA(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             kTagForGetModuleHandleEx, &moduleHandle) == 0) {
         return "";
     }
-    char lpFilename[MAX_PATH];
-    if (GetModuleFileNameA(moduleHandle, lpFilename, sizeof(lpFilename)) == 0) {
+    char moduleFileBuf[MAX_PATH];
+    if (GetModuleFileNameA(moduleHandle, moduleFileBuf, sizeof(moduleFileBuf)) == 0) {
         return "";
     }
-    return std::string(lpFilename);
+    return std::string(moduleFileBuf);
 }
 #elif defined(DAWN_PLATFORM_LINUX)
 std::string GetModulePath() {
