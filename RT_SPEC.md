@@ -325,7 +325,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| type | [GPURayTracingShaderBindingTableGroupType](#GPURayTracingShaderBindingTableGroupType) | Group type
+| *type* | [GPURayTracingShaderBindingTableGroupType](#GPURayTracingShaderBindingTableGroupType) | Group type
 | *generalIndex* | Number | Index of a general group stage (`.rgen`, `.rmiss`)
 | *closestHitIndex* | Number | Index of a closest-hit stage (`.rchit`)
 | *anyHitIndex* | Number | Index of a any-hit stage (`.rahit`)
@@ -346,6 +346,7 @@ Each index defaults to `-1`, indicating that the group is unused. To enable a gr
 | :--- | :--- | :--- |
 | shaderBindingTable | [GPURayTracingShaderBindingTable](#GPURayTracingShaderBindingTable) | The shader binding table to use
 | *maxRecursionDepth* | Number | The maximum allowed Ray trace recursion in shaders. Defaults to *1*
+| *maxPayloadSize* | Number | The maximum payload size (in bytes) used between shaders. A wrong number leads to undefined behaviour. *This member is flux and might change in future*.
 
 ### GPURayTracingPipelineDescriptor
 
