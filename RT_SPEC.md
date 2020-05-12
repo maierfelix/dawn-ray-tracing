@@ -325,7 +325,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| type | [GPURayTracingShaderBindingTableGroupType](#GPURayTracingShaderBindingTableGroupType) | Group type
+| *type* | [GPURayTracingShaderBindingTableGroupType](#GPURayTracingShaderBindingTableGroupType) | Group type
 | *generalIndex* | Number | Index of a general group stage (`.rgen`, `.rmiss`)
 | *closestHitIndex* | Number | Index of a closest-hit stage (`.rchit`)
 | *anyHitIndex* | Number | Index of a any-hit stage (`.rahit`)
