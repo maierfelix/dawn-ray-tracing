@@ -120,7 +120,6 @@
             {"value": 8, "name": "force no opaque"}
         ]
     },
-    "ray tracing acceleration container flag": {
     "ray tracing acceleration container usage": {
         "category": "bitmask",
         "values": [
