@@ -239,7 +239,7 @@ This descriptor gets extended with the following properties:
 | :--- | :--- | :--- |
 | *accelerationContainer* | [GPURayTracingAccelerationContainer](#GPURayTracingAccelerationContainer) | Acceleration container to bind
 
-### GPUTransform3D
+### GPUTransform3DDescriptor
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
@@ -251,9 +251,9 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| *translation* | [GPUTransform3D](#GPUTransform3D) | Translation property
-| *rotation* | [GPUTransform3D](#GPUTransform3D) | Rotation property
-| *scale* | [GPUTransform3D](#GPUTransform3D) | Scale property
+| *translation* | [GPUTransform3DDescriptor](#GPUTransform3DDescriptor) | Translation property
+| *rotation* | [GPUTransform3DDescriptor](#GPUTransform3DDescriptor) | Rotation property
+| *scale* | [GPUTransform3DDescriptor](#GPUTransform3DDescriptor) | Scale property
 
 ### GPURayTracingAccelerationGeometryVertexDescriptor
 
@@ -314,14 +314,14 @@ This descriptor gets extended with the following properties:
 | *geometries* | [[GPURayTracingAccelerationGeometryDescriptor](#GPURayTracingAccelerationGeometryDescriptor)] | Geometry to encapsulate by this container
 | *instances* | [[GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor)] | Geometry instances to encapsulate by this container
 
-### GPURayTracingShaderBindingTableStagesDescriptor
+### GPURayTracingShaderBindingTableStageDescriptor
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
 | stage | [GPUShaderStage](https://gpuweb.github.io/gpuweb/#gpushaderstage) | Ray-Tracing shader stage
 | module | [GPUShaderModule](https://gpuweb.github.io/gpuweb/#shader-module) | Shader module containing the shader
 
-### GPURayTracingShaderBindingTableGroupsDescriptor
+### GPURayTracingShaderBindingTableGroupDescriptor
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
@@ -337,8 +337,8 @@ Each index defaults to `-1`, indicating that the group is unused. To enable a gr
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| stages | [[GPURayTracingShaderBindingTableStagesDescriptor](#GPURayTracingShaderBindingTableStagesDescriptor)] | Ray-Tracing stages
-| groups | [[GPURayTracingShaderBindingTableGroupsDescriptor](#GPURayTracingShaderBindingTableGroupsDescriptor)] | Ray-Tracing groups
+| stages | [[GPURayTracingShaderBindingTableStageDescriptor](#GPURayTracingShaderBindingTableStageDescriptor)] | Ray-Tracing stages
+| groups | [[GPURayTracingShaderBindingTableGroupDescriptor](#GPURayTracingShaderBindingTableGroupDescriptor)] | Ray-Tracing groups
 
 ### GPURayTracingStateDescriptor
 
