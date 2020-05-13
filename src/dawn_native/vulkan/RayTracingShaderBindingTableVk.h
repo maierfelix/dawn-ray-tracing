@@ -54,8 +54,6 @@ namespace dawn_native { namespace vulkan {
 
         uint32_t mShaderGroupHandleSize;
 
-        bool IsValidGroupStageIndex(int32_t index, VkShaderStageFlagBits validStage) const;
-
         MaybeError Initialize(const RayTracingShaderBindingTableDescriptor* descriptor);
     };
 

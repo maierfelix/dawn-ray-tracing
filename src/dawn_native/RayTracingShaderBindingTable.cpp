@@ -29,7 +29,6 @@ namespace dawn_native {
             }
 
           private:
-
             void DestroyImpl() override {
                 UNREACHABLE();
             }
@@ -39,7 +38,9 @@ namespace dawn_native {
 
     // RayTracingShaderBindingTable
 
-    MaybeError ValidateRayTracingShaderBindingTableDescriptor(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor) {
+    MaybeError ValidateRayTracingShaderBindingTableDescriptor(
+        DeviceBase* device,
+        const RayTracingShaderBindingTableDescriptor* descriptor) {
         if (descriptor->stagesCount == 0) {
             return DAWN_VALIDATION_ERROR("ShaderBindingTable stages must not be empty");
         }
@@ -47,7 +48,7 @@ namespace dawn_native {
             return DAWN_VALIDATION_ERROR("ShaderBindingTable groups must not be empty");
         }
         for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
-            RayTracingShaderBindingTableStagesDescriptor stage = descriptor->stages[ii];
+            const RayTracingShaderBindingTableStagesDescriptor& stage = descriptor->stages[ii];
             switch (stage.stage) {
                 case wgpu::ShaderStage::RayGeneration:
                 case wgpu::ShaderStage::RayClosestHit:
@@ -63,10 +64,58 @@ namespace dawn_native {
                     return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
             }
         }
+        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
+            const RayTracingShaderBindingTableGroupsDescriptor& group = descriptor->groups[ii];
+            if (group.generalIndex != -1) {
+                if (group.generalIndex < 0 || group.generalIndex >= (int)descriptor->stagesCount) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for general shader");
+                }
+                if (descriptor->stages[group.generalIndex].stage !=
+                        wgpu::ShaderStage::RayGeneration &&
+                    descriptor->stages[group.generalIndex].stage != wgpu::ShaderStage::RayMiss) {
+                    return DAWN_VALIDATION_ERROR(
+                        "General group index can only be associated with generation or miss "
+                        "stages");
+                }
+            }
+            if (group.closestHitIndex != -1) {
+                if (group.closestHitIndex < 0 ||
+                    group.closestHitIndex >= (int)descriptor->stagesCount) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for closest-hit shader");
+                }
+                if (descriptor->stages[group.closestHitIndex].stage !=
+                    wgpu::ShaderStage::RayClosestHit) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Closest-hit group index can only be associated with closest-hit stages");
+                }
+            }
+            if (group.anyHitIndex != -1) {
+                if (group.anyHitIndex < 0 || group.anyHitIndex >= (int)descriptor->stagesCount) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for any-hit shader");
+                }
+                if (descriptor->stages[group.anyHitIndex].stage != wgpu::ShaderStage::RayAnyHit) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Any-hit group index can only be associated with Ray-Any-Hit stages");
+                }
+            }
+            if (group.intersectionIndex != -1) {
+                if (group.intersectionIndex < 0 ||
+                    group.intersectionIndex >= (int)descriptor->stagesCount) {
+                    return DAWN_VALIDATION_ERROR("Invalid group index for intersection shader");
+                }
+                if (descriptor->stages[group.intersectionIndex].stage !=
+                    wgpu::ShaderStage::RayIntersection) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Intersection group index can only be associated with intersection stages");
+                }
+            }
+        }
         return {};
     }
 
-    RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(DeviceBase* device, const RayTracingShaderBindingTableDescriptor* descriptor)
+    RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(
+        DeviceBase* device,
+        const RayTracingShaderBindingTableDescriptor* descriptor)
         : ObjectBase(device) {
         if (!device->IsExtensionEnabled(Extension::RayTracing)) {
             GetDevice()->ConsumedError(
@@ -75,12 +124,12 @@ namespace dawn_native {
         }
     }
 
-    RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(DeviceBase* device, ObjectBase::ErrorTag tag)
+    RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase(DeviceBase* device,
+                                                                       ObjectBase::ErrorTag tag)
         : ObjectBase(device, tag) {
     }
 
     RayTracingShaderBindingTableBase::~RayTracingShaderBindingTableBase() {
-
     }
 
     uint32_t RayTracingShaderBindingTableBase::GetOffsetImpl(wgpu::ShaderStage shaderStage) {
