@@ -288,7 +288,7 @@ This descriptor gets extended with the following properties:
 | Name | Type | Description |
 | :--- | :--- | :--- |
 | *usage* | [GPURayTracingAccelerationGeometryUsage](#GPURayTracingAccelerationGeometryUsage) | Usage flags for this geometry
-| *type* | [GPURayTracingAccelerationGeometryType](#GPURayTracingAccelerationGeometryType) | Type of this geometry
+| type | [GPURayTracingAccelerationGeometryType](#GPURayTracingAccelerationGeometryType) | Type of this geometry
 | *vertex* | [GPURayTracingAccelerationGeometryVertexDescriptor](#GPURayTracingAccelerationGeometryVertexDescriptor) | Vertex descriptor
 | *index* | [GPURayTracingAccelerationGeometryIndexDescriptor](#GPURayTracingAccelerationGeometryIndexDescriptor) | Index descriptor
 | *aabb* | [GPURayTracingAccelerationGeometryAABBDescriptor](#GPURayTracingAccelerationGeometryAABBDescriptor) | AABB descriptor
@@ -310,7 +310,7 @@ This descriptor gets extended with the following properties:
 | Name | Type | Description |
 | :--- | :--- | :--- |
 | *usage* | [GPURayTracingAccelerationContainerUsage](#GPURayTracingAccelerationContainerUsage) | Usage flags for the container
-| *level* | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Level of the container
+| level | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Level of the container
 | *geometries* | [[GPURayTracingAccelerationGeometryDescriptor](#GPURayTracingAccelerationGeometryDescriptor)] | Geometry to encapsulate by this container
 | *instances* | [[GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor)] | Geometry instances to encapsulate by this container
 
@@ -346,7 +346,7 @@ Each index defaults to `-1`, indicating that the group is unused. To enable a gr
 | :--- | :--- | :--- |
 | shaderBindingTable | [GPURayTracingShaderBindingTable](#GPURayTracingShaderBindingTable) | The shader binding table to use
 | *maxRecursionDepth* | Number | The maximum allowed Ray trace recursion in shaders. Defaults to *1*
-| *maxPayloadSize* | Number | The maximum payload size (in bytes) used between shaders. A wrong number leads to undefined behaviour. *This member is flux and might change in future*.
+| maxPayloadSize | Number | The maximum payload size (in bytes) used between shaders. A wrong number leads to undefined behaviour. *This member is flux and might change in future*.
 
 ### GPURayTracingPipelineDescriptor
 
