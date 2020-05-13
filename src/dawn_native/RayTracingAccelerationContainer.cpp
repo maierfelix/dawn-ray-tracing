@@ -61,44 +61,44 @@ namespace dawn_native {
         if (descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Top &&
             descriptor->level != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             return DAWN_VALIDATION_ERROR(
-                "Invalid Acceleration Container Level. Must be Top or Bottom");
+                "Invalid acceleration container level. Must be top-level or bottom-level");
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Top) {
             if (descriptor->geometryCount > 0) {
                 return DAWN_VALIDATION_ERROR(
-                    "Geometry Count for Top-Level Acceleration Container must be zero");
+                    "Geometry count for top-level acceleration container must be zero");
             }
             if (descriptor->instanceCount == 0) {
                 return DAWN_VALIDATION_ERROR(
-                    "No data provided for Top-Level Acceleration Container");
+                    "No data provided for top-level Acceleration Container");
             }
             for (unsigned int ii = 0; ii < descriptor->instanceCount; ++ii) {
                 const RayTracingAccelerationInstanceDescriptor& instance =
                     descriptor->instances[ii];
                 if (instance.geometryContainer == nullptr) {
                     return DAWN_VALIDATION_ERROR(
-                        "Acceleration Container Instance requires a Geometry Container");
+                        "Acceleration container instance requires a geometry container");
                 }
                 // linked geometry container must not be destroyed
                 if (instance.geometryContainer->IsDestroyed()) {
-                    return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be destroyed");
+                    return DAWN_VALIDATION_ERROR("Linked geometry container must not be destroyed");
                 }
             }
         }
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             if (descriptor->instanceCount > 0) {
                 return DAWN_VALIDATION_ERROR(
-                    "Instance Count for Bottom-Level Acceleration Container must be zero");
+                    "Instance count for bottom-level acceleration container must be zero");
             }
             if (descriptor->geometryCount == 0) {
                 return DAWN_VALIDATION_ERROR(
-                    "No data provided for Bottom-Level Acceleration Container");
+                    "No data provided for bottom-level acceleration container");
             }
             for (unsigned int ii = 0; ii < descriptor->geometryCount; ++ii) {
                 RayTracingAccelerationGeometryDescriptor geometry = descriptor->geometries[ii];
                 if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Triangles) {
                     if (geometry.vertex == nullptr) {
-                        return DAWN_VALIDATION_ERROR("No Vertex data provided");
+                        return DAWN_VALIDATION_ERROR("No vertex data provided");
                     }
                 } else if (geometry.type == wgpu::RayTracingAccelerationGeometryType::Aabbs) {
                     if (geometry.aabb == nullptr) {
@@ -108,7 +108,7 @@ namespace dawn_native {
                 // validate vertex input
                 if (geometry.vertex != nullptr) {
                     if (geometry.vertex->buffer->GetSize() == 0) {
-                        return DAWN_VALIDATION_ERROR("Invalid Buffer for Vertex data");
+                        return DAWN_VALIDATION_ERROR("Invalid buffer for vertex data");
                     }
                     if (geometry.vertex->count == 0) {
                         return DAWN_VALIDATION_ERROR("Vertex count must not be zero");
@@ -116,16 +116,16 @@ namespace dawn_native {
                     if ((geometry.vertex->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) ==
                         0) {
                         return DAWN_VALIDATION_ERROR(
-                            "Vertex buffer must have RayTracing usage flag");
+                            "Vertex buffer must have RAY_TRACING usage flag");
                     }
                 }
                 // validate index input
                 if (geometry.index != nullptr) {
                     if (geometry.index == nullptr) {
-                        return DAWN_VALIDATION_ERROR("Index data requires Vertex data");
+                        return DAWN_VALIDATION_ERROR("Index data requires vertex data");
                     }
                     if (geometry.index->buffer->GetSize() == 0) {
-                        return DAWN_VALIDATION_ERROR("Invalid Buffer for Index data");
+                        return DAWN_VALIDATION_ERROR("Invalid buffer for Index data");
                     }
                     if (geometry.index->count == 0) {
                         return DAWN_VALIDATION_ERROR("Index count must not be zero");
@@ -133,28 +133,28 @@ namespace dawn_native {
                     if ((geometry.index->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) ==
                         0) {
                         return DAWN_VALIDATION_ERROR(
-                            "Index buffer must have RayTracing usage flag");
+                            "Index buffer must have RAY_TRACING usage flag");
                     }
                 }
                 // validate aabb input
                 if (geometry.aabb != nullptr) {
                     if (geometry.vertex != nullptr) {
                         return DAWN_VALIDATION_ERROR(
-                            "AABB is not allowed to be combined with Vertex data");
+                            "AABB is not allowed to be combined with vertex data");
                     }
                     if (geometry.index != nullptr) {
                         return DAWN_VALIDATION_ERROR(
-                            "AABB is not allowed to be combined with Index data");
+                            "AABB is not allowed to be combined with index data");
                     }
                     if (geometry.aabb->buffer->GetSize() == 0) {
-                        return DAWN_VALIDATION_ERROR("Invalid Buffer for AABB data");
+                        return DAWN_VALIDATION_ERROR("Invalid buffer for AABB data");
                     }
                     if (geometry.aabb->count == 0) {
                         return DAWN_VALIDATION_ERROR("AABB count must not be zero");
                     }
                     if ((geometry.aabb->buffer->GetUsage() & wgpu::BufferUsage::RayTracing) == 0) {
                         return DAWN_VALIDATION_ERROR(
-                            "AABB buffer must have RayTracing usage flag");
+                            "AABB buffer must have RAY_TRACING usage flag");
                     }
                 }
                 if (geometry.vertex == nullptr && geometry.index == nullptr &&
@@ -254,19 +254,19 @@ namespace dawn_native {
         DAWN_TRY(GetDevice()->ValidateObject(this));
 
         if (GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Top) {
-            return DAWN_VALIDATION_ERROR("Only Top-Level Containers support instance updates");
+            return DAWN_VALIDATION_ERROR("Only top-level containers support instance updates");
         }
 
         RayTracingAccelerationContainerBase* geometryContainer = descriptor->geometryContainer;
         if (geometryContainer == nullptr) {
-            return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be empty");
+            return DAWN_VALIDATION_ERROR("Linked geometry container must not be empty");
         }
         if (geometryContainer->GetLevel() != wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             return DAWN_VALIDATION_ERROR(
-                "Linked Geometry Container must be a Bottom-Level container");
+                "Linked geometry container must be a bottom-level container");
         }
         if (geometryContainer->IsDestroyed()) {
-            return DAWN_VALIDATION_ERROR("Linked Geometry Container must not be destroyed");
+            return DAWN_VALIDATION_ERROR("Linked geometry container must not be destroyed");
         }
 
         return {};

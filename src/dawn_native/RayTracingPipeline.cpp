@@ -26,13 +26,13 @@ namespace dawn_native {
             DAWN_TRY(device->ValidateObject(descriptor->layout));
         }
         if (descriptor->rayTracingState == nullptr) {
-            return DAWN_VALIDATION_ERROR("Ray Tracing state must not be empty");
+            return DAWN_VALIDATION_ERROR("Ray tracing state must not be empty");
         }
         if (descriptor->rayTracingState->shaderBindingTable == nullptr) {
-            return DAWN_VALIDATION_ERROR("Missing Shader Binding Table");
+            return DAWN_VALIDATION_ERROR("Missing shader binding table");
         }
         if (descriptor->rayTracingState->shaderBindingTable->IsDestroyed()) {
-            return DAWN_VALIDATION_ERROR("Shader Binding Table must not be destroyed");
+            return DAWN_VALIDATION_ERROR("Shader binding table must not be destroyed");
         }
         return {};
     }

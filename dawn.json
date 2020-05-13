@@ -181,7 +181,7 @@
         "extensible": false,
         "members": [
             {"name": "usage", "type": "ray tracing acceleration geometry usage", "default": "none"},
-            {"name": "type", "type": "ray tracing acceleration geometry type", "default": "triangles"},
+            {"name": "type", "type": "ray tracing acceleration geometry type"},
             {"name": "vertex", "type": "ray tracing acceleration geometry vertex descriptor", "annotation": "const*", "optional": true},
             {"name": "index", "type": "ray tracing acceleration geometry index descriptor", "annotation": "const*", "optional": true},
             {"name": "aabb", "type": "ray tracing acceleration geometry aabb descriptor", "annotation": "const*", "optional": true}
@@ -223,7 +223,7 @@
         "extensible": false,
         "members": [
             {"name": "usage", "type": "ray tracing acceleration container usage", "default": "none"},
-            {"name": "level", "type": "ray tracing acceleration container level", "default": "bottom"},
+            {"name": "level", "type": "ray tracing acceleration container level"},
             {"name": "geometry count", "type": "uint32_t", "default": "0"},
             {"name": "geometries", "type": "ray tracing acceleration geometry descriptor", "annotation": "const*", "length": "geometry count", "optional": true},
             {"name": "instance count", "type": "uint32_t", "default": "0"},

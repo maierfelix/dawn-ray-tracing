@@ -42,10 +42,10 @@ namespace dawn_native {
         DeviceBase* device,
         const RayTracingShaderBindingTableDescriptor* descriptor) {
         if (descriptor->stageCount == 0) {
-            return DAWN_VALIDATION_ERROR("ShaderBindingTable stages must not be empty");
+            return DAWN_VALIDATION_ERROR("Shader binding table stages must not be empty");
         }
         if (descriptor->groupCount == 0) {
-            return DAWN_VALIDATION_ERROR("ShaderBindingTable groups must not be empty");
+            return DAWN_VALIDATION_ERROR("Shader binding table groups must not be empty");
         }
         for (unsigned int ii = 0; ii < descriptor->stageCount; ++ii) {
             const RayTracingShaderBindingTableStageDescriptor& stage = descriptor->stages[ii];
@@ -61,7 +61,7 @@ namespace dawn_native {
                 case wgpu::ShaderStage::Compute:
                 case wgpu::ShaderStage::Vertex:
                 case wgpu::ShaderStage::Fragment:
-                    return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
+                    return DAWN_VALIDATION_ERROR("Invalid shader stage");
             }
         }
         for (unsigned int ii = 0; ii < descriptor->groupCount; ++ii) {
