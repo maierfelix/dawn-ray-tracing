@@ -175,7 +175,7 @@ namespace dawn_native {
                 DAWN_VALIDATION_ERROR("Ray Tracing extension is not enabled"));
             return;
         }
-        mFlags = descriptor->flags;
+        mUsage = descriptor->usage;
         mLevel = descriptor->level;
         if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
             // save unique references to used vertex and index buffers
@@ -304,9 +304,9 @@ namespace dawn_native {
         return {};
     }
 
-    wgpu::RayTracingAccelerationContainerFlag RayTracingAccelerationContainerBase::GetFlags()
+    wgpu::RayTracingAccelerationContainerUsage RayTracingAccelerationContainerBase::GetUsage()
         const {
-        return mFlags;
+        return mUsage;
     }
 
     wgpu::RayTracingAccelerationContainerLevel RayTracingAccelerationContainerBase::GetLevel()

@@ -41,14 +41,14 @@ namespace dawn_native {
     MaybeError ValidateRayTracingShaderBindingTableDescriptor(
         DeviceBase* device,
         const RayTracingShaderBindingTableDescriptor* descriptor) {
-        if (descriptor->stagesCount == 0) {
+        if (descriptor->stageCount == 0) {
             return DAWN_VALIDATION_ERROR("ShaderBindingTable stages must not be empty");
         }
-        if (descriptor->groupsCount == 0) {
+        if (descriptor->groupCount == 0) {
             return DAWN_VALIDATION_ERROR("ShaderBindingTable groups must not be empty");
         }
-        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
-            const RayTracingShaderBindingTableStagesDescriptor& stage = descriptor->stages[ii];
+        for (unsigned int ii = 0; ii < descriptor->stageCount; ++ii) {
+            const RayTracingShaderBindingTableStageDescriptor& stage = descriptor->stages[ii];
             switch (stage.stage) {
                 case wgpu::ShaderStage::RayGeneration:
                 case wgpu::ShaderStage::RayClosestHit:
@@ -64,10 +64,10 @@ namespace dawn_native {
                     return DAWN_VALIDATION_ERROR("Invalid Shader Stage");
             }
         }
-        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
-            const RayTracingShaderBindingTableGroupsDescriptor& group = descriptor->groups[ii];
+        for (unsigned int ii = 0; ii < descriptor->groupCount; ++ii) {
+            const RayTracingShaderBindingTableGroupDescriptor& group = descriptor->groups[ii];
             if (group.generalIndex != -1) {
-                if (group.generalIndex < 0 || group.generalIndex >= (int)descriptor->stagesCount) {
+                if (group.generalIndex < 0 || group.generalIndex >= (int)descriptor->stageCount) {
                     return DAWN_VALIDATION_ERROR("Invalid group index for general shader");
                 }
                 if (descriptor->stages[group.generalIndex].stage !=
@@ -80,7 +80,7 @@ namespace dawn_native {
             }
             if (group.closestHitIndex != -1) {
                 if (group.closestHitIndex < 0 ||
-                    group.closestHitIndex >= (int)descriptor->stagesCount) {
+                    group.closestHitIndex >= (int)descriptor->stageCount) {
                     return DAWN_VALIDATION_ERROR("Invalid group index for closest-hit shader");
                 }
                 if (descriptor->stages[group.closestHitIndex].stage !=
@@ -90,7 +90,7 @@ namespace dawn_native {
                 }
             }
             if (group.anyHitIndex != -1) {
-                if (group.anyHitIndex < 0 || group.anyHitIndex >= (int)descriptor->stagesCount) {
+                if (group.anyHitIndex < 0 || group.anyHitIndex >= (int)descriptor->stageCount) {
                     return DAWN_VALIDATION_ERROR("Invalid group index for any-hit shader");
                 }
                 if (descriptor->stages[group.anyHitIndex].stage != wgpu::ShaderStage::RayAnyHit) {
@@ -100,7 +100,7 @@ namespace dawn_native {
             }
             if (group.intersectionIndex != -1) {
                 if (group.intersectionIndex < 0 ||
-                    group.intersectionIndex >= (int)descriptor->stagesCount) {
+                    group.intersectionIndex >= (int)descriptor->stageCount) {
                     return DAWN_VALIDATION_ERROR("Invalid group index for intersection shader");
                 }
                 if (descriptor->stages[group.intersectionIndex].stage !=

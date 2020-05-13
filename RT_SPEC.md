@@ -143,7 +143,7 @@ Copies a `GPURayTracingAccelerationContainer` into another `GPURayTracingAcceler
 | [GPURayTracingAccelerationContainer](#GPURayTracingAccelerationContainer) | The **destination** acceleration container to copy into
 
 ##### updateRayTracingAccelerationContainer:
-Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerFlag](#GPURayTracingAccelerationContainerFlag) `ALLOW_UPDATE` flag.
+Updates an acceleration container. The container must be built and created with the [GPURayTracingAccelerationContainerUsage](#GPURayTracingAccelerationContainerUsage) `ALLOW_UPDATE` flag.
 
 | Type | Description |
 | :--- | :--- |
@@ -151,7 +151,7 @@ Updates an acceleration container. The container must be built and created with 
 
 ## Bitmasks
 
-### GPURayTracingAccelerationGeometryFlag
+### GPURayTracingAccelerationGeometryUsage
 
 | Name | Description |
 | :--- | :--- |
@@ -159,17 +159,17 @@ Updates an acceleration container. The container must be built and created with 
 | OPAQUE | No Any-Hit Shader will be invoked for this geometry
 | ALLOW_ANY_HIT | Any-Hit Shader will be invoked only once when hitting a triangle
 
-### GPURayTracingAccelerationInstanceFlag
+### GPURayTracingAccelerationInstanceUsage
 
 | Name | Description |
 | :--- | :--- |
 | NONE |
 | TRIANGLE_CULL_DISABLE | Disables face culling for this geometry instance
 | TRIANGLE_FRONT_COUNTERCLOCKWISE | Indicates that the front face of the triangle for culling purposes is the face that is counter clockwise in object space relative to the ray origin
-| FORCE_OPAQUE | Interprets the flags of all referenced geometry containers to be opaque. This behavior can be overridden with the `traceNV` ray flag
+| FORCE_OPAQUE | Interprets the flags of all referenced geometry containers to be opaque. This behavior can be overridden with the `traceRayEXT` ray flag
 | FORCE_NO_OPAQUE | Inverse behavior of `FORCE_OPAQUE`
 
-### GPURayTracingAccelerationContainerFlag
+### GPURayTracingAccelerationContainerUsage
 
 | Name | Description |
 | :--- | :--- |
@@ -287,7 +287,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| *flags* | [GPURayTracingAccelerationGeometryFlag](#GPURayTracingAccelerationGeometryFlag) | Flags for this geometry
+| *usage* | [GPURayTracingAccelerationGeometryUsage](#GPURayTracingAccelerationGeometryUsage) | Usage flags for this geometry
 | *type* | [GPURayTracingAccelerationGeometryType](#GPURayTracingAccelerationGeometryType) | Type of this geometry
 | *vertex* | [GPURayTracingAccelerationGeometryVertexDescriptor](#GPURayTracingAccelerationGeometryVertexDescriptor) | Vertex descriptor
 | *index* | [GPURayTracingAccelerationGeometryIndexDescriptor](#GPURayTracingAccelerationGeometryIndexDescriptor) | Index descriptor
@@ -297,9 +297,9 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| *flags* | [GPURayTracingAccelerationInstanceFlag](#GPURayTracingAccelerationInstanceFlag) | Flags for this instance
-| *mask* | Number (8 Bit) | Ignore mask (see `traceNV`)
-| *instanceId* | Number (24 Bit) | Used to identify an instance in a shader (see `gl_InstanceCustomIndexNV`)instance
+| *usage* | [GPURayTracingAccelerationInstanceUsage](#GPURayTracingAccelerationInstanceUsage) | Usage flags for this instance
+| *mask* | Number (8 Bit) | Ignore mask (see `traceRayEXT`)
+| *instanceId* | Number (24 Bit) | Used to identify an instance in a shader (see `gl_InstanceCustomIndexEXT`)instance
 | *instanceOffset* | Number (24 Bit) | Unused yet
 | *transform* | [GPURayTracingAccelerationInstanceTransformDescriptor](#GPURayTracingAccelerationInstanceTransformDescriptor) | Transform properties of this instance
 | *transformMatrix* | Float32Array | Low-Level alternative to *transform* - A 3x4 row-major transform matrix
@@ -309,7 +309,7 @@ This descriptor gets extended with the following properties:
 
 | Name | Type | Description |
 | :--- | :--- | :--- |
-| *flags* | [GPURayTracingAccelerationContainerFlag](#GPURayTracingAccelerationContainerFlag) | Flags for the container
+| *usage* | [GPURayTracingAccelerationContainerUsage](#GPURayTracingAccelerationContainerUsage) | Usage flags for the container
 | *level* | [GPURayTracingAccelerationContainerLevel](#GPURayTracingAccelerationContainerLevel) | Level of the container
 | *geometries* | [[GPURayTracingAccelerationGeometryDescriptor](#GPURayTracingAccelerationGeometryDescriptor)] | Geometry to encapsulate by this container
 | *instances* | [[GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor)] | Geometry instances to encapsulate by this container

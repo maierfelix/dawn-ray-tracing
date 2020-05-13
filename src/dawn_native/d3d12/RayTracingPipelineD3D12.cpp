@@ -79,8 +79,8 @@ namespace dawn_native { namespace d3d12 {
             }
         }
 
-        std::vector<RayTracingShaderBindingTableStagesDescriptor>& stages = sbt->GetStages();
-        std::vector<RayTracingShaderBindingTableGroupsDescriptor>& groups = sbt->GetGroups();
+        std::vector<RayTracingShaderBindingTableStageDescriptor>& stages = sbt->GetStages();
+        std::vector<RayTracingShaderBindingTableGroupDescriptor>& groups = sbt->GetGroups();
 
         const wchar_t* mainShaderEntry = L"main";
 
@@ -132,7 +132,7 @@ namespace dawn_native { namespace d3d12 {
         std::vector<D3D12_DXIL_LIBRARY_DESC> dxilLibraryDescs(stages.size());
         // Write shaders into subobjects
         for (unsigned int ii = 0; ii < stages.size(); ++ii) {
-            RayTracingShaderBindingTableStagesDescriptor& stage = stages[ii];
+            RayTracingShaderBindingTableStageDescriptor& stage = stages[ii];
             // Generate HLSL
             std::string shaderSource;
             DAWN_TRY_ASSIGN(shaderSource, ToBackend(stage.module)->GetHLSLSource(layout));
@@ -162,7 +162,7 @@ namespace dawn_native { namespace d3d12 {
         std::vector<D3D12_HIT_GROUP_DESC> shaderHitGroups(groups.size());
         // Write hitgroups
         for (unsigned int ii = 0; ii < groups.size(); ++ii) {
-            RayTracingShaderBindingTableGroupsDescriptor& group = groups[ii];
+            RayTracingShaderBindingTableGroupDescriptor& group = groups[ii];
             if (group.anyHitIndex != -1 || group.closestHitIndex != -1 ||
                 group.intersectionIndex != -1) {
                 shaderHitGroups[ii].Type = ToD3D12ShaderBindingTableGroupType(group.type);
@@ -237,7 +237,7 @@ namespace dawn_native { namespace d3d12 {
 
         // Pre-generate shader identifiers
         for (unsigned int ii = 0; ii < groups.size(); ++ii) {
-            RayTracingShaderBindingTableGroupsDescriptor& group = groups[ii];
+            RayTracingShaderBindingTableGroupDescriptor& group = groups[ii];
             std::wstring prefix = group.generalIndex != -1 ? L"S" : L"G";
             std::string id = std::to_string(ii);
             std::wstring wideId = prefix + std::wstring(id.begin(), id.end());

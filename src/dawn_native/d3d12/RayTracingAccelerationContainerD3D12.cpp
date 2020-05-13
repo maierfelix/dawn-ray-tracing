@@ -35,9 +35,9 @@ namespace dawn_native { namespace d3d12 {
             // process transform object
             if (descriptor.transform != nullptr) {
                 float transform[16] = {};
-                const Transform3D* tr = descriptor.transform->translation;
-                const Transform3D* ro = descriptor.transform->rotation;
-                const Transform3D* sc = descriptor.transform->scale;
+                const Transform3DDescriptor* tr = descriptor.transform->translation;
+                const Transform3DDescriptor* ro = descriptor.transform->rotation;
+                const Transform3DDescriptor* sc = descriptor.transform->scale;
                 Fill4x3TransformMatrix(transform, tr->x, tr->y, tr->z, ro->x, ro->y, ro->z, sc->x,
                                        sc->y, sc->z);
                 memcpy(&out.Transform, transform, sizeof(out.Transform));
@@ -49,7 +49,7 @@ namespace dawn_native { namespace d3d12 {
             out.InstanceID = descriptor.instanceId;
             out.InstanceMask = descriptor.mask;
             out.InstanceContributionToHitGroupIndex = descriptor.instanceOffset;
-            out.Flags = ToD3D12RayTracingInstanceFlags(descriptor.flags);
+            out.Flags = ToD3D12RayTracingInstanceFlags(descriptor.usage);
             out.AccelerationStructure = resultMemory.Get()->GetGPUVirtualAddress();
             return out;
         }
@@ -99,7 +99,7 @@ namespace dawn_native { namespace d3d12 {
                     descriptor->geometries[ii];
                 D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc{};
                 geometryDesc.Type = ToD3D12RayTracingGeometryType(geometry.type);
-                geometryDesc.Flags = ToD3D12RayTracingGeometryFlags(geometry.flags);
+                geometryDesc.Flags = ToD3D12RayTracingGeometryFlags(geometry.usage);
 
                 // vertex buffer
                 if (geometry.vertex != nullptr && geometry.vertex->buffer != nullptr) {
@@ -170,7 +170,7 @@ namespace dawn_native { namespace d3d12 {
         {
             mBuildInformation.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
             mBuildInformation.Flags =
-                ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->flags);
+                ToD3D12RayTracingAccelerationStructureBuildFlags(descriptor->usage);
             mBuildInformation.Type = ToD3D12RayTracingAccelerationContainerLevel(descriptor->level);
             if (descriptor->level == wgpu::RayTracingAccelerationContainerLevel::Bottom) {
                 mBuildInformation.NumDescs = mGeometries.size();

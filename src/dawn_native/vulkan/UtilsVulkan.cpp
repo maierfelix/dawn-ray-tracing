@@ -138,49 +138,49 @@ namespace dawn_native { namespace vulkan {
     }
 
     VkBuildAccelerationStructureFlagsKHR ToVulkanBuildAccelerationContainerFlags(
-        wgpu::RayTracingAccelerationContainerFlag buildFlags) {
+        wgpu::RayTracingAccelerationContainerUsage buildUsage) {
         uint32_t flags = 0;
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::AllowUpdate) {
             flags |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::PreferFastBuild) {
             flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::PreferFastTrace) {
             flags |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::LowMemory) {
             flags |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_KHR;
         }
         return static_cast<VkBuildAccelerationStructureFlagsKHR>(flags);
     }
 
     VkGeometryInstanceFlagsKHR ToVulkanAccelerationContainerInstanceFlags(
-        wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
+        wgpu::RayTracingAccelerationInstanceUsage instanceUsage) {
         uint32_t flags = 0;
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::TriangleCullDisable) {
             flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         }
-        if (instanceFlags &
-            wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise) {
+        if (instanceUsage &
+            wgpu::RayTracingAccelerationInstanceUsage::TriangleFrontCounterclockwise) {
             flags |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR;
         }
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::ForceOpaque) {
             flags |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR;
         }
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::ForceNoOpaque) {
             flags |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR;
         }
         return static_cast<VkGeometryInstanceFlagsKHR>(flags);
     }
 
     VkGeometryFlagsKHR ToVulkanAccelerationContainerGeometryFlags(
-        wgpu::RayTracingAccelerationGeometryFlag geometryFlags) {
+        wgpu::RayTracingAccelerationGeometryUsage geometryUsage) {
         uint32_t flags = 0;
-        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::Opaque) {
+        if (geometryUsage & wgpu::RayTracingAccelerationGeometryUsage::Opaque) {
             flags |= VK_GEOMETRY_OPAQUE_BIT_KHR;
         }
-        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::AllowAnyHit) {
+        if (geometryUsage & wgpu::RayTracingAccelerationGeometryUsage::AllowAnyHit) {
             flags |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR;
         }
         return static_cast<VkGeometryFlagsKHR>(flags);

@@ -265,7 +265,7 @@ namespace dawn_native {
                 return DAWN_VALIDATION_ERROR(
                     "Acceleration Container must be built before updating");
             }
-            if ((container->GetFlags() & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) ==
+            if ((container->GetUsage() & wgpu::RayTracingAccelerationContainerUsage::AllowUpdate) ==
                 0) {
                 return DAWN_VALIDATION_ERROR("Acceleration Container does not support updating");
             }

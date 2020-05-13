@@ -45,12 +45,12 @@ namespace dawn_native { namespace d3d12 {
 
     MaybeError RayTracingShaderBindingTable::Initialize(
         const RayTracingShaderBindingTableDescriptor* descriptor) {
-        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
-            const RayTracingShaderBindingTableStagesDescriptor& stage = descriptor->stages[ii];
+        for (unsigned int ii = 0; ii < descriptor->stageCount; ++ii) {
+            const RayTracingShaderBindingTableStageDescriptor& stage = descriptor->stages[ii];
             mStages.push_back(stage);
         }
-        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
-            const RayTracingShaderBindingTableGroupsDescriptor& group = descriptor->groups[ii];
+        for (unsigned int ii = 0; ii < descriptor->groupCount; ++ii) {
+            const RayTracingShaderBindingTableGroupDescriptor& group = descriptor->groups[ii];
             mGroups.push_back(group);
         }
         return {};
@@ -76,7 +76,7 @@ namespace dawn_native { namespace d3d12 {
         uint32_t hitSectionSize = 0;
         uint32_t missSectionSize = 0;
         for (unsigned int ii = 0; ii < mGroups.size(); ++ii) {
-            RayTracingShaderBindingTableGroupsDescriptor& group = mGroups[ii];
+            RayTracingShaderBindingTableGroupDescriptor& group = mGroups[ii];
             // we don't use local root sigs yet, so the entry size is the same for all entries
             uint32_t baseEntrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
             // general
@@ -136,12 +136,12 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
-    std::vector<RayTracingShaderBindingTableStagesDescriptor>&
+    std::vector<RayTracingShaderBindingTableStageDescriptor>&
     RayTracingShaderBindingTable::GetStages() {
         return mStages;
     }
 
-    std::vector<RayTracingShaderBindingTableGroupsDescriptor>&
+    std::vector<RayTracingShaderBindingTableGroupDescriptor>&
     RayTracingShaderBindingTable::GetGroups() {
         return mGroups;
     }

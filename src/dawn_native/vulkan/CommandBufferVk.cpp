@@ -416,7 +416,7 @@ namespace dawn_native { namespace vulkan {
                     asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
                     asInfo.pNext = nullptr;
                     asInfo.type = ToVulkanAccelerationContainerLevel(container->GetLevel());
-                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
+                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetUsage());
                     asInfo.update = VK_FALSE;
                     asInfo.srcAccelerationStructure = VK_NULL_HANDLE;
                     asInfo.dstAccelerationStructure = container->GetAccelerationStructure();
@@ -489,7 +489,7 @@ namespace dawn_native { namespace vulkan {
                     asInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
                     asInfo.pNext = nullptr;
                     asInfo.type = ToVulkanAccelerationContainerLevel(container->GetLevel());
-                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetFlags());
+                    asInfo.flags = ToVulkanBuildAccelerationContainerFlags(container->GetUsage());
                     asInfo.update = VK_TRUE;
                     asInfo.srcAccelerationStructure = container->GetAccelerationStructure();
                     asInfo.dstAccelerationStructure = container->GetAccelerationStructure();

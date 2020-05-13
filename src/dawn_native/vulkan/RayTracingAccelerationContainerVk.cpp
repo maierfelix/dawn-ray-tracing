@@ -33,9 +33,9 @@ namespace dawn_native { namespace vulkan {
             // process transform object
             if (descriptor.transform != nullptr) {
                 float transform[16] = {};
-                const Transform3D* tr = descriptor.transform->translation;
-                const Transform3D* ro = descriptor.transform->rotation;
-                const Transform3D* sc = descriptor.transform->scale;
+                const Transform3DDescriptor* tr = descriptor.transform->translation;
+                const Transform3DDescriptor* ro = descriptor.transform->rotation;
+                const Transform3DDescriptor* sc = descriptor.transform->scale;
                 Fill4x3TransformMatrix(transform, tr->x, tr->y, tr->z, ro->x, ro->y, ro->z, sc->x,
                                        sc->y, sc->z);
                 memcpy(&out.transform.matrix, transform, sizeof(out.transform));
@@ -47,7 +47,7 @@ namespace dawn_native { namespace vulkan {
             out.instanceCustomIndex = descriptor.instanceId;
             out.mask = descriptor.mask;
             out.instanceShaderBindingTableRecordOffset = descriptor.instanceOffset;
-            out.flags = ToVulkanAccelerationContainerInstanceFlags(descriptor.flags);
+            out.flags = ToVulkanAccelerationContainerInstanceFlags(descriptor.usage);
             out.accelerationStructureReference = geometryContainer->GetHandle();
             return out;
         }
@@ -106,7 +106,7 @@ namespace dawn_native { namespace vulkan {
                 VkAccelerationStructureGeometryKHR geometryInfo;
                 geometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
                 geometryInfo.pNext = nullptr;
-                geometryInfo.flags = ToVulkanAccelerationContainerGeometryFlags(geometry.flags);
+                geometryInfo.flags = ToVulkanAccelerationContainerGeometryFlags(geometry.usage);
                 geometryInfo.geometryType = ToVulkanGeometryType(geometry.type);
 
                 // reset
@@ -429,7 +429,7 @@ namespace dawn_native { namespace vulkan {
         accelerationStructureInfo.pNext = nullptr;
         accelerationStructureInfo.compactedSize = 0;
         accelerationStructureInfo.flags =
-            ToVulkanBuildAccelerationContainerFlags(descriptor->flags);
+            ToVulkanBuildAccelerationContainerFlags(descriptor->usage);
         accelerationStructureInfo.maxGeometryCount = accelerationGeometries.size();
         accelerationStructureInfo.pGeometryInfos = accelerationGeometries.data();
         accelerationStructureInfo.type = ToVulkanAccelerationContainerLevel(descriptor->level);

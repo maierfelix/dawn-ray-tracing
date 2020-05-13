@@ -103,52 +103,52 @@ namespace dawn_native { namespace d3d12 {
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
     ToD3D12RayTracingAccelerationStructureBuildFlags(
-        wgpu::RayTracingAccelerationContainerFlag buildFlags) {
+        wgpu::RayTracingAccelerationContainerUsage buildUsage) {
         uint32_t flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::AllowUpdate) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::AllowUpdate) {
             flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastBuild) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::PreferFastBuild) {
             flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::PreferFastTrace) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::PreferFastTrace) {
             flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
         }
-        if (buildFlags & wgpu::RayTracingAccelerationContainerFlag::LowMemory) {
+        if (buildUsage & wgpu::RayTracingAccelerationContainerUsage::LowMemory) {
             flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY;
         }
         return static_cast<D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS>(flags);
     }
 
-    D3D12_RAYTRACING_GEOMETRY_FLAGS ToD3D12RayTracingGeometryFlags(
-        wgpu::RayTracingAccelerationGeometryFlag geometryFlags) {
-        uint32_t flags = D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
-        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::Opaque) {
-            flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-        }
-        if (geometryFlags & wgpu::RayTracingAccelerationGeometryFlag::AllowAnyHit) {
-            flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION;
-        }
-        return static_cast<D3D12_RAYTRACING_GEOMETRY_FLAGS>(flags);
-    }
-
     D3D12_RAYTRACING_INSTANCE_FLAGS ToD3D12RayTracingInstanceFlags(
-        wgpu::RayTracingAccelerationInstanceFlag instanceFlags) {
+        wgpu::RayTracingAccelerationInstanceUsage instanceUsage) {
         uint32_t flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::TriangleCullDisable) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::TriangleCullDisable) {
             flags |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
         }
-        if (instanceFlags &
-            wgpu::RayTracingAccelerationInstanceFlag::TriangleFrontCounterclockwise) {
+        if (instanceUsage &
+            wgpu::RayTracingAccelerationInstanceUsage::TriangleFrontCounterclockwise) {
             flags |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
         }
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceOpaque) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::ForceOpaque) {
             flags |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
         }
-        if (instanceFlags & wgpu::RayTracingAccelerationInstanceFlag::ForceNoOpaque) {
+        if (instanceUsage & wgpu::RayTracingAccelerationInstanceUsage::ForceNoOpaque) {
             flags |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE;
         }
         return static_cast<D3D12_RAYTRACING_INSTANCE_FLAGS>(flags);
+    }
+
+    D3D12_RAYTRACING_GEOMETRY_FLAGS ToD3D12RayTracingGeometryFlags(
+        wgpu::RayTracingAccelerationGeometryUsage geometryUsage) {
+        uint32_t flags = D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
+        if (geometryUsage & wgpu::RayTracingAccelerationGeometryUsage::Opaque) {
+            flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+        }
+        if (geometryUsage & wgpu::RayTracingAccelerationGeometryUsage::AllowAnyHit) {
+            flags |= D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION;
+        }
+        return static_cast<D3D12_RAYTRACING_GEOMETRY_FLAGS>(flags);
     }
 
     D3D12_TEXTURE_COPY_LOCATION ComputeTextureCopyLocationForTexture(const Texture* texture,

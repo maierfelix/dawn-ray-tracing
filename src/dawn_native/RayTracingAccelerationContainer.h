@@ -50,7 +50,7 @@ namespace dawn_native {
 
         MaybeError ValidateCanUseInSubmitNow() const;
 
-        wgpu::RayTracingAccelerationContainerFlag GetFlags() const;
+        wgpu::RayTracingAccelerationContainerUsage GetUsage() const;
         wgpu::RayTracingAccelerationContainerLevel GetLevel() const;
 
       protected:
@@ -71,7 +71,7 @@ namespace dawn_native {
         bool mIsUpdated = false;
         bool mIsDestroyed = false;
 
-        wgpu::RayTracingAccelerationContainerFlag mFlags;
+        wgpu::RayTracingAccelerationContainerUsage mUsage;
         wgpu::RayTracingAccelerationContainerLevel mLevel;
 
         MaybeError ValidateUpdateInstance(

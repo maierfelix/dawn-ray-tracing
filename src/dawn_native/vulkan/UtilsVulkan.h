@@ -32,11 +32,11 @@ namespace dawn_native { namespace vulkan {
     VkAccelerationStructureTypeKHR ToVulkanAccelerationContainerLevel(
         wgpu::RayTracingAccelerationContainerLevel level);
     VkBuildAccelerationStructureFlagsKHR ToVulkanBuildAccelerationContainerFlags(
-        wgpu::RayTracingAccelerationContainerFlag buildFlags);
+        wgpu::RayTracingAccelerationContainerUsage buildUsage);
     VkGeometryInstanceFlagsKHR ToVulkanAccelerationContainerInstanceFlags(
-        wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
+        wgpu::RayTracingAccelerationInstanceUsage instanceUsage);
     VkGeometryFlagsKHR ToVulkanAccelerationContainerGeometryFlags(
-        wgpu::RayTracingAccelerationGeometryFlag geometryFlags);
+        wgpu::RayTracingAccelerationGeometryUsage geometryUsage);
     VkRayTracingShaderGroupTypeKHR ToVulkanShaderBindingTableGroupType(
         wgpu::RayTracingShaderBindingTableGroupType type);
 

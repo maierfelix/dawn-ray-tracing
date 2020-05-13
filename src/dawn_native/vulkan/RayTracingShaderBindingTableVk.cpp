@@ -57,9 +57,9 @@ namespace dawn_native { namespace vulkan {
 
         mShaderGroupHandleSize = rtProperties.shaderGroupHandleSize;
 
-        mStages.reserve(descriptor->stagesCount);
-        for (unsigned int ii = 0; ii < descriptor->stagesCount; ++ii) {
-            const RayTracingShaderBindingTableStagesDescriptor& stage = descriptor->stages[ii];
+        mStages.reserve(descriptor->stageCount);
+        for (unsigned int ii = 0; ii < descriptor->stageCount; ++ii) {
+            const RayTracingShaderBindingTableStageDescriptor& stage = descriptor->stages[ii];
             VkPipelineShaderStageCreateInfo stageInfo;
             stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stageInfo.pNext = nullptr;
@@ -72,9 +72,9 @@ namespace dawn_native { namespace vulkan {
             mStages.push_back(stageInfo);
         }
 
-        mGroups.reserve(descriptor->groupsCount);
-        for (unsigned int ii = 0; ii < descriptor->groupsCount; ++ii) {
-            const RayTracingShaderBindingTableGroupsDescriptor& group = descriptor->groups[ii];
+        mGroups.reserve(descriptor->groupCount);
+        for (unsigned int ii = 0; ii < descriptor->groupCount; ++ii) {
+            const RayTracingShaderBindingTableGroupDescriptor& group = descriptor->groups[ii];
             VkRayTracingShaderGroupCreateInfoKHR groupInfo;
             groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
             groupInfo.pNext = nullptr;

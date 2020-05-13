@@ -40,14 +40,14 @@ namespace dawn_native { namespace d3d12 {
 
         MaybeError Generate(RayTracingPipeline* pipeline, PipelineLayout* pipelineLayout);
 
-        std::vector<RayTracingShaderBindingTableStagesDescriptor>& GetStages();
-        std::vector<RayTracingShaderBindingTableGroupsDescriptor>& GetGroups();
+        std::vector<RayTracingShaderBindingTableStageDescriptor>& GetStages();
+        std::vector<RayTracingShaderBindingTableGroupDescriptor>& GetGroups();
 
       private:
         using RayTracingShaderBindingTableBase::RayTracingShaderBindingTableBase;
 
-        std::vector<RayTracingShaderBindingTableStagesDescriptor> mStages;
-        std::vector<RayTracingShaderBindingTableGroupsDescriptor> mGroups;
+        std::vector<RayTracingShaderBindingTableStageDescriptor> mStages;
+        std::vector<RayTracingShaderBindingTableGroupDescriptor> mGroups;
 
         ResourceHeapAllocation mTableResource;
         ComPtr<ID3D12Resource> mTableBuffer;

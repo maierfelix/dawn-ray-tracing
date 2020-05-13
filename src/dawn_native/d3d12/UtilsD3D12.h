@@ -35,11 +35,11 @@ namespace dawn_native { namespace d3d12 {
     DXGI_FORMAT ToD3D12RayTracingAccelerationContainerVertexFormat(wgpu::VertexFormat format);
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS
     ToD3D12RayTracingAccelerationStructureBuildFlags(
-        wgpu::RayTracingAccelerationContainerFlag buildFlags);
-    D3D12_RAYTRACING_GEOMETRY_FLAGS ToD3D12RayTracingGeometryFlags(
-        wgpu::RayTracingAccelerationGeometryFlag flags);
+        wgpu::RayTracingAccelerationContainerUsage buildUsage);
     D3D12_RAYTRACING_INSTANCE_FLAGS ToD3D12RayTracingInstanceFlags(
-        wgpu::RayTracingAccelerationInstanceFlag instanceFlags);
+        wgpu::RayTracingAccelerationInstanceUsage instanceUsage);
+    D3D12_RAYTRACING_GEOMETRY_FLAGS ToD3D12RayTracingGeometryFlags(
+        wgpu::RayTracingAccelerationGeometryUsage geometryUsage);
 
     D3D12_TEXTURE_COPY_LOCATION ComputeTextureCopyLocationForTexture(const Texture* texture,
                                                                      uint32_t level,

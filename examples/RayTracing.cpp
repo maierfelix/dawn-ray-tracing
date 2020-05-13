@@ -231,7 +231,7 @@ void init() {
         indexDescriptor.count = sizeof(indexData) / sizeof(uint32_t);
 
         WGPURayTracingAccelerationGeometryDescriptor geometry;
-        geometry.flags = WGPURayTracingAccelerationGeometryFlag_Opaque;
+        geometry.usage = WGPURayTracingAccelerationGeometryUsage_Opaque;
         geometry.type = WGPURayTracingAccelerationGeometryType_Triangles;
         geometry.vertex = &vertexDescriptor;
         geometry.index = &indexDescriptor;
@@ -239,7 +239,7 @@ void init() {
 
         WGPURayTracingAccelerationContainerDescriptor descriptor;
         descriptor.level = WGPURayTracingAccelerationContainerLevel_Bottom;
-        descriptor.flags = WGPURayTracingAccelerationContainerFlag_PreferFastTrace;
+        descriptor.usage = WGPURayTracingAccelerationContainerUsage_PreferFastTrace;
         descriptor.geometryCount = 1;
         descriptor.geometries = &geometry;
         descriptor.instanceCount = 0;
@@ -258,7 +258,7 @@ void init() {
         // clang-format on
 
         WGPURayTracingAccelerationInstanceDescriptor instanceDescriptor;
-        instanceDescriptor.flags = WGPURayTracingAccelerationInstanceFlag_TriangleCullDisable;
+        instanceDescriptor.usage = WGPURayTracingAccelerationInstanceUsage_TriangleCullDisable;
         instanceDescriptor.instanceId = 0;
         instanceDescriptor.instanceOffset = 0x0;
         instanceDescriptor.mask = 0xFF;
@@ -269,7 +269,7 @@ void init() {
 
         WGPURayTracingAccelerationContainerDescriptor descriptor;
         descriptor.level = WGPURayTracingAccelerationContainerLevel_Top;
-        descriptor.flags = WGPURayTracingAccelerationContainerFlag_PreferFastTrace;
+        descriptor.usage = WGPURayTracingAccelerationContainerUsage_PreferFastTrace;
         descriptor.geometryCount = 0;
         descriptor.geometries = nullptr;
         descriptor.instanceCount = 1;
@@ -300,39 +300,39 @@ void init() {
 
     WGPURayTracingShaderBindingTable sbt;
     {
-        WGPURayTracingShaderBindingTableStagesDescriptor stagesDescriptor[3];
-        stagesDescriptor[0].stage = WGPUShaderStage_RayGeneration;
-        stagesDescriptor[0].module = rayGenModule;
-        stagesDescriptor[1].stage = WGPUShaderStage_RayClosestHit;
-        stagesDescriptor[1].module = rayCHitModule;
-        stagesDescriptor[2].stage = WGPUShaderStage_RayMiss;
-        stagesDescriptor[2].module = rayMissModule;
+        WGPURayTracingShaderBindingTableStageDescriptor stageDescriptors[3];
+        stageDescriptors[0].stage = WGPUShaderStage_RayGeneration;
+        stageDescriptors[0].module = rayGenModule;
+        stageDescriptors[1].stage = WGPUShaderStage_RayClosestHit;
+        stageDescriptors[1].module = rayCHitModule;
+        stageDescriptors[2].stage = WGPUShaderStage_RayMiss;
+        stageDescriptors[2].module = rayMissModule;
 
-        WGPURayTracingShaderBindingTableGroupsDescriptor groupsDescriptor[3];
+        WGPURayTracingShaderBindingTableGroupDescriptor groupDescriptors[3];
         // gen
-        groupsDescriptor[0].type = WGPURayTracingShaderBindingTableGroupType_General;
-        groupsDescriptor[0].generalIndex = 0;
-        groupsDescriptor[0].closestHitIndex = -1;
-        groupsDescriptor[0].anyHitIndex = -1;
-        groupsDescriptor[0].intersectionIndex = -1;
+        groupDescriptors[0].type = WGPURayTracingShaderBindingTableGroupType_General;
+        groupDescriptors[0].generalIndex = 0;
+        groupDescriptors[0].closestHitIndex = -1;
+        groupDescriptors[0].anyHitIndex = -1;
+        groupDescriptors[0].intersectionIndex = -1;
         // hit
-        groupsDescriptor[1].type = WGPURayTracingShaderBindingTableGroupType_TrianglesHitGroup;
-        groupsDescriptor[1].generalIndex = -1;
-        groupsDescriptor[1].closestHitIndex = 1;
-        groupsDescriptor[1].anyHitIndex = -1;
-        groupsDescriptor[1].intersectionIndex = -1;
+        groupDescriptors[1].type = WGPURayTracingShaderBindingTableGroupType_TrianglesHitGroup;
+        groupDescriptors[1].generalIndex = -1;
+        groupDescriptors[1].closestHitIndex = 1;
+        groupDescriptors[1].anyHitIndex = -1;
+        groupDescriptors[1].intersectionIndex = -1;
         // miss
-        groupsDescriptor[2].type = WGPURayTracingShaderBindingTableGroupType_General;
-        groupsDescriptor[2].generalIndex = 2;
-        groupsDescriptor[2].closestHitIndex = -1;
-        groupsDescriptor[2].anyHitIndex = -1;
-        groupsDescriptor[2].intersectionIndex = -1;
+        groupDescriptors[2].type = WGPURayTracingShaderBindingTableGroupType_General;
+        groupDescriptors[2].generalIndex = 2;
+        groupDescriptors[2].closestHitIndex = -1;
+        groupDescriptors[2].anyHitIndex = -1;
+        groupDescriptors[2].intersectionIndex = -1;
 
         WGPURayTracingShaderBindingTableDescriptor descriptor{};
-        descriptor.stagesCount = 3;
-        descriptor.stages = stagesDescriptor;
-        descriptor.groupsCount = 3;
-        descriptor.groups = groupsDescriptor;
+        descriptor.stageCount = 3;
+        descriptor.stages = stageDescriptors;
+        descriptor.groupCount = 3;
+        descriptor.groups = groupDescriptors;
 
         sbt = wgpuDeviceCreateRayTracingShaderBindingTable(device, &descriptor);
     }
