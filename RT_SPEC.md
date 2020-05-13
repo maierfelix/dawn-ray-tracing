@@ -231,7 +231,7 @@ This bitmask gets extended with the following additional properties:
 
 ## Descriptors
 
-### GPUBindGroupBinding
+### GPUBindGroupEntry
 
 This descriptor gets extended with the following properties:
 
