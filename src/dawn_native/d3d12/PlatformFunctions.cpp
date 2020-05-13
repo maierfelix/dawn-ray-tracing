@@ -15,7 +15,6 @@
 #include "dawn_native/d3d12/PlatformFunctions.h"
 
 #include "common/DynamicLib.h"
-#include "common/SystemUtils.h"
 
 namespace dawn_native { namespace d3d12 {
 
@@ -27,6 +26,7 @@ namespace dawn_native { namespace d3d12 {
     MaybeError PlatformFunctions::LoadFunctions() {
         DAWN_TRY(LoadD3D12());
         DAWN_TRY(LoadDXGI());
+        LoadDXIL();
         LoadDXCompiler();
         DAWN_TRY(LoadFXCompiler());
         DAWN_TRY(LoadD3D11());
@@ -74,16 +74,17 @@ namespace dawn_native { namespace d3d12 {
         return {};
     }
 
+    void PlatformFunctions::LoadDXIL() {
+        if (!mDXILLib.Open("dxil.dll", nullptr)) {
+            mDXILLib.Close();
+        }
+    }
+
     void PlatformFunctions::LoadDXCompiler() {
-        DynamicLib dxilCompilerLib;
-        // DXIL must be loaded before DXC, otherwise shader signing is broken
-        if (dxilCompilerLib.Open("dxil.dll", nullptr)) {
-            // Now DXC can be loaded
-            if (mDXCompilerLib.Open("dxcompiler.dll", nullptr)) {
-                if (mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", nullptr)) {
-                    mIsDXCAvailable = true;
-                }
-            }
+        // DXIL must be loaded before DXC, otherwise shader signing is unavailable
+        if (!mDXCompilerLib.Open("dxcompiler.dll", nullptr) ||
+            !mDXCompilerLib.GetProc(&dxcCreateInstance, "DxcCreateInstance", nullptr)) {
+            mDXCompilerLib.Close();
         }
     }
 
@@ -102,7 +103,7 @@ namespace dawn_native { namespace d3d12 {
     }
 
     bool PlatformFunctions::IsDXCAvailable() const {
-        return mIsDXCAvailable;
+        return mDXILLib.Valid() && mDXCompilerLib.Valid();
     }
 
     void PlatformFunctions::LoadPIXRuntime() {
