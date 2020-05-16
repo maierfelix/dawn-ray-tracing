@@ -1,17 +1,12 @@
 # Dawn RT
 
-This is a fork of Dawn which gets extended with a Ray-Tracing extension. The extension is currently targeted at the Vulkan backend using *VK_KHR_ray_tracing*, but might be extended for the D3D12 backend as well.
-This project is expected to be used along [node-webgpu](https://github.com/maierfelix/webgpu).
+This is a fork of Dawn which gets extended with a Ray-Tracing extension. The extension is implemented into the Vulkan backend (using *VK_KHR_ray_tracing*) and the D3D12 backend (using *DXR*).
 
 The specification of the Ray-Tracing extension can be found [here](https://github.com/maierfelix/dawn-ray-tracing/blob/master/RT_SPEC.md).
 
 The relative WebGPU issue can be found [here](https://github.com/gpuweb/gpuweb/issues/535).
 
 An article covering the basic usage of the API can be found [here](http://maierfelix.github.io/2020-01-13-webgpu-ray-tracing/).
-
-## TODO
-
- - RT for D3D12 backend
 
 ## Preview
 
