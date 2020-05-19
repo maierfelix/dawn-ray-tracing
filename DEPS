@@ -61,7 +61,7 @@ deps = {
 
   # SPIRV-Cross
   'third_party/spirv-cross': {
-    'url': '{github_git}/maierfelix/SPIRV-Cross.git@ef6e321473b971a916a68e9fcec3d5bd9f38b703',
+    'url': '{github_git}/maierfelix/SPIRV-Cross.git@eee53da8834c3d10f805e91b22f392b39a10e1e4',
     'condition': 'dawn_standalone',
   },
 
