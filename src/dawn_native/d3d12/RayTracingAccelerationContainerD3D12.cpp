@@ -131,7 +131,7 @@ namespace dawn_native { namespace d3d12 {
                         geometry.aabb->offset;
                     geometryDesc.AABBs.AABBCount = geometry.aabb->count;
                     geometryDesc.AABBs.AABBs.StrideInBytes =
-                        static_cast<uint64_t>(geometry.vertex->stride);
+                        static_cast<uint64_t>(geometry.aabb->stride);
                 }
                 mGeometries.push_back(geometryDesc);
             }
