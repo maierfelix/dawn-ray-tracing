@@ -245,23 +245,33 @@ void init() {
     }
 
     {
-        // clang-format off
-        const float transformMatrix[] = {
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f
-		};
-        // clang-format on
+        WGPUTransform3DDescriptor translationDescriptor;
+        translationDescriptor.x = 0.0;
+        translationDescriptor.y = 0.0;
+        translationDescriptor.z = 0.0;
+        WGPUTransform3DDescriptor rotationDescriptor;
+        rotationDescriptor.x = 0.0;
+        rotationDescriptor.y = 0.0;
+        rotationDescriptor.z = 0.0;
+        WGPUTransform3DDescriptor scaleDescriptor;
+        scaleDescriptor.x = 1.0;
+        scaleDescriptor.y = 1.0;
+        scaleDescriptor.z = 1.0;
 
+        WGPURayTracingAccelerationInstanceTransformDescriptor transformDescriptor;
+        transformDescriptor.translation = &translationDescriptor;
+        transformDescriptor.rotation = &rotationDescriptor;
+        transformDescriptor.scale = &scaleDescriptor;
+        
         WGPURayTracingAccelerationInstanceDescriptor instanceDescriptor;
         instanceDescriptor.usage = WGPURayTracingAccelerationInstanceUsage_TriangleCullDisable;
         instanceDescriptor.instanceId = 0;
         instanceDescriptor.instanceOffset = 0x0;
         instanceDescriptor.mask = 0xFF;
         instanceDescriptor.geometryContainer = geometryContainer;
-        instanceDescriptor.transformMatrix = transformMatrix;
-        instanceDescriptor.transformMatrixSize = 12;
-        instanceDescriptor.transform = nullptr;
+        instanceDescriptor.transformMatrix = nullptr;
+        instanceDescriptor.transformMatrixSize = 0;
+        instanceDescriptor.transform = &transformDescriptor;
 
         WGPURayTracingAccelerationContainerDescriptor descriptor;
         descriptor.level = WGPURayTracingAccelerationContainerLevel_Top;
