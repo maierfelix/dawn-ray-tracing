@@ -202,6 +202,13 @@ namespace dawn_native { namespace d3d12 {
             case SingleShaderStage::Compute:
                 targetProfile = L"cs_6_0";
                 break;
+            case SingleShaderStage::RayGeneration:
+            case SingleShaderStage::RayAnyHit:
+            case SingleShaderStage::RayClosestHit:
+            case SingleShaderStage::RayMiss:
+            case SingleShaderStage::RayIntersection:
+                targetProfile = L"lib_6_3";
+                break;
         }
 
         IDxcLibrary* dxcLibrary;
@@ -257,6 +264,13 @@ namespace dawn_native { namespace d3d12 {
                 break;
             case SingleShaderStage::Compute:
                 targetProfile = "cs_5_1";
+                break;
+            case SingleShaderStage::RayGeneration:
+            case SingleShaderStage::RayAnyHit:
+            case SingleShaderStage::RayClosestHit:
+            case SingleShaderStage::RayMiss:
+            case SingleShaderStage::RayIntersection:
+                targetProfile = "";
                 break;
         }
 

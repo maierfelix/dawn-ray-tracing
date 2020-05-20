@@ -75,8 +75,7 @@ void init() {
         #version 460
         #extension GL_EXT_ray_tracing  : require
 
-        struct RayPayload { vec3 color; };
-        layout(location = 0) rayPayloadEXT RayPayload payload;
+        layout(location = 0) rayPayloadEXT vec3 payload;
 
         layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
         layout(set = 0, binding = 1, std140) buffer PixelBuffer {
@@ -90,10 +89,10 @@ void init() {
             const float aspectRatio = float(gl_LaunchSizeEXT.x) / float(gl_LaunchSizeEXT.y);
             const vec3 origin = vec3(0, 0, -1.5);
             const vec3 direction = normalize(vec3(d.x * aspectRatio, d.y, 1));
-            payload.color = vec3(0);
+            payload = vec3(0);
             traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin, 0.001, direction, 100.0, 0 );
             const uint pixelIndex = (gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y) * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x;
-            pixelBuffer.pixels[pixelIndex] = vec4(payload.color, 1.0);
+            pixelBuffer.pixels[pixelIndex] = vec4(payload, 1.0);
         }
     )";
 
@@ -101,19 +100,17 @@ void init() {
         #version 460 core
         #extension GL_EXT_ray_tracing : enable
 
-        struct RayPayload { vec3 color; };
-        layout(location = 0) rayPayloadInEXT RayPayload payload;
+        layout(location = 0) rayPayloadInEXT vec3 payload;
 
-        struct HitAttributeData { vec2 bary; };
-        hitAttributeEXT HitAttributeData attribs;
+        hitAttributeEXT vec2 attribs;
 
         void main() {
             vec3 bary = vec3(
-                1.0 - attribs.bary.x - attribs.bary.y,
-                attribs.bary.x,
-                attribs.bary.y
+                1.0 - attribs.x - attribs.y,
+                attribs.x,
+                attribs.y
             );
-            payload.color = bary;
+            payload = bary;
         }
     )";
 
@@ -121,11 +118,10 @@ void init() {
         #version 460 core
         #extension GL_EXT_ray_tracing : enable
 
-        struct RayPayload { vec3 color; };
-        layout(location = 0) rayPayloadInEXT RayPayload payload;
+        layout(location = 0) rayPayloadInEXT vec3 payload;
 
         void main() {
-            payload.color = vec3(0.15);
+            payload = vec3(0.15);
         }
     )";
 

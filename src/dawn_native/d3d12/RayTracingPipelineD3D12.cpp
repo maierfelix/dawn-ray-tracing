@@ -133,11 +133,15 @@ namespace dawn_native { namespace d3d12 {
         // Write shaders into subobjects
         for (unsigned int ii = 0; ii < stages.size(); ++ii) {
             RayTracingShaderBindingTableStageDescriptor& stage = stages[ii];
+            ShaderModule* module = ToBackend(stage.module);
             // Generate HLSL
             std::string shaderSource;
-            DAWN_TRY_ASSIGN(shaderSource, ToBackend(stage.module)->GetHLSLSource(layout));
+            uint32_t compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL2;
+            DAWN_TRY_ASSIGN(shaderSource, module->GetHLSLSource(layout));
             // Compile to DXBC
-            DAWN_TRY(CompileHLSLRayTracingShader(shaderSource, &shaderBlobs[ii]));
+            DAWN_TRY_ASSIGN(shaderBlobs[ii],
+                            module->CompileShaderDXC(module->GetExecutionModel(), shaderSource,
+                                                     "main", compileFlags));
             // Validate DXBC
             if (!IsValidDXBC(shaderBlobs[ii]->GetBufferPointer())) {
                 return DAWN_VALIDATION_ERROR("DXBC is corrupted or unsigned");
@@ -255,48 +259,6 @@ namespace dawn_native { namespace d3d12 {
 
     RayTracingPipeline::~RayTracingPipeline() {
         ToBackend(GetDevice())->ReferenceUntilUnused(mPipelineState);
-    }
-
-    MaybeError RayTracingPipeline::CompileHLSLRayTracingShader(std::string& hlslSource,
-                                                               IDxcBlob** pShaderBlob) {
-        Device* device = ToBackend(GetDevice());
-
-        ComPtr<IDxcCompiler> pCompiler;
-        ComPtr<IDxcLibrary> pLibrary;
-        ComPtr<IDxcBlobEncoding> pHlslBlob;
-        ComPtr<IDxcOperationResult> pHlslResult;
-
-        DAWN_TRY(CheckHRESULT(
-            device->GetFunctions()->dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)),
-            "DXC create compiler"));
-
-        DAWN_TRY(CheckHRESULT(
-            device->GetFunctions()->dxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)),
-            "DXC create library"));
-
-        DAWN_TRY(CheckHRESULT(pLibrary->CreateBlobWithEncodingFromPinned(
-                                  (unsigned char*)hlslSource.c_str(), (uint32_t)hlslSource.size(),
-                                  0, pHlslBlob.GetAddressOf()),
-                              "Create HLSL Blob"));
-
-        DAWN_TRY(CheckHRESULT(pCompiler->Compile(pHlslBlob.Get(), L"", L"", L"lib_6_3", nullptr, 0,
-                                                 nullptr, 0, nullptr, &pHlslResult),
-                              "Compile HLSL Blob"));
-
-        HRESULT resultCode;
-        DAWN_TRY(
-            CheckHRESULT(pHlslResult->GetStatus(&resultCode), "Verify HLSL compilation status"));
-        if (FAILED(resultCode)) {
-            ComPtr<IDxcBlobEncoding> pHlslError;
-            DAWN_TRY(CheckHRESULT(pHlslResult->GetErrorBuffer(&pHlslError),
-                                  "Failed to retrieve compilation error"));
-            std::string error = ConvertBlobToString(pHlslError.Get());
-            return DAWN_VALIDATION_ERROR(error);
-        }
-
-        DAWN_TRY(CheckHRESULT(pHlslResult->GetResult(pShaderBlob), "HLSL shader blob"));
-
-        return {};
     }
 
     void* RayTracingPipeline::GetShaderIdentifier(uint32_t index) {

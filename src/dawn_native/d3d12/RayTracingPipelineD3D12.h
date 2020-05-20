@@ -47,8 +47,6 @@ namespace dawn_native { namespace d3d12 {
         ComPtr<ID3D12StateObjectProperties> mPipelineInfo;
 
         std::vector<void*> mShaderExportIdentifiers;
-
-        MaybeError CompileHLSLRayTracingShader(std::string& hlslSource, IDxcBlob** pShaderBlob);
     };
 
 }}  // namespace dawn_native::d3d12
