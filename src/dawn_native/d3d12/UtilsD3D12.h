@@ -23,6 +23,8 @@
 
 namespace dawn_native { namespace d3d12 {
 
+    ResultOrError<std::wstring> ConvertStringToWstring(const char* str);
+
     D3D12_COMPARISON_FUNC ToD3D12ComparisonFunc(wgpu::CompareFunction func);
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE ToD3D12RayTracingAccelerationContainerLevel(

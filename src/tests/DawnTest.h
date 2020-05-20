@@ -89,10 +89,10 @@ struct RGBA8 {
 };
 std::ostream& operator<<(std::ostream& stream, const RGBA8& color);
 
-struct DawnTestParam {
-    DawnTestParam(wgpu::BackendType backendType,
-                  std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                  std::initializer_list<const char*> forceDisabledWorkarounds = {});
+struct BackendTestConfig {
+    BackendTestConfig(wgpu::BackendType backendType,
+                      std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                      std::initializer_list<const char*> forceDisabledWorkarounds = {});
 
     wgpu::BackendType backendType;
 
@@ -100,22 +100,41 @@ struct DawnTestParam {
     std::vector<const char*> forceDisabledWorkarounds;
 };
 
-std::ostream& operator<<(std::ostream& os, const DawnTestParam& param);
+struct TestAdapterProperties : wgpu::AdapterProperties {
+    TestAdapterProperties(const wgpu::AdapterProperties& properties, bool selected);
+    std::string adapterName;
+    bool selected;
 
-DawnTestParam D3D12Backend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                           std::initializer_list<const char*> forceDisabledWorkarounds = {});
+  private:
+    // This may be temporary, so it is copied into |adapterName| and made private.
+    using wgpu::AdapterProperties::name;
+};
 
-DawnTestParam MetalBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                           std::initializer_list<const char*> forceDisabledWorkarounds = {});
+struct AdapterTestParam {
+    AdapterTestParam(const BackendTestConfig& config,
+                     const TestAdapterProperties& adapterProperties);
 
-DawnTestParam NullBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                          std::initializer_list<const char*> forceDisabledWorkarounds = {});
+    TestAdapterProperties adapterProperties;
+    std::vector<const char*> forceEnabledWorkarounds;
+    std::vector<const char*> forceDisabledWorkarounds;
+};
 
-DawnTestParam OpenGLBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                            std::initializer_list<const char*> forceDisabledWorkarounds = {});
+std::ostream& operator<<(std::ostream& os, const AdapterTestParam& param);
 
-DawnTestParam VulkanBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
-                            std::initializer_list<const char*> forceDisabledWorkarounds = {});
+BackendTestConfig D3D12Backend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                               std::initializer_list<const char*> forceDisabledWorkarounds = {});
+
+BackendTestConfig MetalBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                               std::initializer_list<const char*> forceDisabledWorkarounds = {});
+
+BackendTestConfig NullBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                              std::initializer_list<const char*> forceDisabledWorkarounds = {});
+
+BackendTestConfig OpenGLBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                                std::initializer_list<const char*> forceDisabledWorkarounds = {});
+
+BackendTestConfig VulkanBackend(std::initializer_list<const char*> forceEnabledWorkarounds = {},
+                                std::initializer_list<const char*> forceDisabledWorkarounds = {});
 
 namespace utils {
     class TerribleCommandBuffer;
@@ -140,6 +159,10 @@ class DawnTestEnvironment : public testing::Environment {
 
     static void SetEnvironment(DawnTestEnvironment* env);
 
+    std::vector<AdapterTestParam> GetAvailableAdapterTestParamsForBackends(
+        const BackendTestConfig* params,
+        size_t numParams);
+
     void SetUp() override;
     void TearDown() override;
 
@@ -157,7 +180,10 @@ class DawnTestEnvironment : public testing::Environment {
     std::unique_ptr<dawn_native::Instance> mInstance;
 
   private:
-    void DiscoverOpenGLAdapter();
+    void ParseArgs(int argc, char** argv);
+    std::unique_ptr<dawn_native::Instance> CreateInstanceAndDiscoverAdapters() const;
+    void SelectPreferredAdapterProperties(const dawn_native::Instance* instance);
+    void PrintTestConfigurationAndAdapterInfo() const;
 
     bool mUseWire = false;
     bool mEnableBackendValidation = false;
@@ -170,13 +196,15 @@ class DawnTestEnvironment : public testing::Environment {
     bool mHasVendorIdFilter = false;
     uint32_t mVendorIdFilter = 0;
     std::string mWireTraceDir;
+    std::vector<dawn_native::DeviceType> mDevicePreferences;
+    std::vector<TestAdapterProperties> mAdapterProperties;
 };
 
 class DawnTestBase {
     friend class DawnPerfTestBase;
 
   public:
-    DawnTestBase(const DawnTestParam& param);
+    DawnTestBase(const AdapterTestParam& param);
     virtual ~DawnTestBase();
 
     void SetUp();
@@ -241,7 +269,6 @@ class DawnTestBase {
                                               uint32_t pixelSize,
                                               detail::Expectation* expectation);
 
-    bool HasAdapter() const;
     void WaitABit();
     void FlushWire();
 
@@ -256,7 +283,7 @@ class DawnTestBase {
     const wgpu::AdapterProperties& GetAdapterProperties() const;
 
   private:
-    DawnTestParam mParam;
+    AdapterTestParam mParam;
 
     // Things used to set up testing through the Wire.
     std::unique_ptr<dawn_wire::WireServer> mWireServer;
@@ -315,7 +342,6 @@ class DawnTestBase {
     void ResolveExpectations();
 
     dawn_native::Adapter mBackendAdapter;
-    wgpu::AdapterProperties mAdapterProperties;
 };
 
 // Skip a test when the given condition is satisfied.
@@ -328,23 +354,14 @@ class DawnTestBase {
         }                                                       \
     } while (0)
 
-template <typename Params = DawnTestParam>
+template <typename Params = AdapterTestParam>
 class DawnTestWithParams : public DawnTestBase, public ::testing::TestWithParam<Params> {
-  private:
-    void SetUp() override final {
-        // DawnTestBase::SetUp() gets the adapter, and creates the device and wire.
-        // It's separate from TestSetUp() so we can skip tests completely if no adapter
-        // is available.
-        DawnTestBase::SetUp();
-        DAWN_SKIP_TEST_IF(!HasAdapter());
-        TestSetUp();
-    }
-
   protected:
     DawnTestWithParams();
     ~DawnTestWithParams() override = default;
 
-    virtual void TestSetUp() {
+    void SetUp() override {
+        DawnTestBase::SetUp();
     }
 
     void TearDown() override {
@@ -358,21 +375,26 @@ DawnTestWithParams<Params>::DawnTestWithParams() : DawnTestBase(this->GetParam()
 
 using DawnTest = DawnTestWithParams<>;
 
+// Helpers to get the first element of a __VA_ARGS__ without triggering empty __VA_ARGS__ warnings.
+#define DAWN_INTERNAL_PP_GET_HEAD(firstParam, ...) firstParam
+#define DAWN_PP_GET_HEAD(...) DAWN_INTERNAL_PP_GET_HEAD(__VA_ARGS__, dummyArg)
+
 // Instantiate the test once for each backend provided after the first argument. Use it like this:
 //     DAWN_INSTANTIATE_TEST(MyTestFixture, MetalBackend, OpenGLBackend)
-#define DAWN_INSTANTIATE_TEST(testName, firstParam, ...)                         \
-    const decltype(firstParam) testName##params[] = {firstParam, ##__VA_ARGS__}; \
-    INSTANTIATE_TEST_SUITE_P(                                                    \
-        , testName,                                                              \
-        testing::ValuesIn(::detail::FilterBackends(                              \
-            testName##params, sizeof(testName##params) / sizeof(firstParam))),   \
+#define DAWN_INSTANTIATE_TEST(testName, ...)                                            \
+    const decltype(DAWN_PP_GET_HEAD(__VA_ARGS__)) testName##params[] = {__VA_ARGS__};   \
+    INSTANTIATE_TEST_SUITE_P(                                                           \
+        , testName,                                                                     \
+        testing::ValuesIn(::detail::GetAvailableAdapterTestParamsForBackends(           \
+            testName##params, sizeof(testName##params) / sizeof(testName##params[0]))), \
         testing::PrintToStringParamName())
-
 
 namespace detail {
     // Helper functions used for DAWN_INSTANTIATE_TEST
     bool IsBackendAvailable(wgpu::BackendType type);
-    std::vector<DawnTestParam> FilterBackends(const DawnTestParam* params, size_t numParams);
+    std::vector<AdapterTestParam> GetAvailableAdapterTestParamsForBackends(
+        const BackendTestConfig* params,
+        size_t numParams);
 
     // All classes used to implement the deferred expectations should inherit from this.
     class Expectation {

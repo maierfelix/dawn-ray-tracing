@@ -37,6 +37,7 @@
 #include "dawn_native/d3d12/ResidencyManagerD3D12.h"
 #include "dawn_native/d3d12/ResourceAllocatorManagerD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
+#include "dawn_native/d3d12/SamplerHeapCacheD3D12.h"
 #include "dawn_native/d3d12/ShaderModuleD3D12.h"
 #include "dawn_native/d3d12/ShaderVisibleDescriptorAllocatorD3D12.h"
 #include "dawn_native/d3d12/StagingBufferD3D12.h"
@@ -94,14 +95,6 @@ namespace dawn_native { namespace d3d12 {
         // Initialize backend services
         mCommandAllocatorManager = std::make_unique<CommandAllocatorManager>(this);
 
-        DAWN_TRY_ASSIGN(
-            mViewShaderVisibleDescriptorAllocator,
-            ShaderVisibleDescriptorAllocator::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-
-        DAWN_TRY_ASSIGN(
-            mSamplerShaderVisibleDescriptorAllocator,
-            ShaderVisibleDescriptorAllocator::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER));
-
         // Zero sized allocator is never requested and does not need to exist.
         for (uint32_t countIndex = 1; countIndex < kNumOfStagingDescriptorAllocators;
              countIndex++) {
@@ -120,9 +113,19 @@ namespace dawn_native { namespace d3d12 {
         mDepthStencilViewAllocator = std::make_unique<StagingDescriptorAllocator>(
             this, 1, kAttachmentDescriptorHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-        mMapRequestTracker = std::make_unique<MapRequestTracker>(this);
+        mSamplerHeapCache = std::make_unique<SamplerHeapCache>(this);
+
         mResidencyManager = std::make_unique<ResidencyManager>(this);
         mResourceAllocatorManager = std::make_unique<ResourceAllocatorManager>(this);
+
+        // ShaderVisibleDescriptorAllocators use the ResidencyManager and must be initialized after.
+        DAWN_TRY_ASSIGN(
+            mSamplerShaderVisibleDescriptorAllocator,
+            ShaderVisibleDescriptorAllocator::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER));
+
+        DAWN_TRY_ASSIGN(
+            mViewShaderVisibleDescriptorAllocator,
+            ShaderVisibleDescriptorAllocator::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 
         DAWN_TRY(NextSerial());
 
@@ -189,12 +192,16 @@ namespace dawn_native { namespace d3d12 {
         return ToBackend(GetAdapter())->GetBackend()->GetFactory();
     }
 
-    const PlatformFunctions* Device::GetFunctions() const {
-        return ToBackend(GetAdapter())->GetBackend()->GetFunctions();
+    ResultOrError<IDxcLibrary*> Device::GetOrCreateDxcLibrary() const {
+        return ToBackend(GetAdapter())->GetBackend()->GetOrCreateDxcLibrary();
     }
 
-    MapRequestTracker* Device::GetMapRequestTracker() const {
-        return mMapRequestTracker.get();
+    ResultOrError<IDxcCompiler*> Device::GetOrCreateDxcCompiler() const {
+        return ToBackend(GetAdapter())->GetBackend()->GetOrCreateDxcCompiler();
+    }
+
+    const PlatformFunctions* Device::GetFunctions() const {
+        return ToBackend(GetAdapter())->GetBackend()->GetFunctions();
     }
 
     CommandAllocatorManager* Device::GetCommandAllocatorManager() const {
@@ -226,7 +233,6 @@ namespace dawn_native { namespace d3d12 {
         mSamplerShaderVisibleDescriptorAllocator->Tick(completedSerial);
         mRenderTargetViewAllocator->Tick(completedSerial);
         mDepthStencilViewAllocator->Tick(completedSerial);
-        mMapRequestTracker->Tick(completedSerial);
         mUsedComObjectRefs.ClearUpTo(completedSerial);
         DAWN_TRY(ExecutePendingCommandContext());
         DAWN_TRY(NextSerial());
@@ -460,6 +466,8 @@ namespace dawn_native { namespace d3d12 {
         SetToggle(Toggle::UseD3D12ResourceHeapTier2, useResourceHeapTier2);
         SetToggle(Toggle::UseD3D12RenderPass, GetDeviceInfo().supportsRenderPass);
         SetToggle(Toggle::UseD3D12ResidencyManagement, true);
+        SetToggle(Toggle::UseDXC, false);
+
         // By default use the maximum shader-visible heap size allowed.
         SetToggle(Toggle::UseD3D12SmallShaderVisibleHeapForTesting, false);
     }
@@ -527,6 +535,10 @@ namespace dawn_native { namespace d3d12 {
 
     StagingDescriptorAllocator* Device::GetDepthStencilViewAllocator() const {
         return mDepthStencilViewAllocator.get();
+    }
+
+    SamplerHeapCache* Device::GetSamplerHeapCache() {
+        return mSamplerHeapCache.get();
     }
 
 }}  // namespace dawn_native::d3d12

@@ -22,6 +22,7 @@
 
 #include <cstring>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
 
 namespace utils {
@@ -71,6 +72,30 @@ namespace utils {
             return device.CreateShaderModule(&descriptor);
         }
 
+        class CompilerSingleton {
+          public:
+            static shaderc::Compiler* Get() {
+                std::call_once(mInitFlag, &CompilerSingleton::Initialize);
+                return mCompiler;
+            }
+
+          private:
+            CompilerSingleton() = default;
+            ~CompilerSingleton() = default;
+            CompilerSingleton(const CompilerSingleton&) = delete;
+            CompilerSingleton& operator=(const CompilerSingleton&) = delete;
+
+            static shaderc::Compiler* mCompiler;
+            static std::once_flag mInitFlag;
+
+            static void Initialize() {
+                mCompiler = new shaderc::Compiler();
+            }
+        };
+
+        shaderc::Compiler* CompilerSingleton::mCompiler = nullptr;
+        std::once_flag CompilerSingleton::mInitFlag;
+
     }  // anonymous namespace
 
     wgpu::ShaderModule CreateShaderModule(const wgpu::Device& device,
@@ -78,8 +103,8 @@ namespace utils {
                                           const char* source) {
         shaderc_shader_kind kind = ShadercShaderKind(stage);
 
-        shaderc::Compiler compiler;
-        auto result = compiler.CompileGlslToSpv(source, strlen(source), kind, "myshader?");
+        shaderc::Compiler* compiler = CompilerSingleton::Get();
+        auto result = compiler->CompileGlslToSpv(source, strlen(source), kind, "myshader?");
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
             dawn::ErrorLog() << result.GetErrorMessage();
             return {};
@@ -87,8 +112,8 @@ namespace utils {
 #ifdef DUMP_SPIRV_ASSEMBLY
         {
             shaderc::CompileOptions options;
-            auto resultAsm = compiler.CompileGlslToSpvAssembly(source, strlen(source), kind,
-                                                               "myshader?", options);
+            auto resultAsm = compiler->CompileGlslToSpvAssembly(source, strlen(source), kind,
+                                                                "myshader?", options);
             size_t sizeAsm = (resultAsm.cend() - resultAsm.cbegin());
 
             char* buffer = reinterpret_cast<char*>(malloc(sizeAsm + 1));
@@ -117,8 +142,8 @@ namespace utils {
     }
 
     wgpu::ShaderModule CreateShaderModuleFromASM(const wgpu::Device& device, const char* source) {
-        shaderc::Compiler compiler;
-        shaderc::SpvCompilationResult result = compiler.AssembleToSpv(source, strlen(source));
+        shaderc::Compiler* compiler = CompilerSingleton::Get();
+        shaderc::SpvCompilationResult result = compiler->AssembleToSpv(source, strlen(source));
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
             dawn::ErrorLog() << result.GetErrorMessage();
             return {};
@@ -130,8 +155,8 @@ namespace utils {
     std::vector<uint32_t> CompileGLSLToSpirv(SingleShaderStage stage, const char* source) {
         shaderc_shader_kind kind = ShadercShaderKind(stage);
 
-        shaderc::Compiler compiler;
-        auto result = compiler.CompileGlslToSpv(source, strlen(source), kind, "myshader?");
+        shaderc::Compiler* compiler = CompilerSingleton::Get();
+        auto result = compiler->CompileGlslToSpv(source, strlen(source), kind, "myshader?");
         if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
             dawn::ErrorLog() << result.GetErrorMessage();
             return {};

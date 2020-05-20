@@ -30,6 +30,7 @@
 #include "dawn_native/Fence.h"
 #include "dawn_native/FenceSignalTracker.h"
 #include "dawn_native/Instance.h"
+#include "dawn_native/MapRequestTracker.h"
 #include "dawn_native/PipelineLayout.h"
 #include "dawn_native/Queue.h"
 #include "dawn_native/RayTracingAccelerationContainer.h"
@@ -105,6 +106,7 @@ namespace dawn_native {
         mCaches = std::make_unique<DeviceBase::Caches>();
         mErrorScopeTracker = std::make_unique<ErrorScopeTracker>(this);
         mFenceSignalTracker = std::make_unique<FenceSignalTracker>(this);
+        mMapRequestTracker = std::make_unique<MapRequestTracker>(this);
         mDynamicUploader = std::make_unique<DynamicUploader>(this);
         mDeprecationWarnings = std::make_unique<DeprecationWarnings>();
 
@@ -149,14 +151,17 @@ namespace dawn_native {
             // pending callbacks.
             mErrorScopeTracker->Tick(GetCompletedCommandSerial());
             mFenceSignalTracker->Tick(GetCompletedCommandSerial());
+            mMapRequestTracker->Tick(GetCompletedCommandSerial());
         }
 
         // At this point GPU operations are always finished, so we are in the disconnected state.
         mState = State::Disconnected;
 
         mErrorScopeTracker = nullptr;
+        mCurrentErrorScope->UnlinkForShutdown();
         mFenceSignalTracker = nullptr;
         mDynamicUploader = nullptr;
+        mMapRequestTracker = nullptr;
 
         // Tell the backend that it can free all the objects now that the GPU timeline is empty.
         ShutDownImpl();
@@ -212,7 +217,13 @@ namespace dawn_native {
 
     void DeviceBase::ConsumeError(std::unique_ptr<ErrorData> error) {
         ASSERT(error != nullptr);
-        HandleError(error->GetType(), error->GetMessage().c_str());
+        std::ostringstream ss;
+        ss << error->GetMessage();
+        for (const auto& callsite : error->GetBacktrace()) {
+            ss << "\n    at " << callsite.function << " (" << callsite.file << ":" << callsite.line
+               << ")";
+        }
+        HandleError(error->GetType(), ss.str().c_str());
     }
 
     void DeviceBase::SetUncapturedErrorCallback(wgpu::ErrorCallback callback, void* userdata) {
@@ -295,6 +306,10 @@ namespace dawn_native {
 
     FenceSignalTracker* DeviceBase::GetFenceSignalTracker() const {
         return mFenceSignalTracker.get();
+    }
+
+    MapRequestTracker* DeviceBase::GetMapRequestTracker() const {
+        return mMapRequestTracker.get();
     }
 
     Serial DeviceBase::GetCompletedCommandSerial() const {
@@ -739,6 +754,7 @@ namespace dawn_native {
         mDynamicUploader->Deallocate(GetCompletedCommandSerial());
         mErrorScopeTracker->Tick(GetCompletedCommandSerial());
         mFenceSignalTracker->Tick(GetCompletedCommandSerial());
+        mMapRequestTracker->Tick(GetCompletedCommandSerial());
     }
 
     void DeviceBase::Reference() {
@@ -806,25 +822,10 @@ namespace dawn_native {
     MaybeError DeviceBase::CreateBindGroupInternal(BindGroupBase** result,
                                                    const BindGroupDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
-
-        // TODO(dawn:22): Remove this once users use entries/entryCount
-        BindGroupDescriptor fixedDescriptor = *descriptor;
-        if (fixedDescriptor.bindingCount != 0) {
-            if (fixedDescriptor.entryCount != 0) {
-                return DAWN_VALIDATION_ERROR("Cannot use bindings and entries at the same time");
-            } else {
-                EmitDeprecationWarning(
-                    "BindGroupEntry::bindings/bindingCount is deprecated, use entries/entryCount "
-                    "instead");
-                fixedDescriptor.entryCount = fixedDescriptor.bindingCount;
-                fixedDescriptor.entries = fixedDescriptor.bindings;
-            }
-        }
-
         if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateBindGroupDescriptor(this, &fixedDescriptor));
+            DAWN_TRY(ValidateBindGroupDescriptor(this, descriptor));
         }
-        DAWN_TRY_ASSIGN(*result, CreateBindGroupImpl(&fixedDescriptor));
+        DAWN_TRY_ASSIGN(*result, CreateBindGroupImpl(descriptor));
         return {};
     }
 
@@ -832,25 +833,10 @@ namespace dawn_native {
         BindGroupLayoutBase** result,
         const BindGroupLayoutDescriptor* descriptor) {
         DAWN_TRY(ValidateIsAlive());
-
-        // TODO(dawn:22): Remove this once users use entries/entryCount
-        BindGroupLayoutDescriptor fixedDescriptor = *descriptor;
-        if (fixedDescriptor.bindingCount != 0) {
-            if (fixedDescriptor.entryCount != 0) {
-                return DAWN_VALIDATION_ERROR("Cannot use bindings and entries at the same time");
-            } else {
-                EmitDeprecationWarning(
-                    "BindGroupLayoutEntry::bindings/bindingCount is deprecated, use "
-                    "entries/entryCount instead");
-                fixedDescriptor.entryCount = fixedDescriptor.bindingCount;
-                fixedDescriptor.entries = fixedDescriptor.bindings;
-            }
-        }
-
         if (IsValidationEnabled()) {
-            DAWN_TRY(ValidateBindGroupLayoutDescriptor(this, &fixedDescriptor));
+            DAWN_TRY(ValidateBindGroupLayoutDescriptor(this, descriptor));
         }
-        DAWN_TRY_ASSIGN(*result, GetOrCreateBindGroupLayout(&fixedDescriptor));
+        DAWN_TRY_ASSIGN(*result, GetOrCreateBindGroupLayout(descriptor));
         return {};
     }
 

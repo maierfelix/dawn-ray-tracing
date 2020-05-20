@@ -84,7 +84,9 @@ namespace dawn_native { namespace d3d12 {
         D3D12_RESOURCE_DESC resourceDescriptor;
         resourceDescriptor.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
         resourceDescriptor.Alignment = 0;
-        resourceDescriptor.Width = GetSize();
+        // TODO(cwallez@chromium.org): Have a global "zero" buffer that can do everything instead
+        // of creating a new 4-byte buffer?
+        resourceDescriptor.Width = std::max(GetSize(), uint64_t(4u));
         resourceDescriptor.Height = 1;
         resourceDescriptor.DepthOrArraySize = 1;
         resourceDescriptor.MipLevels = 1;
@@ -231,14 +233,6 @@ namespace dawn_native { namespace d3d12 {
         return mResourceAllocation.GetGPUPointer();
     }
 
-    void Buffer::OnMapCommandSerialFinished(uint32_t mapSerial, void* data, bool isWrite) {
-        if (isWrite) {
-            CallMapWriteCallback(mapSerial, WGPUBufferMapAsyncStatus_Success, data, GetSize());
-        } else {
-            CallMapReadCallback(mapSerial, WGPUBufferMapAsyncStatus_Success, data, GetSize());
-        }
-    }
-
     bool Buffer::IsMapWritable() const {
         // TODO(enga): Handle CPU-visible memory on UMA
         return (GetUsage() & (wgpu::BufferUsage::MapRead | wgpu::BufferUsage::MapWrite)) != 0;
@@ -248,12 +242,13 @@ namespace dawn_native { namespace d3d12 {
         // The mapped buffer can be accessed at any time, so it must be locked to ensure it is never
         // evicted. This buffer should already have been made resident when it was created.
         Heap* heap = ToBackend(mResourceAllocation.GetResourceHeap());
-        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockHeap(heap));
+        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockAllocation(heap));
 
         mWrittenMappedRange = {0, static_cast<size_t>(GetSize())};
         DAWN_TRY(CheckHRESULT(GetD3D12Resource()->Map(0, &mWrittenMappedRange,
                                                       reinterpret_cast<void**>(mappedPointer)),
                               "D3D12 map at creation"));
+        mMappedData = reinterpret_cast<char*>(mappedPointer);
         return {};
     }
 
@@ -261,18 +256,15 @@ namespace dawn_native { namespace d3d12 {
         // The mapped buffer can be accessed at any time, so we must make the buffer resident and
         // lock it to ensure it is never evicted.
         Heap* heap = ToBackend(mResourceAllocation.GetResourceHeap());
-        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockHeap(heap));
+        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockAllocation(heap));
 
         mWrittenMappedRange = {};
         D3D12_RANGE readRange = {0, static_cast<size_t>(GetSize())};
-        char* data = nullptr;
-        DAWN_TRY(
-            CheckHRESULT(GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&data)),
-                         "D3D12 map read async"));
+        DAWN_TRY(CheckHRESULT(
+            GetD3D12Resource()->Map(0, &readRange, reinterpret_cast<void**>(&mMappedData)),
+            "D3D12 map read async"));
         // There is no need to transition the resource to a new state: D3D12 seems to make the GPU
         // writes available when the fence is passed.
-        MapRequestTracker* tracker = ToBackend(GetDevice())->GetMapRequestTracker();
-        tracker->Track(this, serial, data, false);
         return {};
     }
 
@@ -280,17 +272,14 @@ namespace dawn_native { namespace d3d12 {
         // The mapped buffer can be accessed at any time, so we must make the buffer resident and
         // lock it to ensure it is never evicted.
         Heap* heap = ToBackend(mResourceAllocation.GetResourceHeap());
-        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockHeap(heap));
+        DAWN_TRY(ToBackend(GetDevice())->GetResidencyManager()->LockAllocation(heap));
 
         mWrittenMappedRange = {0, static_cast<size_t>(GetSize())};
-        char* data = nullptr;
-        DAWN_TRY(CheckHRESULT(
-            GetD3D12Resource()->Map(0, &mWrittenMappedRange, reinterpret_cast<void**>(&data)),
-            "D3D12 map write async"));
+        DAWN_TRY(CheckHRESULT(GetD3D12Resource()->Map(0, &mWrittenMappedRange,
+                                                      reinterpret_cast<void**>(&mMappedData)),
+                              "D3D12 map write async"));
         // There is no need to transition the resource to a new state: D3D12 seems to make the CPU
         // writes available on queue submission.
-        MapRequestTracker* tracker = ToBackend(GetDevice())->GetMapRequestTracker();
-        tracker->Track(this, serial, data, true);
         return {};
     }
 
@@ -299,8 +288,13 @@ namespace dawn_native { namespace d3d12 {
         // When buffers are mapped, they are locked to keep them in resident memory. We must unlock
         // them when they are unmapped.
         Heap* heap = ToBackend(mResourceAllocation.GetResourceHeap());
-        ToBackend(GetDevice())->GetResidencyManager()->UnlockHeap(heap);
+        ToBackend(GetDevice())->GetResidencyManager()->UnlockAllocation(heap);
         mWrittenMappedRange = {};
+        mMappedData = nullptr;
+    }
+
+    void* Buffer::GetMappedPointerImpl() {
+        return mMappedData;
     }
 
     void Buffer::DestroyImpl() {
@@ -308,7 +302,7 @@ namespace dawn_native { namespace d3d12 {
         // reference on its heap.
         if (IsMapped()) {
             Heap* heap = ToBackend(mResourceAllocation.GetResourceHeap());
-            ToBackend(GetDevice())->GetResidencyManager()->UnlockHeap(heap);
+            ToBackend(GetDevice())->GetResidencyManager()->UnlockAllocation(heap);
         }
 
         ToBackend(GetDevice())->DeallocateMemory(mResourceAllocation);
@@ -321,31 +315,6 @@ namespace dawn_native { namespace d3d12 {
 
     bool Buffer::CheckAllocationMethodForTesting(AllocationMethod allocationMethod) const {
         return mResourceAllocation.GetInfo().mMethod == allocationMethod;
-    }
-
-    MapRequestTracker::MapRequestTracker(Device* device) : mDevice(device) {
-    }
-
-    MapRequestTracker::~MapRequestTracker() {
-        ASSERT(mInflightRequests.Empty());
-    }
-
-    void MapRequestTracker::Track(Buffer* buffer, uint32_t mapSerial, void* data, bool isWrite) {
-        Request request;
-        request.buffer = buffer;
-        request.mapSerial = mapSerial;
-        request.data = data;
-        request.isWrite = isWrite;
-
-        mInflightRequests.Enqueue(std::move(request), mDevice->GetPendingCommandSerial());
-    }
-
-    void MapRequestTracker::Tick(Serial finishedSerial) {
-        for (auto& request : mInflightRequests.IterateUpTo(finishedSerial)) {
-            request.buffer->OnMapCommandSerialFinished(request.mapSerial, request.data,
-                                                       request.isWrite);
-        }
-        mInflightRequests.ClearUpTo(finishedSerial);
     }
 
 }}  // namespace dawn_native::d3d12

@@ -35,6 +35,7 @@
 #include "dawn_native/d3d12/RenderPassBuilderD3D12.h"
 #include "dawn_native/d3d12/RenderPipelineD3D12.h"
 #include "dawn_native/d3d12/SamplerD3D12.h"
+#include "dawn_native/d3d12/SamplerHeapCacheD3D12.h"
 #include "dawn_native/d3d12/ShaderVisibleDescriptorAllocatorD3D12.h"
 #include "dawn_native/d3d12/StagingDescriptorAllocatorD3D12.h"
 #include "dawn_native/d3d12/TextureCopySplitter.h"
@@ -98,6 +99,7 @@ namespace dawn_native { namespace d3d12 {
       public:
         BindGroupStateTracker(Device* device)
             : BindGroupAndStorageBarrierTrackerBase(),
+              mDevice(device),
               mViewAllocator(device->GetViewShaderVisibleDescriptorAllocator()),
               mSamplerAllocator(device->GetSamplerShaderVisibleDescriptorAllocator()) {
         }
@@ -124,7 +126,7 @@ namespace dawn_native { namespace d3d12 {
             for (uint32_t index : IterateBitSet(mDirtyBindGroups)) {
                 BindGroup* group = ToBackend(mBindGroups[index]);
                 didCreateBindGroupViews = group->PopulateViews(mViewAllocator);
-                didCreateBindGroupSamplers = group->PopulateSamplers(mSamplerAllocator);
+                didCreateBindGroupSamplers = group->PopulateSamplers(mDevice, mSamplerAllocator);
                 if (!didCreateBindGroupViews && !didCreateBindGroupSamplers) {
                     break;
                 }
@@ -150,7 +152,8 @@ namespace dawn_native { namespace d3d12 {
                 for (uint32_t index : IterateBitSet(mBindGroupLayoutsMask)) {
                     BindGroup* group = ToBackend(mBindGroups[index]);
                     didCreateBindGroupViews = group->PopulateViews(mViewAllocator);
-                    didCreateBindGroupSamplers = group->PopulateSamplers(mSamplerAllocator);
+                    didCreateBindGroupSamplers =
+                        group->PopulateSamplers(mDevice, mSamplerAllocator);
                     ASSERT(didCreateBindGroupViews);
                     ASSERT(didCreateBindGroupSamplers);
                 }
@@ -317,6 +320,8 @@ namespace dawn_native { namespace d3d12 {
                 }
             }
         }
+
+        Device* mDevice;
 
         bool mInCompute = false;
         bool mInRayTracing = false;
@@ -872,8 +877,8 @@ namespace dawn_native { namespace d3d12 {
                     ComputePipeline* pipeline = ToBackend(cmd->pipeline).Get();
                     PipelineLayout* layout = ToBackend(pipeline->GetLayout());
 
-                    commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
-                    commandList->SetPipelineState(pipeline->GetPipelineState().Get());
+                    commandList->SetComputeRootSignature(layout->GetRootSignature());
+                    commandList->SetPipelineState(pipeline->GetPipelineState());
 
                     bindingTracker->OnSetPipeline(pipeline);
 
@@ -1368,8 +1373,8 @@ namespace dawn_native { namespace d3d12 {
                     RenderPipeline* pipeline = ToBackend(cmd->pipeline).Get();
                     PipelineLayout* layout = ToBackend(pipeline->GetLayout());
 
-                    commandList->SetGraphicsRootSignature(layout->GetRootSignature().Get());
-                    commandList->SetPipelineState(pipeline->GetPipelineState().Get());
+                    commandList->SetGraphicsRootSignature(layout->GetRootSignature());
+                    commandList->SetPipelineState(pipeline->GetPipelineState());
                     commandList->IASetPrimitiveTopology(pipeline->GetD3D12PrimitiveTopology());
 
                     bindingTracker->OnSetPipeline(pipeline);

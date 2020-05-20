@@ -55,32 +55,13 @@ namespace dawn_native { namespace vulkan {
 
         bool IsMapWritable() const override;
         MaybeError MapAtCreationImpl(uint8_t** mappedPointer) override;
+        void* GetMappedPointerImpl() override;
 
         VkBuffer mHandle = VK_NULL_HANDLE;
         uint64_t mDeviceAddress = 0;
         ResourceMemoryAllocation mMemoryAllocation;
 
         wgpu::BufferUsage mLastUsage = wgpu::BufferUsage::None;
-    };
-
-    class MapRequestTracker {
-      public:
-        MapRequestTracker(Device* device);
-        ~MapRequestTracker();
-
-        void Track(Buffer* buffer, uint32_t mapSerial, void* data, bool isWrite);
-        void Tick(Serial finishedSerial);
-
-      private:
-        Device* mDevice;
-
-        struct Request {
-            Ref<Buffer> buffer;
-            uint32_t mapSerial;
-            void* data;
-            bool isWrite;
-        };
-        SerialQueue<Request> mInflightRequests;
     };
 
     struct MemoryEntry {

@@ -31,10 +31,10 @@ namespace dawn_native { namespace vulkan {
 
         class VulkanImageWrappingTestBase : public DawnTest {
           public:
-            void TestSetUp() override {
-                if (UsesWire()) {
-                    return;
-                }
+            void SetUp() override {
+                DawnTest::SetUp();
+                DAWN_SKIP_TEST_IF(UsesWire());
+                DAWN_SKIP_TEST_IF(IsSwiftshader());
 
                 deviceVk = reinterpret_cast<dawn_native::vulkan::Device*>(device.Get());
             }
@@ -200,9 +200,9 @@ namespace dawn_native { namespace vulkan {
 
     class VulkanImageWrappingValidationTests : public VulkanImageWrappingTestBase {
       public:
-        void TestSetUp() override {
-            VulkanImageWrappingTestBase::TestSetUp();
-            if (UsesWire()) {
+        void SetUp() override {
+            VulkanImageWrappingTestBase::SetUp();
+            if (UsesWire() || IsSwiftshader()) {
                 return;
             }
 
@@ -220,7 +220,7 @@ namespace dawn_native { namespace vulkan {
         }
 
         void TearDown() override {
-            if (UsesWire()) {
+            if (UsesWire() || IsSwiftshader()) {
                 VulkanImageWrappingTestBase::TearDown();
                 return;
             }
@@ -352,9 +352,9 @@ namespace dawn_native { namespace vulkan {
     // These tests are skipped if the harness is using the wire.
     class VulkanImageWrappingUsageTests : public VulkanImageWrappingTestBase {
       public:
-        void TestSetUp() override {
-            VulkanImageWrappingTestBase::TestSetUp();
-            if (UsesWire()) {
+        void SetUp() override {
+            VulkanImageWrappingTestBase::SetUp();
+            if (UsesWire() || IsSwiftshader()) {
                 return;
             }
 
@@ -382,7 +382,7 @@ namespace dawn_native { namespace vulkan {
         }
 
         void TearDown() override {
-            if (UsesWire()) {
+            if (UsesWire() || IsSwiftshader()) {
                 VulkanImageWrappingTestBase::TearDown();
                 return;
             }

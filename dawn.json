@@ -265,9 +265,7 @@
         "members": [
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
             {"name": "layout", "type": "bind group layout"},
-            {"name": "binding count", "type": "uint32_t", "default": 0},
-            {"name": "bindings", "type": "bind group entry", "annotation": "const*", "length": "binding count"},
-            {"name": "entry count", "type": "uint32_t", "default": 0},
+            {"name": "entry count", "type": "uint32_t"},
             {"name": "entries", "type": "bind group entry", "annotation": "const*", "length": "entry count"}
         ]
     },
@@ -283,7 +281,6 @@
             {"name": "type", "type": "binding type"},
             {"name": "has dynamic offset", "type": "bool", "default": "false"},
             {"name": "multisampled", "type": "bool", "default": "false"},
-            {"name": "texture dimension", "type": "texture view dimension", "default": "undefined"},
             {"name": "view dimension", "type": "texture view dimension", "default": "undefined"},
             {"name": "texture component type", "type": "texture component type", "default": "float"},
             {"name": "storage texture format", "type": "texture format", "default": "undefined"}
@@ -294,9 +291,7 @@
         "extensible": true,
         "members": [
             {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
-            {"name": "binding count", "type": "uint32_t", "default": 0},
-            {"name": "bindings", "type": "bind group layout entry", "annotation": "const*", "length": "binding count"},
-            {"name": "entry count", "type": "uint32_t", "default": 0},
+            {"name": "entry count", "type": "uint32_t"},
             {"name": "entries", "type": "bind group layout entry", "annotation": "const*", "length": "entry count"}
         ]
     },
@@ -404,9 +399,7 @@
         "members": [
             {"name": "buffer", "type": "buffer"},
             {"name": "offset", "type": "uint64_t", "default": 0},
-            {"name": "row pitch", "type": "uint32_t", "default": 0},
-            {"name": "image height", "type": "uint32_t", "default": 0},
-            {"name": "bytes per row", "type": "uint32_t", "default": 0},
+            {"name": "bytes per row", "type": "uint32_t"},
             {"name": "rows per image", "type": "uint32_t", "default": 0}
         ]
     },
@@ -887,10 +880,6 @@
                 ]
             },
             {
-                "name": "create queue",
-                "returns": "queue"
-            },
-            {
                 "name": "create render bundle encoder",
                 "returns": "render bundle encoder",
                 "args": [
@@ -1235,7 +1224,7 @@
                 "name": "create fence",
                 "returns": "fence",
                 "args": [
-                    {"name": "descriptor", "type": "fence descriptor", "annotation": "const*"}
+                    {"name": "descriptor", "type": "fence descriptor", "annotation": "const*", "optional": true}
                 ]
             }
         ]
@@ -1604,9 +1593,7 @@
         "category": "structure",
         "extensible": true,
         "members": [
-            {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true},
-            {"name": "code size", "type": "uint32_t",  "default": 0},
-            {"name": "code", "type": "uint32_t", "annotation": "const*", "length": "code size", "optional": true}
+            {"name": "label", "type": "char", "annotation": "const*", "length": "strlen", "optional": true}
         ]
     },
     "shader module SPIRV descriptor": {

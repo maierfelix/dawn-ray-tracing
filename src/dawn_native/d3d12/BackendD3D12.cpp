@@ -17,6 +17,7 @@
 #include "dawn_native/D3D12Backend.h"
 #include "dawn_native/Instance.h"
 #include "dawn_native/d3d12/AdapterD3D12.h"
+#include "dawn_native/d3d12/D3D12Error.h"
 #include "dawn_native/d3d12/PlatformFunctions.h"
 
 namespace dawn_native { namespace d3d12 {
@@ -33,11 +34,12 @@ namespace dawn_native { namespace d3d12 {
             // Enable the debug layer (requires the Graphics Tools "optional feature").
             {
                 if (enableBackendValidation) {
-                    ComPtr<ID3D12Debug> debugController;
+                    ComPtr<ID3D12Debug1> debugController;
                     if (SUCCEEDED(
                             functions->d3d12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
                         ASSERT(debugController != nullptr);
                         debugController->EnableDebugLayer();
+                        debugController->SetEnableGPUBasedValidation(true);
 
                         // Enable additional debug layers.
                         dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
@@ -89,6 +91,26 @@ namespace dawn_native { namespace d3d12 {
 
     ComPtr<IDXGIFactory4> Backend::GetFactory() const {
         return mFactory;
+    }
+
+    ResultOrError<IDxcLibrary*> Backend::GetOrCreateDxcLibrary() {
+        if (mDxcLibrary == nullptr) {
+            DAWN_TRY(CheckHRESULT(
+                mFunctions->dxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&mDxcLibrary)),
+                "DXC create library"));
+            ASSERT(mDxcLibrary != nullptr);
+        }
+        return mDxcLibrary.Get();
+    }
+
+    ResultOrError<IDxcCompiler*> Backend::GetOrCreateDxcCompiler() {
+        if (mDxcCompiler == nullptr) {
+            DAWN_TRY(CheckHRESULT(
+                mFunctions->dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mDxcCompiler)),
+                "DXC create compiler"));
+            ASSERT(mDxcCompiler != nullptr);
+        }
+        return mDxcCompiler.Get();
     }
 
     const PlatformFunctions* Backend::GetFunctions() const {

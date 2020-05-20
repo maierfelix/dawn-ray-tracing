@@ -542,40 +542,6 @@ namespace dawn_native {
             return {};
         }
 
-        // TODO(dawn:22): Remove this once users bytesPerRow/rowsPerImage
-        ResultOrError<BufferCopyView> FixBufferCopyView(DeviceBase* device,
-                                                        const BufferCopyView* original) {
-            BufferCopyView fixed = *original;
-
-            if (fixed.rowPitch != 0) {
-                if (fixed.bytesPerRow != 0) {
-                    return DAWN_VALIDATION_ERROR(
-                        "Cannot use rowPitch and bytesPerRow at the same time");
-                } else {
-                    device->EmitDeprecationWarning(
-                        "BufferCopyView::rowPitch is deprecated, use BufferCopyView::bytesPerRow "
-                        "instead");
-                    fixed.bytesPerRow = fixed.rowPitch;
-                    fixed.rowPitch = 0;
-                }
-            }
-
-            if (fixed.imageHeight != 0) {
-                if (fixed.rowsPerImage != 0) {
-                    return DAWN_VALIDATION_ERROR(
-                        "Cannot use imageHeight and rowsPerImage at the same time");
-                } else {
-                    device->EmitDeprecationWarning(
-                        "BufferCopyView::imageHeight is deprecated, use "
-                        "BufferCopyView::rowsPerImage instead");
-                    fixed.rowsPerImage = fixed.imageHeight;
-                    fixed.imageHeight = 0;
-                }
-            }
-
-            return fixed;
-        }
-
     }  // namespace
 
     CommandEncoder::CommandEncoder(DeviceBase* device, const CommandEncoderDescriptor*)
@@ -782,6 +748,11 @@ namespace dawn_native {
                 DAWN_TRY(GetDevice()->ValidateObject(source));
                 DAWN_TRY(GetDevice()->ValidateObject(destination));
 
+                if (source == destination) {
+                    return DAWN_VALIDATION_ERROR(
+                        "Source and destination cannot be the same buffer.");
+                }
+
                 DAWN_TRY(ValidateCopySizeFitsInBuffer(source, sourceOffset, size));
                 DAWN_TRY(ValidateCopySizeFitsInBuffer(destination, destinationOffset, size));
                 DAWN_TRY(ValidateB2BCopyAlignment(size, sourceOffset, destinationOffset));
@@ -809,24 +780,20 @@ namespace dawn_native {
                                              const TextureCopyView* destination,
                                              const Extent3D* copySize) {
         mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
-            // TODO(dawn:22): Remove this once users bytesPerRow/rowsPerImage
-            BufferCopyView fixedSource;
-            DAWN_TRY_ASSIGN(fixedSource, FixBufferCopyView(GetDevice(), source));
-
             // Validate objects before doing the defaulting.
             if (GetDevice()->IsValidationEnabled()) {
-                DAWN_TRY(GetDevice()->ValidateObject(fixedSource.buffer));
+                DAWN_TRY(GetDevice()->ValidateObject(source->buffer));
                 DAWN_TRY(GetDevice()->ValidateObject(destination->texture));
             }
 
             // Compute default values for bytesPerRow/rowsPerImage
-            uint32_t defaultedBytesPerRow = fixedSource.bytesPerRow;
+            uint32_t defaultedBytesPerRow = source->bytesPerRow;
             if (defaultedBytesPerRow == 0) {
                 defaultedBytesPerRow =
                     ComputeDefaultBytesPerRow(destination->texture->GetFormat(), copySize->width);
             }
 
-            uint32_t defaultedRowsPerImage = fixedSource.rowsPerImage;
+            uint32_t defaultedRowsPerImage = source->rowsPerImage;
             if (defaultedRowsPerImage == 0) {
                 defaultedRowsPerImage = copySize->height;
             }
@@ -850,21 +817,21 @@ namespace dawn_native {
                                                       &bufferCopySize));
 
                 DAWN_TRY(ValidateCopySizeFitsInTexture(*destination, *copySize));
-                DAWN_TRY(ValidateCopySizeFitsInBuffer(fixedSource, bufferCopySize));
-                DAWN_TRY(ValidateTexelBufferOffset(fixedSource, destination->texture->GetFormat()));
+                DAWN_TRY(ValidateCopySizeFitsInBuffer(*source, bufferCopySize));
+                DAWN_TRY(ValidateTexelBufferOffset(*source, destination->texture->GetFormat()));
 
-                DAWN_TRY(ValidateCanUseAs(fixedSource.buffer, wgpu::BufferUsage::CopySrc));
+                DAWN_TRY(ValidateCanUseAs(source->buffer, wgpu::BufferUsage::CopySrc));
                 DAWN_TRY(ValidateCanUseAs(destination->texture, wgpu::TextureUsage::CopyDst));
 
-                mTopLevelBuffers.insert(fixedSource.buffer);
+                mTopLevelBuffers.insert(source->buffer);
                 mTopLevelTextures.insert(destination->texture);
             }
 
             // Record the copy command.
             CopyBufferToTextureCmd* copy =
                 allocator->Allocate<CopyBufferToTextureCmd>(Command::CopyBufferToTexture);
-            copy->source.buffer = fixedSource.buffer;
-            copy->source.offset = fixedSource.offset;
+            copy->source.buffer = source->buffer;
+            copy->source.offset = source->offset;
             copy->source.bytesPerRow = defaultedBytesPerRow;
             copy->source.rowsPerImage = defaultedRowsPerImage;
             copy->destination.texture = destination->texture;
@@ -881,24 +848,20 @@ namespace dawn_native {
                                              const BufferCopyView* destination,
                                              const Extent3D* copySize) {
         mEncodingContext.TryEncode(this, [&](CommandAllocator* allocator) -> MaybeError {
-            // TODO(dawn:22): Remove this once users bytesPerRow/rowsPerImage
-            BufferCopyView fixedDestination;
-            DAWN_TRY_ASSIGN(fixedDestination, FixBufferCopyView(GetDevice(), destination));
-
             // Validate objects before doing the defaulting.
             if (GetDevice()->IsValidationEnabled()) {
                 DAWN_TRY(GetDevice()->ValidateObject(source->texture));
-                DAWN_TRY(GetDevice()->ValidateObject(fixedDestination.buffer));
+                DAWN_TRY(GetDevice()->ValidateObject(destination->buffer));
             }
 
             // Compute default values for bytesPerRow/rowsPerImage
-            uint32_t defaultedBytesPerRow = fixedDestination.bytesPerRow;
+            uint32_t defaultedBytesPerRow = destination->bytesPerRow;
             if (defaultedBytesPerRow == 0) {
                 defaultedBytesPerRow =
                     ComputeDefaultBytesPerRow(source->texture->GetFormat(), copySize->width);
             }
 
-            uint32_t defaultedRowsPerImage = fixedDestination.rowsPerImage;
+            uint32_t defaultedRowsPerImage = destination->rowsPerImage;
             if (defaultedRowsPerImage == 0) {
                 defaultedRowsPerImage = copySize->height;
             }
@@ -920,14 +883,14 @@ namespace dawn_native {
                                                       &bufferCopySize));
 
                 DAWN_TRY(ValidateCopySizeFitsInTexture(*source, *copySize));
-                DAWN_TRY(ValidateCopySizeFitsInBuffer(fixedDestination, bufferCopySize));
-                DAWN_TRY(ValidateTexelBufferOffset(fixedDestination, source->texture->GetFormat()));
+                DAWN_TRY(ValidateCopySizeFitsInBuffer(*destination, bufferCopySize));
+                DAWN_TRY(ValidateTexelBufferOffset(*destination, source->texture->GetFormat()));
 
                 DAWN_TRY(ValidateCanUseAs(source->texture, wgpu::TextureUsage::CopySrc));
-                DAWN_TRY(ValidateCanUseAs(fixedDestination.buffer, wgpu::BufferUsage::CopyDst));
+                DAWN_TRY(ValidateCanUseAs(destination->buffer, wgpu::BufferUsage::CopyDst));
 
                 mTopLevelTextures.insert(source->texture);
-                mTopLevelBuffers.insert(fixedDestination.buffer);
+                mTopLevelBuffers.insert(destination->buffer);
             }
 
             // Record the copy command.
@@ -938,8 +901,8 @@ namespace dawn_native {
             copy->copySize = *copySize;
             copy->source.mipLevel = source->mipLevel;
             copy->source.arrayLayer = source->arrayLayer;
-            copy->destination.buffer = fixedDestination.buffer;
-            copy->destination.offset = fixedDestination.offset;
+            copy->destination.buffer = destination->buffer;
+            copy->destination.offset = destination->offset;
             copy->destination.bytesPerRow = defaultedBytesPerRow;
             copy->destination.rowsPerImage = defaultedRowsPerImage;
 
