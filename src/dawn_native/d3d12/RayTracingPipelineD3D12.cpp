@@ -28,13 +28,6 @@ namespace dawn_native { namespace d3d12 {
 
     namespace {
 
-        std::string ConvertBlobToString(IDxcBlobEncoding* pBlob) {
-            std::vector<char> infoLog(pBlob->GetBufferSize() + 1);
-            memcpy(infoLog.data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
-            infoLog[pBlob->GetBufferSize()] = 0;
-            return std::string(infoLog.data());
-        }
-
         bool IsValidDXBC(void* buffer) {
             if (buffer == NULL)
                 return false;
