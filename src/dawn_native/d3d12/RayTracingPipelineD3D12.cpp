@@ -208,7 +208,7 @@ namespace dawn_native { namespace d3d12 {
         subObjects[subObjectIndex++] = payloadAssocObject;
 
         // Create global root signature
-        ID3D12RootSignature* pInterface = layout->GetRootSignature().Get();
+        ID3D12RootSignature* pInterface = layout->GetRootSignature();
         D3D12_STATE_SUBOBJECT globalRootSignatureObject;
         globalRootSignatureObject.pDesc = &pInterface;
         globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;

@@ -338,58 +338,54 @@ void init() {
     }
 
     {
-        WGPUBindGroupLayoutBinding bindingDescriptors[2];
+        WGPUBindGroupLayoutEntry entryDescriptors[2];
         // acceleration structure
-        bindingDescriptors[0] = {};
-        bindingDescriptors[0].binding = 0;
-        bindingDescriptors[0].type = WGPUBindingType_AccelerationContainer;
-        bindingDescriptors[0].visibility = WGPUShaderStage_RayGeneration;
+        entryDescriptors[0] = {};
+        entryDescriptors[0].binding = 0;
+        entryDescriptors[0].type = WGPUBindingType_AccelerationContainer;
+        entryDescriptors[0].visibility = WGPUShaderStage_RayGeneration;
         // pixel buffer
-        bindingDescriptors[1] = {};
-        bindingDescriptors[1].binding = 1;
-        bindingDescriptors[1].type = WGPUBindingType_StorageBuffer;
-        bindingDescriptors[1].visibility = WGPUShaderStage_RayGeneration;
+        entryDescriptors[1] = {};
+        entryDescriptors[1].binding = 1;
+        entryDescriptors[1].type = WGPUBindingType_StorageBuffer;
+        entryDescriptors[1].visibility = WGPUShaderStage_RayGeneration;
 
         WGPUBindGroupLayoutDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
-        descriptor.bindingCount = 0;
-        descriptor.bindings = nullptr;
         descriptor.entryCount = 2;
-        descriptor.entries = bindingDescriptors;
+        descriptor.entries = entryDescriptors;
 
         rtBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &descriptor);
     }
 
     {
-        WGPUBindGroupBinding bindingDescriptors[2];
+        WGPUBindGroupEntry entryDescriptors[2];
         // acceleration container
-        bindingDescriptors[0] = {};
-        bindingDescriptors[0].binding = 0;
-        bindingDescriptors[0].offset = 0;
-        bindingDescriptors[0].size = 0;
-        bindingDescriptors[0].buffer = nullptr;
-        bindingDescriptors[0].sampler = nullptr;
-        bindingDescriptors[0].textureView = nullptr;
-        bindingDescriptors[0].accelerationContainer = instanceContainer;
+        entryDescriptors[0] = {};
+        entryDescriptors[0].binding = 0;
+        entryDescriptors[0].offset = 0;
+        entryDescriptors[0].size = 0;
+        entryDescriptors[0].buffer = nullptr;
+        entryDescriptors[0].sampler = nullptr;
+        entryDescriptors[0].textureView = nullptr;
+        entryDescriptors[0].accelerationContainer = instanceContainer;
         // storage buffer
-        bindingDescriptors[1] = {};
-        bindingDescriptors[1].binding = 1;
-        bindingDescriptors[1].offset = 0;
-        bindingDescriptors[1].size = pixelBufferSize;
-        bindingDescriptors[1].buffer = pixelBuffer;
-        bindingDescriptors[1].sampler = nullptr;
-        bindingDescriptors[1].textureView = nullptr;
-        bindingDescriptors[1].accelerationContainer = nullptr;
+        entryDescriptors[1] = {};
+        entryDescriptors[1].binding = 1;
+        entryDescriptors[1].offset = 0;
+        entryDescriptors[1].size = pixelBufferSize;
+        entryDescriptors[1].buffer = pixelBuffer;
+        entryDescriptors[1].sampler = nullptr;
+        entryDescriptors[1].textureView = nullptr;
+        entryDescriptors[1].accelerationContainer = nullptr;
 
         WGPUBindGroupDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.layout = rtBindGroupLayout;
-        descriptor.bindingCount = 0;
-        descriptor.bindings = nullptr;
         descriptor.entryCount = 2;
-        descriptor.entries = bindingDescriptors;
+        descriptor.entries = entryDescriptors;
 
         rtBindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }
@@ -419,44 +415,40 @@ void init() {
     }
 
     {
-        WGPUBindGroupLayoutBinding bindingDescriptors[1];
+        WGPUBindGroupLayoutEntry entryDescriptors[1];
         // pixel buffer
-        bindingDescriptors[0] = {};
-        bindingDescriptors[0].binding = 0;
-        bindingDescriptors[0].type = WGPUBindingType_StorageBuffer;
-        bindingDescriptors[0].visibility = WGPUShaderStage_Fragment;
+        entryDescriptors[0] = {};
+        entryDescriptors[0].binding = 0;
+        entryDescriptors[0].type = WGPUBindingType_StorageBuffer;
+        entryDescriptors[0].visibility = WGPUShaderStage_Fragment;
 
         WGPUBindGroupLayoutDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
-        descriptor.bindingCount = 0;
-        descriptor.bindings = nullptr;
         descriptor.entryCount = 1;
-        descriptor.entries = bindingDescriptors;
+        descriptor.entries = entryDescriptors;
 
         bindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &descriptor);
     }
 
     {
-        WGPUBindGroupBinding bindingDescriptors[1];
+        WGPUBindGroupEntry entryDescriptors[1];
         // storage buffer
-        bindingDescriptors[0] = {};
-        bindingDescriptors[0].binding = 0;
-        bindingDescriptors[0].offset = 0;
-        bindingDescriptors[0].size = pixelBufferSize;
-        bindingDescriptors[0].buffer = pixelBuffer;
-        bindingDescriptors[0].sampler = nullptr;
-        bindingDescriptors[0].textureView = nullptr;
-        bindingDescriptors[0].accelerationContainer = nullptr;
+        entryDescriptors[0] = {};
+        entryDescriptors[0].binding = 0;
+        entryDescriptors[0].offset = 0;
+        entryDescriptors[0].size = pixelBufferSize;
+        entryDescriptors[0].buffer = pixelBuffer;
+        entryDescriptors[0].sampler = nullptr;
+        entryDescriptors[0].textureView = nullptr;
+        entryDescriptors[0].accelerationContainer = nullptr;
 
         WGPUBindGroupDescriptor descriptor;
         descriptor.label = nullptr;
         descriptor.nextInChain = nullptr;
         descriptor.layout = bindGroupLayout;
-        descriptor.bindingCount = 0;
-        descriptor.bindings = nullptr;
         descriptor.entryCount = 1;
-        descriptor.entries = bindingDescriptors;
+        descriptor.entries = entryDescriptors;
 
         bindGroup = wgpuDeviceCreateBindGroup(device, &descriptor);
     }

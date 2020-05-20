@@ -1017,7 +1017,7 @@ namespace dawn_native { namespace d3d12 {
                     RayTracingPipeline* pipeline = ToBackend(cmd->pipeline).Get();
                     PipelineLayout* layout = ToBackend(pipeline->GetLayout());
 
-                    commandList->SetComputeRootSignature(layout->GetRootSignature().Get());
+                    commandList->SetComputeRootSignature(layout->GetRootSignature());
                     commandList4->SetPipelineState1(pipeline->GetPipelineState());
 
                     bindingTracker->OnSetPipeline(pipeline);
