@@ -262,7 +262,7 @@ void init() {
         transformDescriptor.translation = &translationDescriptor;
         transformDescriptor.rotation = &rotationDescriptor;
         transformDescriptor.scale = &scaleDescriptor;
-        
+
         WGPURayTracingAccelerationInstanceDescriptor instanceDescriptor;
         instanceDescriptor.usage = WGPURayTracingAccelerationInstanceUsage_TriangleCullDisable;
         instanceDescriptor.instanceId = 0;

@@ -23,12 +23,12 @@ namespace dawn_native {
     class RayTracingPassEncoder final : public ProgrammablePassEncoder {
       public:
         RayTracingPassEncoder(DeviceBase* device,
-                           CommandEncoder* commandEncoder,
-                           EncodingContext* encodingContext);
+                              CommandEncoder* commandEncoder,
+                              EncodingContext* encodingContext);
 
         static RayTracingPassEncoder* MakeError(DeviceBase* device,
-                                             CommandEncoder* commandEncoder,
-                                             EncodingContext* encodingContext);
+                                                CommandEncoder* commandEncoder,
+                                                EncodingContext* encodingContext);
 
         void EndPass();
 
@@ -42,9 +42,9 @@ namespace dawn_native {
 
       protected:
         RayTracingPassEncoder(DeviceBase* device,
-                           CommandEncoder* commandEncoder,
-                           EncodingContext* encodingContext,
-                           ErrorTag errorTag);
+                              CommandEncoder* commandEncoder,
+                              EncodingContext* encodingContext,
+                              ErrorTag errorTag);
 
       private:
         // For render and compute passes, the encoding context is borrowed from the command encoder.

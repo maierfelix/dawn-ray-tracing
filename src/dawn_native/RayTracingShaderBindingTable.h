@@ -25,8 +25,9 @@
 
 namespace dawn_native {
 
-    MaybeError ValidateRayTracingShaderBindingTableDescriptor(DeviceBase* device,
-                                           const RayTracingShaderBindingTableDescriptor* descriptor);
+    MaybeError ValidateRayTracingShaderBindingTableDescriptor(
+        DeviceBase* device,
+        const RayTracingShaderBindingTableDescriptor* descriptor);
 
     class RayTracingShaderBindingTableBase : public ObjectBase {
       public:

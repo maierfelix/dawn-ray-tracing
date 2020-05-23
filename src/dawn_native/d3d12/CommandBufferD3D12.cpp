@@ -1075,7 +1075,9 @@ namespace dawn_native { namespace d3d12 {
                     }
                 } break;
 
-                default: { UNREACHABLE(); } break;
+                default: {
+                    UNREACHABLE();
+                } break;
             }
         }
 
