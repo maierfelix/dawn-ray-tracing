@@ -17,7 +17,7 @@ Updates the state of an instance inside a Top-Level container.
 | Type | Description |
 | :--- | :--- |
 | Number | The instance id
-| [GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor) | The Bottom-Level container with the geometry
+| [GPURayTracingAccelerationInstanceDescriptor](#GPURayTracingAccelerationInstanceDescriptor) | The instance data to update with
 
 ### GPURayTracingShaderBindingTable
 
