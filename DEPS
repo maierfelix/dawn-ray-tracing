@@ -67,25 +67,25 @@ deps = {
 
   # SPIRV compiler dependencies: SPIRV-Tools, SPIRV-headers, glslang and shaderc
   'third_party/SPIRV-Tools': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@c8590c18bd0c70dcd1caa7d43c5f2d020439b012',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@d3d89bb90cbd8786086e4f657076f3189fb1f667',
     'condition': 'dawn_standalone',
   },
   'third_party/spirv-headers': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@c0df742ec0b8178ad58c68cff3437ad4b6a06e26',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@ac638f1815425403e946d0ab78bac71d2bdbf3be',
     'condition': 'dawn_standalone',
   },
   'third_party/glslang': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@4fa68edd68197a8c77779942b5d973f89c621752',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@2b0eafb1de5b4a1b77cf123545ea269d44248885',
     'condition': 'dawn_standalone',
   },
   'third_party/shaderc': {
-    'url': '{chromium_git}/external/github.com/google/shaderc@00ac5d82178cfb5679fe19194d5794fdb01cdd00',
+    'url': '{chromium_git}/external/github.com/google/shaderc@7d2f8c57ee3eff68ca2ae17d9d067de63bfe344d',
     'condition': 'dawn_standalone',
   },
 
   # WGSL support
   'third_party/tint': {
-    'url': '{dawn_git}/tint@0bbf1e7460936422db9207a73cf987d510a8ae15',
+    'url': '{dawn_git}/tint@537039009663418971b7104b0659a4e4525ba078',
     'condition': 'dawn_standalone',
   },
 
@@ -109,15 +109,15 @@ deps = {
 
   # Khronos Vulkan headers, validation layers and loader.
   'third_party/vulkan-headers': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@e01f13e1f777cf592ebd1a5f4836d4cd10ed85f6',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@09531f27933bf04bffde9074acb302e026e8f181',
     'condition': 'dawn_standalone',
   },
   'third_party/vulkan-validation-layers': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@528e098bae94470d8ccbe112f2ddfc420dc9a9a4',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@31bdb2d4376919f5964dd8314dd2192810f08b36',
     'condition': 'dawn_standalone',
   },
   'third_party/vulkan-loader': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@50eaecd721a2280a3eb9366c50c4b19e75d7e53e',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@006586926adece57adea3e006140b5df19826371',
     'condition': 'dawn_standalone',
   },
 
@@ -212,7 +212,7 @@ hooks = [
   {
     'name': 'binutils',
     'pattern': 'src/third_party/binutils',
-    'condition': 'host_os == "linux"',
+    'condition': 'host_os == "linux" and dawn_standalone',
     'action': [
         'python',
         'third_party/binutils/download.py',
