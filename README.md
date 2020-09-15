@@ -8,6 +8,10 @@ The relative WebGPU issue can be found [here](https://github.com/gpuweb/gpuweb/i
 
 An article covering the basic usage of the API can be found [here](http://maierfelix.github.io/2020-01-13-webgpu-ray-tracing/).
 
+A Chromium build with Ray Tracing capabilities can be found [here](https://github.com/maierfelix/chromium-ray-tracing).
+
+**- I'm looking for sponsors to continue working on this project -**
+
 ## Preview
 
 <img src="https://i.imgur.com/VgPB36q.png" width="488"><br/>
